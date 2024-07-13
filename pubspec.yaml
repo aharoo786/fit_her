@@ -74,6 +74,7 @@ dev_dependencies:
   agora_token_service: ^0.1.2
   wakelock_plus: ^1.1.4
   webview_flutter: ^4.8.0
+  flutter_dotenv: ^5.1.0
 #  uni_links: ^0.5.1
   #  agora_chat_sdk: ^1.1.1
   #  screen_recorder: ^0.2.0
@@ -98,6 +99,7 @@ flutter:
     - assets/icons/
     - assets/profileImage/
     - assets/
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

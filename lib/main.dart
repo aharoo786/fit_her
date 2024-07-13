@@ -1,5 +1,5 @@
 
-import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fitness_zone_2/values/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +17,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await dotenv.load(fileName: ".env");
 
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
