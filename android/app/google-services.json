@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "591042819842",
+    "project_id": "fither-e7a36",
+    "storage_bucket": "fither-e7a36.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:591042819842:android:b48deab996674d0e77f41b",
+        "android_client_info": {
+          "package_name": "com.abtechnologies.fitHer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrH8hJ_VE_VYRj4Kx3anZ4hl_0ypfxzvU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:591042819842:android:617bd82a60657e9b77f41b",
+        "android_client_info": {
+          "package_name": "com.example.fither"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrH8hJ_VE_VYRj4Kx3anZ4hl_0ypfxzvU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
