@@ -14,7 +14,7 @@ import 'Success_Stories.dart';
 import 'about_us_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
-  ProfileScreen({Key? key,this.fromWelcomeScreen=false}) : super(key: key);
+  ProfileScreen({Key? key, this.fromWelcomeScreen = false}) : super(key: key);
   final bool fromWelcomeScreen;
 //  final HomeController homeController = Get.find();
 
@@ -64,40 +64,54 @@ class ProfileScreen extends StatelessWidget {
                   height: 10.h,
                 ),
                 // Get.find<AuthController>().sharedPreferences.getBool(Constants.isGuest)!?SizedBox():
-                fromWelcomeScreen?const SizedBox.shrink():   rowWidget(MyImgs.logOut, "Log Out", () {
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text(
-                            "Log Out",
-                            style: textTheme.headlineSmall,
-                          ),
-                          content: Text(
-                            "Are you sure you want to logout?",
-                            style: textTheme.bodyMedium,
-                          ),
-                          actions: [
-                            TextButton(
-                                onPressed: () {
-                                  Get.back();
-                                },
-                                child: Text(
-                                  "Cancel",
+                fromWelcomeScreen
+                    ? const SizedBox.shrink()
+                    : rowWidget(MyImgs.logOut, "Log Out", () {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text(
+                                  "Log Out",
+                                  style: textTheme.headlineSmall,
+                                ),
+                                content: Text(
+                                  "Are you sure you want to logout?",
                                   style: textTheme.bodyMedium,
-                                )),
-                            TextButton(
-                                onPressed: () {
-                                  // Get.find<AuthController>().logout();
-                                  Get.offAll(() => ChooseAnyOne());
-                                },
-                                child: Text(
-                                  "Logout",
-                                  style: textTheme.bodyMedium,
-                                )),
-                          ],
-                        );
-                      });
+                                ),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () {
+                                        Get.back();
+                                      },
+                                      child: Text(
+                                        "Cancel",
+                                        style: textTheme.bodyMedium,
+                                      )),
+                                  TextButton(
+                                      onPressed: () {
+                                        // Get.find<AuthController>().logout();
+                                        Get.offAll(() => ChooseAnyOne());
+                                      },
+                                      child: Text(
+                                        "Logout",
+                                        style: textTheme.bodyMedium,
+                                      )),
+                                ],
+                              );
+                            });
+                      }),
+                rowWidget(MyImgs.delete1, "Delete Account", () {
+                  Get.defaultDialog(
+                      title: "Alert",
+                      content: const Text(
+                          "Do you really want to delete your Account"),
+                      onConfirm: () async {
+                        Get.back();
+
+                        Get.find<AuthController>().deleteUser();
+                      },
+                      onCancel: () async {});
                 }),
               ],
             ),

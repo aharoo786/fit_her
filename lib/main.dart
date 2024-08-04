@@ -1,4 +1,6 @@
 
+import 'dart:io';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fitness_zone_2/values/styles.dart';
 import 'package:flutter/material.dart';
@@ -21,14 +23,20 @@ Future<void> main() async {
 
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  await Firebase.initializeApp(
-      options: const FirebaseOptions(
-          apiKey: "AIzaSyCrH8hJ_VE_VYRj4Kx3anZ4hl_0ypfxzvU",
-          appId: "1:591042819842:android:617bd82a60657e9b77f41b",
-          messagingSenderId: "591042819842",
-          projectId: "fither-e7a36"
-      )
-  );
+  if(Platform.isIOS){
+    await Firebase.initializeApp();
+  }
+  else{
+    await Firebase.initializeApp(
+        options: const FirebaseOptions(
+            apiKey: "AIzaSyCrH8hJ_VE_VYRj4Kx3anZ4hl_0ypfxzvU",
+            appId: "1:591042819842:android:617bd82a60657e9b77f41b",
+            messagingSenderId: "591042819842",
+            projectId: "fither-e7a36"
+        )
+    );
+  }
+
 
   await di.init();
 

@@ -117,8 +117,9 @@ class AuthController extends GetxController implements GetxService {
     notificationServices.isTokenRefresh();
     notificationServices.initializeNewHttpsSettingS();
     // notificationServices.getAccessToken();
-
+    notificationServices.getApns();
     notificationServices.getDeviceToken();
+
     //print('device token ${localStorageMethods.getDvToken()}');
   }
 
@@ -258,6 +259,38 @@ class AuthController extends GetxController implements GetxService {
           Get.dialog(const Center(child: CircularProgressIndicator()),
               barrierDismissible: false);
           await authRepo.logout(accessToken: token).then((response) {
+            Get.back();
+            if (response.statusCode == 200) {
+              if (response.body["status"] == "0") {
+                CustomToast.failToast(msg: response.body["message"]);
+              } else if (response.body["status"] != "0") {
+                if (response.body["status"] == "1") {
+                  sharedPreferences.clear();
+                  Get.offAll(() => const WalkThroughScreen());
+                }
+              }
+            } else {
+              CustomToast.failToast(msg: response.body["message"]);
+            }
+          });
+        }
+      });
+    } else {
+      CustomToast.failToast(msg: "You are not Logged in.");
+    }
+  }
+  deleteUser() {
+    var token = sharedPreferences.getString(Constants.accessToken);
+    if (token != null) {
+      debugPrint(" => Access Token :$token");
+
+      connectionService.checkConnection().then((value) async {
+        if (!value) {
+          CustomToast.noInternetToast();
+        } else {
+          Get.dialog(const Center(child: CircularProgressIndicator()),
+              barrierDismissible: false);
+          await authRepo.deleteUser(id: sharedPreferences.getString(Constants.userId)??"").then((response) {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {

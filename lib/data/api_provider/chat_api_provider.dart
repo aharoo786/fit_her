@@ -43,7 +43,7 @@ class ChatApiProvider extends GetConnect implements GetxService {
 
     final Uri url = Uri.parse(Constants.chatBaseUrl);
 
-    print('====> API Call: [${url.toString()}]\n$body\n$headers');
+    print('===: API Call: [${url.toString()}]\n$body\n$headers');
 
     try {
       final response = await http.post(
@@ -69,7 +69,19 @@ class ChatApiProvider extends GetConnect implements GetxService {
 }
 
 Future<String> getAccessToken() async {
-  final accountCredentials = auth.ServiceAccountCredentials.fromJson(dotenv.get('ServiceAccountCredentials'));
+  final accountCredentials = auth.ServiceAccountCredentials.fromJson({
+  "type" : dotenv.get('FIREBASE_TYPE'),
+  "project_id" : dotenv.get('FIREBASE_PROJECT_ID'),
+  "private_key_id" : dotenv.get('FIREBASE_PRIVATE_KEY_ID'),
+  "private_key" : dotenv.get('FIREBASE_PRIVATE_KEY'),
+  "client_email" : dotenv.get('FIREBASE_CLIENT_EMAIL'),
+  "client_id" : dotenv.get('FIREBASE_CLIENT_ID'),
+  "auth_uri" : dotenv.get('FIREBASE_AUTH_URI'),
+  "token_uri" : dotenv.get('FIREBASE_TOKEN_URI'),
+  "auth_provider_x509_cert_url" : dotenv.get('FIREBASE_AUTH_PROVIDER_X509_CERT_URL'),
+  "client_x509_cert_url" : dotenv.get('FIREBASE_CLIENT_X509_CERT_URL'),
+  "universe_domain" : dotenv.get('FIREBASE_UNIVERSE_DOMAIN'),
+  });
 
   final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
 

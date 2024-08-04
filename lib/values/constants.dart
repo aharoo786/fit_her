@@ -83,4 +83,5 @@ class Constants {
   static String getUserPlan = "/users/get_user_plans";
   static String stripePayment = "/users/stripe_payment";
   static String logout = "/users/logout";
+  static String deleteUser = "/users/delete_user";
 }

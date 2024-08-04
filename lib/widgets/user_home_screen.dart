@@ -116,57 +116,60 @@ class UserHomeScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: EdgeInsets.only(
-                              left: 12.w, top: 8.h, bottom: 8.h, right: 70.w),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.4),
-                                blurRadius: 22.0,
-                                spreadRadius: 0.0,
-                                offset: const Offset(
-                                    0.0, 0.0), // shadow direction: bottom right
-                              )
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Image.asset(
-                                    MyImgs.calender2,
-                                    scale: 4,
-                                  ),
-                                  SizedBox(
-                                    width: 5.w,
-                                  ),
-                                  Text(
-                                    "Days Spend",
-                                    style: textTheme.bodySmall!
-                                        .copyWith(fontWeight: FontWeight.w400),
-                                  ),
-                                ],
-                              ),
-                              RichText(
-                                  text: TextSpan(
-                                      text:
-                                          "${homeController.userHomeData!.spendDays}",
-                                      style: textTheme.bodyLarge!.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      children: [
-                                    TextSpan(
-                                        text: " days",
-                                        style: textTheme.bodySmall!.copyWith(
-                                            fontWeight: FontWeight.w400,
-                                            color:
-                                                Colors.black.withOpacity(0.4)))
-                                  ]))
-                            ],
+                        SizedBox(width: 10.w,),
+                        Expanded(
+                          child: Container(
+                            padding: EdgeInsets.only(
+                                left: 12.w, top: 8.h, bottom: 8.h, ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.4),
+                                  blurRadius: 22.0,
+                                  spreadRadius: 0.0,
+                                  offset: const Offset(
+                                      0.0, 0.0), // shadow direction: bottom right
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Image.asset(
+                                      MyImgs.calender2,
+                                      scale: 4,
+                                    ),
+                                    SizedBox(
+                                      width: 5.w,
+                                    ),
+                                    Text(
+                                      "Days Spend",
+                                      style: textTheme.bodySmall!
+                                          .copyWith(fontWeight: FontWeight.w400),
+                                    ),
+                                  ],
+                                ),
+                                RichText(
+                                    text: TextSpan(
+                                        text:
+                                            "${homeController.userHomeData!.spendDays}",
+                                        style: textTheme.bodyLarge!.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        children: [
+                                      TextSpan(
+                                          text: " days",
+                                          style: textTheme.bodySmall!.copyWith(
+                                              fontWeight: FontWeight.w400,
+                                              color:
+                                                  Colors.black.withOpacity(0.4)))
+                                    ]))
+                              ],
+                            ),
                           ),
                         )
                       ],

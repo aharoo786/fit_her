@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../values/constants.dart';
-import 'package:googleapis_auth/auth_io.dart' as auth;
 
 class NotificationServices {
   //initialising firebase message plugin
@@ -128,6 +127,19 @@ class NotificationServices {
   static String? deviceToken;
   Future<String?> getDeviceToken() async {
     await FirebaseMessaging.instance.getToken().then((token) {
+      if (token != null) {
+        deviceToken = token;
+        print("device Token: $token");
+        sharedPreferences.setString(Constants.deviceToken, deviceToken!);
+      }
+    }).catchError((onError) {
+      print("the error is $onError");
+    });
+    return deviceToken;
+  }
+
+  Future<String?> getApns() async {
+    await FirebaseMessaging.instance.getAPNSToken().then((token) {
       if (token != null) {
         deviceToken = token;
         print("device Token: $token");

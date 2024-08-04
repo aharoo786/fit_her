@@ -109,6 +109,10 @@ class AuthRepo extends GetxService {
     return await apiProvider
         .postData(Constants.logout, body: {"accessToken": accessToken});
   }
+  Future deleteUser({required String id}) async {
+    return await apiProvider
+        .postData(Constants.deleteUser, body: {"userId": id});
+  }
 
   // checkSessionRepo({required String accessToken, required bool isGuest}) async {
   //   return await apiProvider.postData(Constants.sessionPath,

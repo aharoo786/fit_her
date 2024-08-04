@@ -84,9 +84,9 @@ class AllUsersScreen extends StatelessWidget {
                                     user.phone;
                                 homeController.passwordController.text = "";
 
-                                if(user.userPlans.isNotEmpty){
-                                  homeController.dateExtendController.text="${user.userPlans[0].expireDate.difference(DateTime.now()).inDays} days";
-
+                                if (user.userPlans.isNotEmpty) {
+                                  homeController.dateExtendController.text =
+                                      "${user.userPlans[0].expireDate.difference(DateTime.now()).inDays} days";
                                 }
 
                                 Get.to(() => EditUser(
