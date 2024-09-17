@@ -19,7 +19,8 @@ class ChatRoom extends StatefulWidget {
   final String chatRoomId;
   final Map<String, dynamic> userMap;
   bool isUpdated = false;
-  ChatRoom({required this.chatRoomId, required this.userMap});
+  bool showBack;
+  ChatRoom({required this.chatRoomId, required this.userMap,this.showBack=false});
 
   @override
   State<ChatRoom> createState() => _ChatRoomState();
@@ -105,8 +106,11 @@ class _ChatRoomState extends State<ChatRoom>
               "time": Timestamp.now()
             });
             checkAndAddUser();
-            Get.find<AuthController>().sendMessageNotifications(
-                {"title": "A new message arrived", "body": _message.text,"deviceToken":widget.userMap["deviceToken"]});
+            Get.find<AuthController>().sendMessageNotifications({
+              "title": "A new message arrived",
+              "body": _message.text,
+              "deviceToken": widget.userMap["deviceToken"]
+            });
             _message.clear();
           }
         }
@@ -137,9 +141,7 @@ class _ChatRoomState extends State<ChatRoom>
             //    Get.find<AudioController>().selectedId="";
           },
           child: Scaffold(
-            appBar: HelpingWidgets().appBarWidget(() {
-              Get.back();
-            }, text: "Chat Room"),
+            appBar: HelpingWidgets().appBarWidget(widget.showBack?(){Get.back();}:null, text: "Chat Room"),
             body:
                 // SingleChildScrollView(
                 //     child:
@@ -200,26 +202,33 @@ class _ChatRoomState extends State<ChatRoom>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Expanded(
-                        child: TextFormField(
-                          expands: true,
-                          controller: _message,
-                          //  cursorHeight: 30,
-                          maxLines: null,
-                          keyboardType: TextInputType.multiline,
-                          onChanged: (value) {},
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.all(5),
-                            hintText: "Send Message ...",
-                            hintStyle: const TextStyle(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(15),
+                            color: Colors.grey.withOpacity(0.5),
+
+                          ),
+                          child: TextFormField(
+                            expands: true,
+                            controller: _message,
+                            //  cursorHeight: 30,
+                            maxLines: null,
+                            keyboardType: TextInputType.multiline,
+                            onChanged: (value) {},
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.all(10),
+                              hintText: "Send Message ...",
+                              hintStyle: const TextStyle(
+                                decoration: TextDecoration.none,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 12,
                               decoration: TextDecoration.none,
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            decoration: TextDecoration.none,
                           ),
                         ),
                       ),
@@ -274,17 +283,18 @@ class _ChatRoomState extends State<ChatRoom>
             top: 5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.only(
-              topRight: const Radius.circular(8),
-              topLeft: const Radius.circular(8),
+              topRight: const Radius.circular(15),
+              topLeft: const Radius.circular(15),
               bottomLeft:
                   map['sendBy'] == Get.find<AuthController>().logInUser!.id
-                      ? const Radius.circular(8)
+                      ? const Radius.circular(15)
                       : const Radius.circular(0),
               bottomRight:
                   map['sendBy'] == Get.find<AuthController>().logInUser!.id
                       ? const Radius.circular(0)
-                      : const Radius.circular(8)),
-          color: MyColors.buttonColor,
+                      : const Radius.circular(15)),
+          color:  map['sendBy'] == Get.find<AuthController>().logInUser!.id
+              ?MyColors.grey.withOpacity(0.3):MyColors.buttonColor,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -305,7 +315,8 @@ class _ChatRoomState extends State<ChatRoom>
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
-                color: Colors.white,
+                color:map['sendBy'] == Get.find<AuthController>().logInUser!.id
+                    ?Colors.black: Colors.white,
               ),
             ),
           ],

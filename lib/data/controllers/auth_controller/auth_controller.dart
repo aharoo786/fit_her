@@ -20,6 +20,11 @@ import '../../models/api_response/api_response_model.dart';
 import '../../models/get_user_plan/get_user_plan.dart';
 import '../../models/user_model/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '/helper/get_di.dart' as di;
+
+import '../diet_contoller/diet_controller.dart';
+import '../progress_controller/progress_controller.dart';
+import '../workout_controller/work_out_controller.dart';
 
 class AuthController extends GetxController implements GetxService {
   SharedPreferences sharedPreferences;
@@ -49,12 +54,19 @@ class AuthController extends GetxController implements GetxService {
   TextEditingController expiryDate = TextEditingController();
   TextEditingController cvc = TextEditingController();
 
+  ///Edit controller
+  TextEditingController editFirstName = TextEditingController();
+  TextEditingController editLastName = TextEditingController();
+  TextEditingController editEmail = TextEditingController();
+
   ///countryCode
   var countryCode = Constants.countryCode;
-  final List<String> users = [
-    'Admin',
-    'Host',
-    'User',
+  List<String> addTeamMember = [
+    "Dietition",
+    "Trainer",
+    "Gynecologist",
+    "Psychiatrist",
+    "Admin"
   ];
 
   ///Sign in User
@@ -93,7 +105,7 @@ class AuthController extends GetxController implements GetxService {
   ];
 
   ///get All users
-  GetDietitianUsers getDietitianUsers = GetDietitianUsers(plans: []);
+  GetDietitianUsers getDietitianUsers = GetDietitianUsers(result: []);
 
   var memerDesig = "Trainer";
 
@@ -138,7 +150,7 @@ class AuthController extends GetxController implements GetxService {
     super.onInit();
   }
 
-  login() {
+  login(String userType) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
@@ -175,6 +187,8 @@ class AuthController extends GetxController implements GetxService {
                   Get.find<HomeController>().getTrainerHomeFunc();
                 } else if (loginAsA.value == Constants.dietitian) {
                   Get.find<HomeController>().getDietHomeFunc();
+                } else if (loginAsA.value == Constants.admin) {
+                  Get.find<HomeController>().getTrialPlanDetails();
                 } else if (loginAsA.value == Constants.user) {
                   if (!logInUser!.status) {
                     Get.find<HomeController>().getPlans();
@@ -183,23 +197,9 @@ class AuthController extends GetxController implements GetxService {
                   }
                 }
 
-                await FirebaseFirestore.instance
-                    .collection("users")
-                    .doc(logInUser!.id.toString())
-                    .set({
-                  "id": logInUser!.id.toString(),
-                  "name": logInUser!.firstName,
-                  "time": Timestamp.now(),
-                  "remoteId": 0,
-                  "deviceToken":
-                      sharedPreferences.getString(Constants.deviceToken)
-                });
                 loginUserPhone.clear();
                 loginUserPassword.clear();
-
-                // await homeData();
-
-                Get.offAll(() => BottomBarScreen());
+                updateUserDetails();
               }
             }
           } else {
@@ -208,6 +208,35 @@ class AuthController extends GetxController implements GetxService {
         });
       }
     });
+  }
+
+  updateUserDetails() async {
+    Map<String, dynamic> userMap;
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(logInUser!.id.toString())
+        .set({
+      "id": logInUser!.id.toString(),
+      "name": logInUser!.firstName,
+      "time": Timestamp.now(),
+      "remoteId": 0,
+      "deviceToken": sharedPreferences.getString(Constants.deviceToken)
+    });
+    var userMap1 = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(logInUser!.adminId.toString())
+        .get();
+    userMap = userMap1.data()!;
+    String roomId = (logInUser!.id.toString().hashCode +
+            logInUser!.adminId.toString().hashCode)
+        .toString();
+    editFirstName.text = logInUser!.firstName;
+    editLastName.text = logInUser!.lastName;
+    editEmail.text = logInUser!.email;
+    Get.offAll(() => BottomBarScreen(
+          roomId: roomId,
+          userMap: userMap,
+        ));
   }
 
   guestLogin(String result) {
@@ -258,7 +287,7 @@ class AuthController extends GetxController implements GetxService {
         } else {
           Get.dialog(const Center(child: CircularProgressIndicator()),
               barrierDismissible: false);
-          await authRepo.logout(accessToken: token).then((response) {
+          await authRepo.logout(accessToken: token).then((response) async {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {
@@ -266,6 +295,7 @@ class AuthController extends GetxController implements GetxService {
               } else if (response.body["status"] != "0") {
                 if (response.body["status"] == "1") {
                   sharedPreferences.clear();
+
                   Get.offAll(() => const WalkThroughScreen());
                 }
               }
@@ -279,6 +309,7 @@ class AuthController extends GetxController implements GetxService {
       CustomToast.failToast(msg: "You are not Logged in.");
     }
   }
+
   deleteUser() {
     var token = sharedPreferences.getString(Constants.accessToken);
     if (token != null) {
@@ -290,7 +321,10 @@ class AuthController extends GetxController implements GetxService {
         } else {
           Get.dialog(const Center(child: CircularProgressIndicator()),
               barrierDismissible: false);
-          await authRepo.deleteUser(id: sharedPreferences.getString(Constants.userId)??"").then((response) {
+          await authRepo
+              .deleteUser(
+                  id: sharedPreferences.getString(Constants.userId) ?? "")
+              .then((response) {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {

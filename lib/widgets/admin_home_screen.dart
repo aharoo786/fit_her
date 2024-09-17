@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/add_package.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/get_all_new_user_images/get_new_user_images.dart';
+import 'package:fitness_zone_2/UI/plans_module/assign_workout_diet_plan.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -128,9 +129,22 @@ class AdminHomeScreen extends StatelessWidget {
             ),
             GestureDetector(
               onTap: () {
+                Get.to(() => AssignWorkoutDietPlan());
+                homeController.getAllDietitian();
+                homeController.getWorkoutAndTrainerPlan();
+              },
+              child: containerWidget(const Color(0xffFdE4F1),
+                  "Assign Workout and Diet Plan", MyImgs.package),
+            ),
+            SizedBox(
+              height: 16.h,
+            ),
+            GestureDetector(
+              onTap: () {
                 Get.to(() => AddNewUser(
                       isMember: true,
                     ));
+                homeController.selectedSubCatId.value = 0;
                 homeController.getPlans();
               },
               child: containerWidget(
@@ -173,6 +187,19 @@ class AdminHomeScreen extends StatelessWidget {
               child: containerWidget(const Color(0xffE6EEFF),
                   "Add Testimonials", MyImgs.annoucements),
             ),
+            SizedBox(
+              height: 20.h,
+            ),
+            Obx(
+              () => homeController.trialPlanLoad.value
+                  ? containerWidget(const Color(0xffE6EEFF), "Start Free Trial",
+                      MyImgs.annoucements,
+                      isShowSwitch: true,
+                      switchValue: homeController.trailPlan?.status,
+                      id: homeController.trailPlan!.id.toString())
+                  : SizedBox(),
+            ),
+
             SizedBox(
               height: 20.h,
             ),

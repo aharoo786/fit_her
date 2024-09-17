@@ -16,7 +16,7 @@ import '../../../widgets/custom_textfield.dart';
 class EditUser extends StatelessWidget {
   EditUser({Key? key, required this.user}) : super(key: key);
 
-  final User user;
+  final UserElement user;
   final AuthController authController = Get.find();
   final HomeController homeController = Get.find();
 
@@ -139,13 +139,13 @@ class EditUser extends StatelessWidget {
                   ),
                   Obx(
                     () => Switch(
-                        value: user.freeze.value,
+                        value: user.user.freeze.value,
                         activeColor: MyColors.buttonColor,
                         activeTrackColor: MyColors.buttonColor.withOpacity(0.5),
                         inactiveThumbColor: Colors.red,
                         inactiveTrackColor: Colors.redAccent,
                         onChanged: (value) {
-                          user.freeze.value = value;
+                          user.user.freeze.value = value;
                         }),
                   )
                 ],
@@ -153,15 +153,61 @@ class EditUser extends StatelessWidget {
               SizedBox(
                 height: 20.h,
               ),
-              if(user.userPlans.isNotEmpty && user.userPlans[0].myPlan !=null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("User Plan",style: TextStyle(fontSize: 20.sp ,fontWeight: FontWeight.w700),),
-                  Text(user.userPlans[0].myPlan!.title,style: TextStyle(fontSize: 20.sp ,fontWeight: FontWeight.w400),),
-                ],
-              )
-
+              if (user.plans != null)
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "User Plan",
+                          style: TextStyle(
+                              fontSize: 20.sp, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          user.plans!.plan.title,
+                          style: TextStyle(
+                              fontSize: 20.sp, fontWeight: FontWeight.w400),
+                        ),
+                      ],
+                    ),
+                    if (user.assigned != null)
+                      if (user.assigned!.user != null)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Dietitian name",
+                              style: TextStyle(
+                                  fontSize: 18.sp, fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              "${user.assigned!.user!.firstName} ${user!.assigned!.user!.lastName}",
+                              style: TextStyle(
+                                  fontSize: 18.sp, fontWeight: FontWeight.w400),
+                            ),
+                          ],
+                        ),
+                    if (user.assigned != null) ...{
+                      if (user.assigned!.trainer != null)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Trainer name",
+                              style: TextStyle(
+                                  fontSize: 18.sp, fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              "${user.assigned!.trainer!.firstName} ${user!.assigned!.trainer!.lastName}",
+                              style: TextStyle(
+                                  fontSize: 18.sp, fontWeight: FontWeight.w400),
+                            ),
+                          ],
+                        ),
+                    }
+                  ],
+                )
             ],
           ),
         ),
@@ -174,17 +220,16 @@ class EditUser extends StatelessWidget {
             CustomButton(
                 text: "Update",
                 onPressed: () async {
-                  if(user.userPlans.isEmpty){
-                    CustomToast.failToast(msg: "No Plan assign to this user yet");
-                  }
-                  else{
+                  if (user.plans == null) {
+                    CustomToast.failToast(
+                        msg: "No Plan assign to this user yet");
+                  } else {
                     homeController.updateUser(
-                        user.id,
-                        user.freeze.value,
+                        user.user.id,
+                        user.user.freeze.value,
                         homeController.dateExtendController.text.split(" ")[0],
-                        user.userPlans[0].id.toString());
+                        user.plans!.planId.toString());
                   }
-
                 }),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../widgets/app_bar_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,9 +14,7 @@ class ResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(() {
-        Get.back();
-      }, text: "Result"),
+      appBar: HelpingWidgets().appBarWidget(null, text: "Result"),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         //crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,6 +58,16 @@ class ResultScreen extends StatelessWidget {
               text: "Chat with us",
               onPressed: () {
                 openWhatsAppChat("923264986911");
+              }),
+          SizedBox(
+            height: 20.h,
+          ),
+          CustomButton(
+              text: "Skip for now",
+              onPressed: () {
+                AuthController authController = Get.find();
+
+                authController.updateUserDetails();
               }),
           SizedBox(
             height: 20.h,
@@ -115,7 +124,6 @@ class ResultScreen extends StatelessWidget {
 }
 
 void openWhatsAppChat(String phoneNumber) async {
-
   String url =
       'https://api.whatsapp.com/send/?phone=$phoneNumber&text&type=phone_number&app_absent=0';
 

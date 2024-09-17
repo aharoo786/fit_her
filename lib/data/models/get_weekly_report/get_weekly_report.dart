@@ -52,7 +52,7 @@ class Report {
         firstName: json["firstName"],
         lastName: json["lastName"],
         email: json["email"],
-        phone: json["phone"],
+        phone: json["phone"]??"",
         reports: List<ReportElement>.from(
             json["Reports"].map((x) => ReportElement.fromJson(x))),
       );

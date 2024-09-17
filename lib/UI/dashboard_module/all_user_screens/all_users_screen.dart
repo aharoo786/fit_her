@@ -52,22 +52,24 @@ class AllUsersScreen extends StatelessWidget {
                         SizedBox(
                           width: 15.w,
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "${user.firstName} ${user.lastName}",
-                              style: textTheme.bodyMedium!.copyWith(
-                                  color: MyColors.textColor,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                            Text(
-                              user.email,
-                              style: textTheme.bodySmall!.copyWith(
-                                  color: MyColors.textColor,
-                                  fontWeight: FontWeight.w400),
-                            ),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "${user.user.firstName} ${user.user.lastName}",
+                                style: textTheme.bodyMedium!.copyWith(
+                                    color: MyColors.textColor,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                user.user.email,
+                                style: textTheme.bodySmall!.copyWith(
+                                    color: MyColors.textColor,
+                                    fontWeight: FontWeight.w400),
+                              ),
+                            ],
+                          ),
                         ),
                         const Spacer(),
                         Row(
@@ -75,18 +77,17 @@ class AllUsersScreen extends StatelessWidget {
                             GestureDetector(
                               onTap: () {
                                 homeController.firstNameController.text =
-                                    user.firstName;
+                                    user.user.firstName;
                                 homeController.lastNameController.text =
-                                    user.lastName;
+                                    user.user.lastName;
                                 homeController.emailController.text =
-                                    user.email;
+                                    user.user.email;
                                 homeController.phoneController.text =
-                                    user.phone;
+                                    user.user.phone;
                                 homeController.passwordController.text = "";
-
-                                if (user.userPlans.isNotEmpty) {
+                                if (user.plans != null) {
                                   homeController.dateExtendController.text =
-                                      "${user.userPlans[0].expireDate.difference(DateTime.now()).inDays} days";
+                                      "${user.plans!.expireDate.difference(DateTime.now()).inDays} days";
                                 }
 
                                 Get.to(() => EditUser(
@@ -151,7 +152,7 @@ class AllUsersScreen extends StatelessWidget {
                   onPressed: () async {
                     Get.to(() => AddNewUser());
                     Get.find<HomeController>().getPlans();
-                    Get.find<HomeController>().getAllDietitian();
+                    // Get.find<HomeController>().getAllDietitian();
                   }),
             ],
           ),

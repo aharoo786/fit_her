@@ -5,7 +5,9 @@
 import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
-import 'package:get/get.dart';
+
+import '../get_user_plan/get_user_plan.dart';
+import "package:get/get.dart";
 
 GetAllUsers getAllUsersFromJson(String str) =>
     GetAllUsers.fromJson(json.decode(str));
@@ -13,14 +15,15 @@ GetAllUsers getAllUsersFromJson(String str) =>
 String getAllUsersToJson(GetAllUsers data) => json.encode(data.toJson());
 
 class GetAllUsers extends Serializable {
-  List<User> users;
+  List<UserElement> users;
 
   GetAllUsers({
     required this.users,
   });
 
   factory GetAllUsers.fromJson(Map<String, dynamic> json) => GetAllUsers(
-        users: List<User>.from(json["users"].map((x) => User.fromJson(x))),
+        users: List<UserElement>.from(
+            json["users"].map((x) => UserElement.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
@@ -28,40 +31,163 @@ class GetAllUsers extends Serializable {
       };
 }
 
-class User {
+class UserElement {
+  UserUser user;
+  Plans? plans;
+  Assigned? assigned;
+
+  UserElement({
+    required this.user,
+    required this.plans,
+    required this.assigned,
+  });
+
+  factory UserElement.fromJson(Map<String, dynamic> json) => UserElement(
+        user: UserUser.fromJson(json["user"]),
+        plans: json["plans"] == null ? null : Plans.fromJson(json["plans"]),
+        assigned: json["assigned"] == null
+            ? null
+            : Assigned.fromJson(json["assigned"]),
+      );
+
+  Map<String, dynamic> toJson() => {
+        "user": user.toJson(),
+        "plans": plans?.toJson(),
+        "assigned": assigned?.toJson(),
+      };
+}
+
+class Assigned {
+  int id;
+  Trainer? user;
+  Trainer? trainer;
+
+  Assigned({
+    required this.id,
+    required this.user,
+    required this.trainer,
+  });
+
+  factory Assigned.fromJson(Map<String, dynamic> json) => Assigned(
+        id: json["id"],
+        user: json["User"] == null ? null : Trainer.fromJson(json["User"]),
+        trainer:
+            json["Trainer"] == null ? null : Trainer.fromJson(json["Trainer"]),
+      );
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "User": user?.toJson(),
+        "Trainer": trainer?.toJson(),
+      };
+}
+
+class Trainer {
+  int id;
+  String firstName;
+  String lastName;
+
+  Trainer({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+  });
+
+  factory Trainer.fromJson(Map<String, dynamic> json) => Trainer(
+        id: json["id"],
+        firstName: json["firstName"],
+        lastName: json["lastName"],
+      );
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "firstName": firstName,
+        "lastName": lastName,
+      };
+}
+
+class Plans {
+  int id;
+  DateTime buyingDate;
+  DateTime expireDate;
+  int price;
+  bool status;
+  int planId;
+  int userId;
+  int? trainerId;
+  int? dietitianId;
+  Plan plan;
+
+  Plans({
+    required this.id,
+    required this.buyingDate,
+    required this.expireDate,
+    required this.price,
+    required this.status,
+    required this.planId,
+    required this.userId,
+    required this.trainerId,
+    this.dietitianId,
+    required this.plan,
+  });
+
+  factory Plans.fromJson(Map<String, dynamic> json) => Plans(
+        id: json["id"],
+        buyingDate: DateTime.parse(json["buyingDate"]),
+        expireDate: DateTime.parse(json["expireDate"]),
+        price: json["price"],
+        status: json["status"],
+        planId: json["PlanId"],
+        userId: json["userId"],
+        trainerId: json["trainerId"],
+        dietitianId: json["dietitianId"],
+        plan: Plan.fromJson(json["Plan"]),
+      );
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "buyingDate": buyingDate.toIso8601String(),
+        "expireDate": expireDate.toIso8601String(),
+        "price": price,
+        "status": status,
+        "PlanId": planId,
+        "userId": userId,
+        "trainerId": trainerId,
+        "dietitianId": dietitianId,
+        "Plan": plan.toJson(),
+      };
+}
+
+
+
+class UserUser {
   int id;
   String firstName;
   String lastName;
   String email;
   String phone;
   bool status;
-  RxBool freeze;
-  String password;
-  List<UserPlan> userPlans;
 
-  User({
+  RxBool freeze;
+
+  UserUser({
     required this.id,
     required this.firstName,
     required this.lastName,
     required this.email,
     required this.phone,
     required this.status,
-    required this.password,
     required this.freeze,
-    required this.userPlans,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) => User(
+  factory UserUser.fromJson(Map<String, dynamic> json) => UserUser(
         id: json["id"],
         firstName: json["firstName"],
         lastName: json["lastName"],
         email: json["email"],
-        phone: json["phone"],
-        password: json["password"],
-        freeze: RxBool(json["freeze"] ?? false),
-        status: json["status"] ?? false,
-        userPlans: List<UserPlan>.from(
-            json["UserPlans"].map((x) => UserPlan.fromJson(x))),
+        phone: json["phone"]??"",
+        status: json["status"]??false,
+        freeze: RxBool(json["freeze"]??false),
       );
 
   Map<String, dynamic> toJson() => {
@@ -72,127 +198,5 @@ class User {
         "phone": phone,
         "status": status,
         "freeze": freeze,
-        "password": password,
-        "UserPlans": List<dynamic>.from(userPlans.map((x) => x.toJson())),
-      };
-}
-
-class UserPlan {
-  int id;
-  DateTime buyingDate;
-  DateTime expireDate;
-  int price;
-  dynamic dietitionLink;
-  dynamic status;
-  DateTime createdAt;
-  DateTime updatedAt;
-  int planId;
-  dynamic userId;
-  int trainerId;
-  int dietitianId;
-  MyPlan? myPlan;
-
-  UserPlan({
-    required this.id,
-    required this.buyingDate,
-    required this.expireDate,
-    required this.price,
-    required this.dietitionLink,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.planId,
-    required this.userId,
-    required this.trainerId,
-    required this.dietitianId,
-    required this.myPlan,
-  });
-
-  factory UserPlan.fromJson(Map<String, dynamic> json) => UserPlan(
-        id: json["id"],
-        buyingDate: DateTime.parse(json["buyingDate"]),
-        expireDate: DateTime.parse(json["expireDate"]),
-        price: json["price"],
-        dietitionLink: json["dietitionLink"],
-        status: json["status"],
-        createdAt: DateTime.parse(json["createdAt"]),
-        updatedAt: DateTime.parse(json["updatedAt"]),
-        planId: json["PlanId"],
-        userId: json["userId"],
-        trainerId: json["trainerId"],
-        dietitianId: json["dietitianId"],
-        myPlan: json["Plan"] == null ? null : MyPlan.fromJson(json["Plan"]),
-      );
-
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "buyingDate": buyingDate.toIso8601String(),
-        "expireDate": expireDate.toIso8601String(),
-        "price": price,
-        "dietitionLink": dietitionLink,
-        "status": status,
-        "createdAt": createdAt.toIso8601String(),
-        "updatedAt": updatedAt.toIso8601String(),
-        "PlanId": planId,
-        "userId": userId,
-        "trainerId": trainerId,
-        "dietitianId": dietitianId,
-        "Plan": myPlan?.toJson(),
-      };
-}
-
-class MyPlan {
-  int id;
-  String title;
-  String shortDescription;
-  String longDescription;
-  String duration;
-  int price;
-  bool status;
-  dynamic image;
-  DateTime createdAt;
-  DateTime updatedAt;
-  int categoryId;
-
-  MyPlan({
-    required this.id,
-    required this.title,
-    required this.shortDescription,
-    required this.longDescription,
-    required this.duration,
-    required this.price,
-    required this.status,
-    required this.image,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.categoryId,
-  });
-
-  factory MyPlan.fromJson(Map<String, dynamic> json) => MyPlan(
-        id: json["id"],
-        title: json["title"],
-        shortDescription: json["shortDescription"],
-        longDescription: json["longDescription"],
-        duration: json["duration"],
-        price: json["price"],
-        status: json["status"],
-        image: json["image"],
-        createdAt: DateTime.parse(json["createdAt"]),
-        updatedAt: DateTime.parse(json["updatedAt"]),
-        categoryId: json["CategoryId"],
-      );
-
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "title": title,
-        "shortDescription": shortDescription,
-        "longDescription": longDescription,
-        "duration": duration,
-        "price": price,
-        "status": status,
-        "image": image,
-        "createdAt": createdAt.toIso8601String(),
-        "updatedAt": updatedAt.toIso8601String(),
-        "CategoryId": categoryId,
       };
 }

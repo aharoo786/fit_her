@@ -3,7 +3,7 @@
 //     final allPlanModel = allPlanModelFromJson(jsonString);
 
 import 'dart:convert';
-
+import 'package:get/get.dart';
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 
 AllPlanModel allPlanModelFromJson(String str) =>
@@ -27,18 +27,18 @@ class AllPlanModel extends Serializable {
       };
 }
 
-class Plan {
+class Plan  extends Serializable{
   int id;
   String title;
   String shortDescription;
   String longDescription;
   String duration;
   int price;
-  bool status;
+  RxBool status;
   dynamic image;
-  DateTime createdAt;
-  DateTime updatedAt;
+
   int categoryId;
+  int subCategoryId;
 
   Plan({
     required this.id,
@@ -49,9 +49,8 @@ class Plan {
     required this.price,
     required this.status,
     required this.image,
-    required this.createdAt,
-    required this.updatedAt,
     required this.categoryId,
+    required this.subCategoryId,
   });
 
   factory Plan.fromJson(Map<String, dynamic> json) => Plan(
@@ -59,13 +58,12 @@ class Plan {
         title: json["title"],
         shortDescription: json["shortDescription"],
         longDescription: json["longDescription"],
-        duration: json["duration"],
+        duration: json["duration"]??"",
         price: json["price"],
-        status: json["status"],
+        status: RxBool(json["status"]??false),
         image: json["image"],
-        createdAt: DateTime.parse(json["createdAt"]),
-        updatedAt: DateTime.parse(json["updatedAt"]),
         categoryId: json["CategoryId"],
+        subCategoryId: json["subCategoryId"] ?? 0,
       );
 
   Map<String, dynamic> toJson() => {
@@ -77,8 +75,7 @@ class Plan {
         "price": price,
         "status": status,
         "image": image,
-        "createdAt": createdAt.toIso8601String(),
-        "updatedAt": updatedAt.toIso8601String(),
         "CategoryId": categoryId,
+        "subCategoryId": subCategoryId,
       };
 }

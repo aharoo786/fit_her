@@ -1,7 +1,7 @@
 class MyImgs {
   static const String logo = "assets/images/logo.png";
   static const String sendIcon = "assets/icons/send_icon.png";
-  static const String logo3 = "assets/icons/logo3.png";
+  static const String logo3 = "assets/images/logo2.png";
   static const String eyeOff = "assets/icons/eyeOff.png";
   static const String profile4 = "assets/images/profile4.png";
   static const String profilePicture = "assets/images/profilePicture.png";
@@ -190,7 +190,7 @@ class MyImgs {
   static const String womanImage = "assets/images/womanImage.png";
   static const String chooseAnyOne = "assets/images/chooseAnyOne.jpeg";
   static const String walkThroughBack = "assets/images/walkThroughBack.png";
-  static const String walkThroughBack2 = "assets/images/splashBackground.jpeg";
+  static const String walkThroughBack2 = "assets/images/walkThrough2.png";
   static const String joinChannel = "assets/images/joinChannel.png";
   static const String chooseImage = "assets/images/chooseImage.png";
   static const String girl = "assets/images/girl.png";
@@ -204,14 +204,54 @@ class MyImgs {
   static const String img7 = "assets/images/7.png";
   static const String img8 = "assets/images/8.png";
   static const String img9 = "assets/images/9.png";
+  static const String graph = "assets/images/graph.png";
+  static const String doctor = "assets/images/doctor.png";
+  static const String profilePicture1 =
+      "assets/profileImage/profilePicture.png";
   static const String review1 = "assets/images/review1.jpeg";
   static const String review2 = "assets/images/review2.jpeg";
   static const String review3 = "assets/images/review3.jpeg";
   static const String review4 = "assets/images/review4.jpeg";
   static const String review5 = "assets/images/review5.jpeg";
   static const String review6 = "assets/images/review6.jpeg";
+  static const String ourTeam = "assets/images/ourTeam.png";
+  static const String yoga3 = "assets/images/yoga.png";
+  static const String dietImage = "assets/images/dietImage.png";
+  static const String before = "assets/images/before.png";
+  static const String after = "assets/images/after.png";
+  static const String doctor2 = "assets/images/doctor2.png";
+  static const String healthTipsImage = "assets/images/healthTips.png";
+  static const String dumble = "assets/images/dumble.png";
+  static const String bmiStatus = "assets/images/bmiStatus.png";
+  static const String battery = "assets/images/battery.png";
+  static const String pcos = "assets/images/pcos.png";
+  static const String ourJourney2 = "assets/images/ourJourney.png";
+  static const String ourJourney3 = "assets/images/ourJourney1.png";
+  static const String ourJourney4 = "assets/images/ourJourney2.png";
+  static const String ourJourney5 = "assets/images/ourJourney3.png";
+  static const String ourJourney6 = "assets/images/ourJourney4.png";
   // static const String facebook = "assets/images/shareimage.png";
   // static const String shareImage = "assets/images/shareimage.png";
+
+  ///Svgs images
+  static const String workoutHome = "assets/svg/workoutHome.svg";
+  static const String dietPlanHome = "assets/svg/dietPlanHome.svg";
+  static const String freeTestHome = "assets/svg/freeTestHome.svg";
+  static const String GynaeHome = "assets/svg/GynaeHome.svg";
+  static const String healthTips = "assets/svg/healthTips.svg";
+  static const String mentalHelpHome = "assets/svg/mentalHelpHome.svg";
+  static const String ourJourney = "assets/svg/ourJourney.svg";
+  static const String team = "assets/svg/team.svg";
+  static const String arrowCircleRight = "assets/svg/ArrowCircleRight.svg";
+  static const String diet = "assets/svg/diet.svg";
+  static const String homeSVG = "assets/svg/Home.svg";
+  static const String helpSVG = "assets/svg/Help.svg";
+  static const String workout = "assets/svg/workout.svg";
+  static const String progress = "assets/svg/progress.svg";
+  static const String progressbar = "assets/svg/Progressbar.svg";
+  static const String upload = "assets/svg/upload.svg";
+  static const String freeTrial = "assets/svg/freeTrial.svg";
+  static const String risk = "assets/svg/risk.svg";
 
   MyImgs._();
 }

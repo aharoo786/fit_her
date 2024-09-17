@@ -67,30 +67,37 @@ class ChooseAnyOne extends StatelessWidget {
                 GetBuilder<AuthController>(builder: (cont) {
                   return Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          containerWidget(context, "i’am a\nAdmin",
-                              MyImgs.userIcon, Constants.admin, () {
-                            cont.loginAsA.value = Constants.admin;
-                            cont.update();
-                          }),
-                          containerWidget(context, "i’am a\nUser",
-                              MyImgs.userIcon, Constants.user, () {
+                      // Row(
+                      //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      //   children: [
+                      //     containerWidget(context, "i’am a\nAdmin",
+                      //         MyImgs.userIcon, Constants.admin, () {
+                      //       cont.loginAsA.value = Constants.admin;
+                      //       cont.update();
+                      //     }),
+                      //     SizedBox(width: 10.w,),
+                      //     containerWidget(context, "i’am a\nUser",
+                      //         MyImgs.userIcon, Constants.user, () {
+                      //       cont.loginAsA.value = Constants.user;
+                      //       cont.update();
+                      //     }),
+                      //     SizedBox(width: 10.w,),
+                      //     containerWidget(context, "i’am a\nConsultant",
+                      //         MyImgs.hostIcon, Constants.dietitian, () {
+                      //       cont.loginAsA.value = Constants.dietitian;
+                      //       cont.update();
+                      //     }),
+                      //   ],
+                      // ),
+                      containerWidget(context, "I am a User",
+                          MyImgs.userIcon, Constants.user, () {
                             cont.loginAsA.value = Constants.user;
                             cont.update();
                           }),
-                          containerWidget(context, "i’am a\nDietitian",
-                              MyImgs.hostIcon, Constants.dietitian, () {
-                            cont.loginAsA.value = Constants.dietitian;
-                            cont.update();
-                          }),
-                        ],
-                      ),
                       SizedBox(
                         height: 10.h,
                       ),
-                      containerWidget(context, "i’am a\nTrainer",
+                      containerWidget(context, "Team Member",
                           MyImgs.adminIcon, Constants.trainer, () {
                         cont.loginAsA.value = Constants.trainer;
                         cont.update();
@@ -104,7 +111,7 @@ class ChooseAnyOne extends StatelessWidget {
                 ),
                 ElevatedButton(
                     onPressed: () {
-                      Get.to(() => Login());
+                      Get.to(() => Login(showDropDown: authController.loginAsA.value!=Constants.user,));
                     },
                     style: ElevatedButton.styleFrom(
                       fixedSize: const Size(50, 50),
@@ -125,14 +132,15 @@ class ChooseAnyOne extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Does not have an account? "),
+                     Text("Does not have an account? ", style:textTheme.titleLarge!
+                        .copyWith(fontWeight: FontWeight.w500)),
                     GestureDetector(
                       onTap: (){
                         Get.to(()=>SignUpNewUser());
                       },
                       child: Text(
                         "Create Account",
-                        style: textTheme.bodyMedium!
+                        style: textTheme.titleLarge!
                             .copyWith(color: MyColors.buttonColor,fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -164,9 +172,9 @@ class ChooseAnyOne extends StatelessWidget {
             // color: Colors.black,
             child: Container(
               height: 100.h,
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.center,
               padding: EdgeInsets.only(
-                  top: 49.h, left: 30.w, right: 30.w, bottom: 10.h),
+                  top: 30.h, left: 25.w, right: 25.w, bottom: 10.h),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 color: authController.loginAsA.value == user
@@ -184,7 +192,7 @@ class ChooseAnyOne extends StatelessWidget {
               ),
               child: Text(
                 text,
-                style: textTheme.bodySmall!.copyWith(
+                style: textTheme.bodyLarge!.copyWith(
                     fontWeight: FontWeight.w500,
                     color: authController.loginAsA.value == user
                         ? Colors.black

@@ -28,12 +28,55 @@ class SignUpNewUser extends StatelessWidget {
       }, text: "Sign Up"),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: Dimens.size20.w),
+          padding: const EdgeInsets.symmetric(horizontal: Dimens.size20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: Dimens.size32.h,
+                height: 20.h,
+              ),
+              Text(
+                "Welcome to FitHer",
+                style: textTheme.headlineSmall!.copyWith(
+                    fontSize: 24.sp,
+                    color: MyColors.textColor3,
+                    fontWeight: FontWeight.w600),
+              ),
+              SizedBox(
+                height: Dimens.size5.h,
+              ),
+              // Text(
+              //   "Create an account to get in and explore different Workouts, Diet Plans, Gynaecological & Psychological appointments.",
+              //   style: textTheme.titleLarge!.copyWith(
+              //       height: 1.8,
+              //       color: MyColors.black,
+              //       fontWeight: FontWeight.w500),
+              // ),
+              RichText(
+                  text: TextSpan(
+                      text:
+                          "Create an account to get in and explore different ",
+                      children: [
+                        TextSpan(
+                            text:
+                                "Workouts, Diet Plans, Gynaecological & Psychological",
+                            style: textTheme.titleLarge!.copyWith(
+                                height: 1.8,
+                                color: MyColors.black,
+                                fontWeight: FontWeight.w600)),
+                        TextSpan(
+                            text: " appointments",
+                            style: textTheme.titleLarge!.copyWith(
+                                height: 1.8,
+                                color: MyColors.black,
+                                fontWeight: FontWeight.w400)),
+                      ],
+                      style: textTheme.titleLarge!.copyWith(
+                          height: 1.8,
+                          color: MyColors.black,
+                          fontWeight: FontWeight.w400))),
+              SizedBox(
+                height: 15.h,
               ),
               CustomTextField(
                 keyboardType: TextInputType.text,
@@ -65,17 +108,17 @@ class SignUpNewUser extends StatelessWidget {
                 inputFormatters:
                     FilteringTextInputFormatter.singleLineFormatter,
               ),
-              SizedBox(
-                height: 20.h,
-              ),
-              CustomTextField(
-                keyboardType: TextInputType.text,
-                text: "Phone no".tr,
-                length: 30,
-                controller: homeController.phoneController,
-                inputFormatters:
-                    FilteringTextInputFormatter.singleLineFormatter,
-              ),
+              // SizedBox(
+              //   height: 20.h,
+              // ),
+              // CustomTextField(
+              //   keyboardType: TextInputType.text,
+              //   text: "Phone no".tr,
+              //   length: 30,
+              //   controller: homeController.phoneController,
+              //   inputFormatters:
+              //       FilteringTextInputFormatter.singleLineFormatter,
+              // ),
               SizedBox(
                 height: 20.h,
               ),
@@ -99,14 +142,56 @@ class SignUpNewUser extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            RichText(
+              text: TextSpan(
+                text: 'By continuing, I agree to ',
+                style: textTheme.titleLarge!.copyWith(
+                    color: MyColors.black,
+                    height: 2,
+                    fontWeight: FontWeight.w400), // Default text style
+                children: <TextSpan>[
+                  TextSpan(
+                    text: 'Terms of Services',
+                    style: textTheme.titleLarge!.copyWith(
+                        decoration: TextDecoration.underline,
+                        color: MyColors.black,
+                        height: 2,
+                        fontWeight: FontWeight.w400),
+                    // You can add a gesture recognizer here to handle clicks
+                  ),
+                  TextSpan(
+                    text: ' and acknowledge the ',
+                    style: textTheme.titleLarge!.copyWith(
+                        height: 2,
+                        color: MyColors.black,
+                        fontWeight: FontWeight.w400),
+                  ),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: textTheme.titleLarge!.copyWith(
+                        decoration: TextDecoration.underline,
+                        color: MyColors.black,
+                        height: 2,
+                        fontWeight: FontWeight.w400),
+                    // You can add a gesture recognizer here to handle clicks
+                  ),
+                  const TextSpan(
+                    text: '.',
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 10.h,
+            ),
             CustomButton(
-                text: "Add",
+                text: "Continue",
                 onPressed: () async {
                   if (homeController.firstNameController.text.isEmpty ||
                       homeController.lastNameController.text.isEmpty ||
                       homeController.emailController.text.isEmpty ||
-                      homeController.phoneController.text.isEmpty ||
-                      homeController.passwordController.text.isEmpty ) {
+                      // homeController.phoneController.text.isEmpty ||
+                      homeController.passwordController.text.isEmpty) {
                     CustomToast.failToast(
                         msg: "Please provide all information");
                   } else if (!homeController.emailController.text.isEmail) {

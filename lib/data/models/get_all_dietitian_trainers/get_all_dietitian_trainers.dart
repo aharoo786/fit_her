@@ -41,11 +41,8 @@ class Dietition {
   String lastName;
   String email;
   String phone;
-  String password;
-  bool status;
-  String userType;
-  DateTime createdAt;
-  DateTime updatedAt;
+
+
 
   Dietition({
     required this.id,
@@ -53,11 +50,7 @@ class Dietition {
     required this.lastName,
     required this.email,
     required this.phone,
-    required this.password,
-    required this.status,
-    required this.userType,
-    required this.createdAt,
-    required this.updatedAt,
+
   });
 
   factory Dietition.fromJson(Map<String, dynamic> json) => Dietition(
@@ -66,11 +59,7 @@ class Dietition {
         lastName: json["lastName"],
         email: json["email"],
         phone: json["phone"],
-        password: json["password"],
-        status: json["status"],
-        userType: json["userType"],
-        createdAt: DateTime.parse(json["createdAt"]),
-        updatedAt: DateTime.parse(json["updatedAt"]),
+
       );
 
   Map<String, dynamic> toJson() => {
@@ -79,10 +68,6 @@ class Dietition {
         "lastName": lastName,
         "email": email,
         "phone": phone,
-        "password": password,
-        "status": status,
-        "userType": userType,
-        "createdAt": createdAt.toIso8601String(),
-        "updatedAt": updatedAt.toIso8601String(),
+
       };
 }

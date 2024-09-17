@@ -1,4 +1,5 @@
 import 'package:fitness_zone_2/UI/chat/group_chat_room.dart';
+import 'package:fitness_zone_2/UI/diet_screen/add_user_diet.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/widgets/admin_home_screen.dart';
 import 'package:fitness_zone_2/widgets/all_plans_screen.dart';
@@ -34,265 +35,339 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return Scaffold(
-        backgroundColor: MyColors.primaryColor,
+        backgroundColor: Color(0xffF5EEEE),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(0),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+        ),
         body: Obx(() {
           if (authController.loginAsA.value == Constants.user) {
-            if (authController.logInUser!.status) {
-              return UserHomeScreen();
-            } else {
-              return AllPlansScreen();
-            }
+            // if (authController.logInUser!.status) {
+            return UserHomeScreen();
+            // } else {
+            //   return AllPlansScreen();
+            // }
           } else if (authController.loginAsA.value == Constants.dietitian) {
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Column(
+            return RefreshIndicator(
+              color: MyColors.primaryGradient1,
+              onRefresh: () {
+                homeController.getDietHomeFunc();
+
+                return Future.value();
+              },
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
                 children: [
                   SizedBox(
-                    height: 50.h,
-                  ),
-                  Stack(
-                    alignment: Alignment.bottomLeft,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.only(
-                            top: 42.h, bottom: 42.h, right: 15.w, left: 130.w),
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: const Color(0xffFAD8CD)),
-                        child: Text(
-                          "Make Your Body\nHealthy & Fit With Us",
-                          style: textTheme.headlineMedium!.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
+                    height: MediaQuery.of(context).size.height,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 50.h,
                         ),
-                      ),
-                      Image.asset(
-                        MyImgs.girl,
-                        scale: 3,
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 40.h,
-                  ),
-                  Expanded(child: Obx(() {
-                    if (homeController.dietHomeLoad.value) {
-                      if (homeController.getDietitianUsers!.plans.isEmpty) {
-                        return const Text("No users assign to you yet");
-                      }
-
-                      return ListView.separated(
-                          itemBuilder: (context, int index) {
-                            var user = homeController
-                                .getDietitianUsers!.plans[index].user;
-                            var plan =
-                                homeController.getDietitianUsers!.plans[index];
-                            var showString =
-                            getDisplayString(plan.buyingDate);
-
-
-                            return user != null
-                                ? Column(
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                showString,
-                                                style: textTheme.bodySmall!
-                                                    .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 20.sp),
-                                              ),
-                                              Text(
-                                                "${user.firstName} ${user.lastName}",
-                                                style: textTheme.bodyLarge,
-                                              ),
-                                              Text(
-                                                user.email,
-                                                style: textTheme.bodySmall,
-                                              ),
-                                              SizedBox(
-                                                height: 5.h,
-                                              ),
-                                              Text(
-                                                plan.plan.title,
-                                                style: textTheme.bodySmall,
-                                              ),
-                                            ],
-                                          ),
-                                          Row(
-                                            children: [
-                                              GestureDetector(
-                                                  onTap: () async {
-                                                    String roomId =
-                                                        (authController
-                                                                    .logInUser!
-                                                                    .id
-                                                                    .toString()
-                                                                    .hashCode +
-                                                                plan.user!.id
-                                                                    .toString()
-                                                                    .hashCode)
-                                                            .toString();
-                                                    var userMap;
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .collection("users")
-                                                        .doc(plan.user!.id
-                                                            .toString())
-                                                        .get()
-                                                        .then((value) {
-                                                      userMap = value.data();
-                                                    });
-                                                    userMap ??= {
-                                                      "id": plan.user!.id
-                                                          .toString(),
-                                                      "name":
-                                                          "${plan.user!.firstName} ${plan.user!.lastName}",
-                                                      "deviceToken": ""
-                                                    };
-
-                                                    Get.to(() => ChatRoom(
-                                                          chatRoomId: roomId,
-                                                          userMap: userMap,
-                                                        ));
-                                                  },
-                                                  child: const Icon(
-                                                    Icons.message,
-                                                  )),
-                                              SizedBox(
-                                                width: 20.w,
-                                              ),
-                                              GestureDetector(
-                                                onTap: () =>
-                                                    Get.to(() => SessionScreen(
-                                                          slotId: homeController
-                                                              .getDietitianUsers!
-                                                              .plans[index]
-                                                              .id,
-                                                          isDiet: true,
-                                                          userId: homeController
-                                                              .getDietitianUsers!
-                                                              .plans[index]
-                                                              .user!
-                                                              .id,
-                                                        )),
-
-                                                // Get.to(() => PasteLink(
-                                                //       slotId: homeController
-                                                //           .getDietitianUsers!
-                                                //           .plans[index]
-                                                //           .id,
-                                                //       isDiet: true,
-                                                //     )),
-                                                child: Container(
-                                                  alignment: Alignment.center,
-                                                  width: 100.w,
-                                                  height: 30.h,
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                      color:
-                                                          MyColors.buttonColor),
-                                                  child: Text(
-                                                    "Paste Link",
-                                                    style: textTheme.bodySmall,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(
-                                        height: 5.h,
-                                      ),
-                                      Divider(
-                                        height: 1.h,
-                                        color: Colors.black.withOpacity(0.6),
-                                      )
-                                    ],
-                                  )
-                                : SizedBox();
-                          },
-                          separatorBuilder: (context, int index) => SizedBox(
-                                height: 10.h,
+                        Stack(
+                          alignment: Alignment.bottomLeft,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.only(
+                                  top: 42.h,
+                                  bottom: 42.h,
+                                  right: 15.w,
+                                  left: 130.w),
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: const Color(0xffFAD8CD)),
+                              child: Text(
+                                "Make Your Body\nHealthy & Fit With Us",
+                                style: textTheme.headlineMedium!.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                          itemCount:
-                              homeController.getDietitianUsers!.plans.length);
-                    } else {
-                      return const Center(
-                        child: CircularProgress(),
-                      );
-                    }
-                  })
-                      //     Obx(
-                      //   () => authController.dietitianDataLoad.value
-                      //       ? ListView.separated(
-                      //           itemBuilder: (context, int index) => Column(
-                      //                 children: [
-                      //                   ListTile(
-                      //                     trailing: GestureDetector(
-                      //                         onTap: () {
-                      //                           String chatRoomId = (authController
-                      //                                       .getDietitianUsers
-                      //                                       .plans[index]
-                      //                                       .user
-                      //                                       .hashCode +
-                      //                                   authController
-                      //                                       .logInUser!.id.hashCode)
-                      //                               .toString();
-                      //                           Get.to(ChatRoom(
-                      //                               chatRoomId: chatRoomId));
-                      //                         },
-                      //                         child: const Icon(
-                      //                           Icons.message,
-                      //                         )),
-                      //                     subtitle: Text(authController
-                      //                         .getDietitianUsers
-                      //                         .plans[index]
-                      //                         .plan
-                      //                         .title),
-                      //                     title: Text(
-                      //                       "${authController.getDietitianUsers.plans[index].user.firstName} ${authController.getDietitianUsers.plans[index].user.lastName}",
-                      //                       style: textTheme.bodyLarge,
-                      //                     ),
-                      //                   ),
-                      //                   Divider(
-                      //                     height: 1.h,
-                      //                     color: Colors.black.withOpacity(0.6),
-                      //                   )
-                      //                 ],
-                      //               ),
-                      //           separatorBuilder: (context, int index) => SizedBox(
-                      //                 height: 10.h,
-                      //               ),
-                      //           itemCount:
-                      //               authController.getDietitianUsers.plans.length)
-                      //       : const Center(
-                      //           child: CircularProgressIndicator(),
-                      //         ),
-                      // )
-                      )
+                            ),
+                            Image.asset(
+                              MyImgs.girl,
+                              scale: 3,
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 40.h,
+                        ),
+                        Expanded(child: Obx(() {
+                          if (homeController.dietHomeLoad.value) {
+                            if (homeController
+                                .getDietitianUsers!.result.isEmpty) {
+                              return const Text("No users assign to you yet");
+                            }
 
-                  // GestureDetector(
-                  //     onTap: () {
-                  //       Get.to(() => SessionScreen());
-                  //     },
-                  //     child: containerWidget(const Color(0xffCCF2FE),
-                  //         "My Sessions", MyImgs.myRecordings)),
-                  ,
-                  SizedBox(
-                    height: 16.h,
+                            return ListView.separated(
+                              padding: const EdgeInsets.only(bottom: 100),
+                           //   physics: BouncingScrollPhysics(),
+                                itemBuilder: (context, int index) {
+                                  var user = homeController.getDietitianUsers!
+                                      .result[index].userPlan.user;
+                                  var plan = homeController.getDietitianUsers!
+                                      .result[index].userPlan;
+                                  var showString =
+                                      getDisplayString(plan.buyingDate!);
+
+                                  return user != null
+                                      ? Column(
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      showString,
+                                                      style: textTheme
+                                                          .bodySmall!
+                                                          .copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 20.sp),
+                                                    ),
+                                                    Text(
+                                                      "${user.firstName} ${user.lastName}",
+                                                      style:
+                                                          textTheme.bodyLarge,
+                                                    ),
+                                                    SizedBox(
+                                                      width: 200,
+                                                      child: Text(
+                                                        user.email,
+                                                        style:
+                                                            textTheme.bodySmall,
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      height: 5.h,
+                                                    ),
+                                                    Text(
+                                                      plan.title,
+                                                      style:
+                                                          textTheme.bodySmall,
+                                                    ),
+                                                  ],
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    GestureDetector(
+                                                        onTap: () async {
+                                                          String roomId = (authController
+                                                                      .logInUser!
+                                                                      .id
+                                                                      .toString()
+                                                                      .hashCode +
+                                                                  plan.user!.id
+                                                                      .toString()
+                                                                      .hashCode)
+                                                              .toString();
+                                                          var userMap;
+                                                          await FirebaseFirestore
+                                                              .instance
+                                                              .collection(
+                                                                  "users")
+                                                              .doc(plan.user!.id
+                                                                  .toString())
+                                                              .get()
+                                                              .then((value) {
+                                                            userMap =
+                                                                value.data();
+                                                          });
+                                                          userMap ??= {
+                                                            "id": plan.user!.id
+                                                                .toString(),
+                                                            "name":
+                                                                "${plan.user!.firstName} ${plan.user!.lastName}",
+                                                            "deviceToken": ""
+                                                          };
+
+                                                          Get.to(() => ChatRoom(
+                                                                chatRoomId:
+                                                                    roomId,
+                                                                userMap:
+                                                                    userMap,
+                                                              ));
+                                                        },
+                                                        child: const Icon(
+                                                          Icons.message,
+                                                        )),
+                                                    SizedBox(
+                                                      width: 20.w,
+                                                    ),
+                                                    Column(
+                                                      children: [
+                                                        GestureDetector(
+                                                          onTap: () => Get.to(
+                                                              () =>
+                                                                  SessionScreen(
+                                                                    slotId: homeController
+                                                                        .getDietitianUsers!
+                                                                        .result[
+                                                                            index]
+                                                                        .userPlan
+                                                                        .id,
+                                                                    isDiet:
+                                                                        true,
+                                                                    userId:
+                                                                        user.id,
+                                                                  )),
+                                                          child: Container(
+                                                            alignment: Alignment
+                                                                .center,
+                                                            width: 100.w,
+                                                            height: 30.h,
+                                                            decoration: BoxDecoration(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10),
+                                                                color: MyColors
+                                                                    .buttonColor),
+                                                            child: Text(
+                                                              "Paste Link",
+                                                              style: textTheme
+                                                                  .titleLarge,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                          height: 10,
+                                                        ),
+                                                        GestureDetector(
+                                                          onTap: () {
+                                                            Get.to(() =>
+                                                                AddUserDiet(
+                                                                  userId: user
+                                                                      .id
+                                                                      .toString(),
+                                                                  planId: plan
+                                                                      .id
+                                                                      .toString(),
+                                                                ));
+                                                          },
+                                                          child: Container(
+                                                            alignment: Alignment
+                                                                .center,
+                                                            width: 100.w,
+                                                            height: 30.h,
+                                                            decoration: BoxDecoration(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10),
+                                                                color: MyColors
+                                                                    .buttonColor),
+                                                            child: Text(
+                                                              "User Diet",
+                                                              style: textTheme
+                                                                  .titleLarge,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(
+                                              height: 5.h,
+                                            ),
+                                            Divider(
+                                              height: 1.h,
+                                              color:
+                                                  Colors.black.withOpacity(0.6),
+                                            )
+                                          ],
+                                        )
+                                      : SizedBox();
+                                },
+                                separatorBuilder: (context, int index) =>
+                                    SizedBox(
+                                      height: 10.h,
+                                    ),
+                                itemCount: homeController
+                                    .getDietitianUsers!.result.length);
+                          } else {
+                            return const Center(
+                              child: CircularProgress(),
+                            );
+                          }
+                        })
+                            //     Obx(
+                            //   () => authController.dietitianDataLoad.value
+                            //       ? ListView.separated(
+                            //           itemBuilder: (context, int index) => Column(
+                            //                 children: [
+                            //                   ListTile(
+                            //                     trailing: GestureDetector(
+                            //                         onTap: () {
+                            //                           String chatRoomId = (authController
+                            //                                       .getDietitianUsers
+                            //                                       .plans[index]
+                            //                                       .user
+                            //                                       .hashCode +
+                            //                                   authController
+                            //                                       .logInUser!.id.hashCode)
+                            //                               .toString();
+                            //                           Get.to(ChatRoom(
+                            //                               chatRoomId: chatRoomId));
+                            //                         },
+                            //                         child: const Icon(
+                            //                           Icons.message,
+                            //                         )),
+                            //                     subtitle: Text(authController
+                            //                         .getDietitianUsers
+                            //                         .plans[index]
+                            //                         .plan
+                            //                         .title),
+                            //                     title: Text(
+                            //                       "${authController.getDietitianUsers.plans[index].user.firstName} ${authController.getDietitianUsers.plans[index].user.lastName}",
+                            //                       style: textTheme.bodyLarge,
+                            //                     ),
+                            //                   ),
+                            //                   Divider(
+                            //                     height: 1.h,
+                            //                     color: Colors.black.withOpacity(0.6),
+                            //                   )
+                            //                 ],
+                            //               ),
+                            //           separatorBuilder: (context, int index) => SizedBox(
+                            //                 height: 10.h,
+                            //               ),
+                            //           itemCount:
+                            //               authController.getDietitianUsers.plans.length)
+                            //       : const Center(
+                            //           child: CircularProgressIndicator(),
+                            //         ),
+                            // )
+                            )
+
+                        // GestureDetector(
+                        //     onTap: () {
+                        //       Get.to(() => SessionScreen());
+                        //     },
+                        //     child: containerWidget(const Color(0xffCCF2FE),
+                        //         "My Sessions", MyImgs.myRecordings)),
+                        ,
+                        SizedBox(
+                          height: 16.h,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -304,13 +379,15 @@ class HomeScreen extends StatelessWidget {
           }
         }));
   }
+
   String getDisplayString(DateTime buyingDate) {
     DateTime now = DateTime.now();
 
     // Normalize dates to remove the time part
     DateTime today = DateTime(now.year, now.month, now.day);
     DateTime yesterday = today.subtract(const Duration(days: 1));
-    DateTime normalizedBuyingDate = DateTime(buyingDate.year, buyingDate.month, buyingDate.day);
+    DateTime normalizedBuyingDate =
+        DateTime(buyingDate.year, buyingDate.month, buyingDate.day);
 
     if (normalizedBuyingDate.compareTo(today) == 0) {
       return "Today";
@@ -322,7 +399,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-containerWidget(Color color, String text, String image) {
+containerWidget(Color color, String text, String image ,{bool isShowSwitch=false,RxBool? switchValue,String? id}) {
   return Container(
     padding: EdgeInsets.all(6.h),
     decoration: BoxDecoration(
@@ -360,7 +437,23 @@ containerWidget(Color color, String text, String image) {
                   color: MyColors.textColor,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w400),
-            )
+            ),
+            if(isShowSwitch)...{
+              Spacer(),
+              Obx(
+                    () => Switch(
+                    value: switchValue!.value,
+                    activeColor: MyColors.buttonColor,
+                    activeTrackColor: MyColors.buttonColor.withOpacity(0.5),
+                    inactiveThumbColor: Colors.red,
+                    inactiveTrackColor: Colors.redAccent,
+                    onChanged: (value) {
+                      switchValue.value = value;
+                      Get.find<HomeController>().postTrialPlanDetails(id!, value);
+
+                    }),
+              )
+            }
           ],
         ),
       ],

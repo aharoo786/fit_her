@@ -124,11 +124,7 @@ class AuthRepo extends GetxService {
         .postData(Constants.resendOtpPath, body: {"email": email});
   }
 
-  buyDescription(
-      {required Map<String, dynamic> body, required String accessToken}) async {
-    return await apiProvider.postData(Constants.stripePayment,
-        body: body, headers: {"accessToken": accessToken});
-  }
+
 
   getHomeData({required String accessToken}) async {
     return await apiProvider

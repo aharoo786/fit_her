@@ -19,7 +19,22 @@ class MyColors {
   static const Color black1 = Color(0xFF222222);
   static const Color orange = Color(0xFFFF8C67);
   static const Color searchGrey = Color(0xFFF3F3F3);
-  static const Color textFieldColor = Colors.white;
+  static const Color textFieldColor = Color(0xFFF5FDF2);
+  static const Color primaryGradient1 = Color(0xff4CCB28);
+  static const List<Color> mainGradient = [
+    Color(0xff89CB68),
+    Color(0xff8AD167),
+    // Color(0xffA3E67C),
+    // Color(0xffC1FF98),
+  ];
+  static const Color primaryGradient2 = Color(0xff6FD251);
+  static const Color primaryGradient3 = Color(0xff4C6A4B);
+  static const Color planColor = Color(0xffE4F9D7);
+  static const Color workOut1 = Color(0xffCBF0BC);
+  static const Color workOut2 = Color(0xff8AD167);
+  static const Color workOutTextColor2 = Color(0xffE3EBDF);
+  static const Color workOutTextColor = Color(0xffA0B695);
+  static const Color healthTipsColor = Color(0xffEDF5EA);
   static const Color primaryColor = Colors.white;
   //Color(0xFF956EED);
   // static const Color primaryDarkColor = Color(0xFF58488C);
@@ -30,7 +45,7 @@ class MyColors {
   static const Color appBarTextColor = Color(0xFF222222);
   static const Color textColor = Color(0xFF000000);
   static const Color textColor2 = Color(0xFFFFFFFf);
-  static const Color textColor3 = Color(0xFF1A1A1A);
+  static const Color textColor3 = Color(0xFF1D1B20);
   static const Color boxShadowColor = Color(0xFF9CA3AF);
   static const Color imagePickerBackground = Color(0xFF7E7E7E);
 
@@ -51,7 +66,7 @@ class MyColors {
   static const Color ratingColor = Color(0xFF6B7384);
   static const Color dividerColor = Color(0xFFE5E7EB);
   static const Color textColorLow = Color(0xFF525252);
-  static const Color buttonColor = Color(0xFFB8C933);
+  static const Color buttonColor = Color(0xFF8AD167);
   static const Color backButtonOutlineColor = Color(0xFFE5E7EB);
   static const Color contain3 = Color(0xFFC1EDEA);
   static const Color contain4 = Color(0xFFFFD4B0);

@@ -1,5 +1,7 @@
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/values/my_colors.dart';
+import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
@@ -103,6 +105,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   String answer = "";
   @override
   Widget build(BuildContext context) {
+    var textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: HelpingWidgets().appBarWidget(() {
         Get.back();
@@ -111,7 +114,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         controller: pageController,
         itemCount: _questions.length,
         itemBuilder: (context, index) {
-          return _buildQuestionPage(index);
+          return _buildQuestionPage(index, textTheme);
         },
         onPageChanged: (index) {
           setState(() {
@@ -170,7 +173,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                       } else {
                         result = "High Risk of PCOS";
                       }
-                     Get.find<AuthController>().guestLogin(result);
+                      Get.find<AuthController>().guestLogin(result);
                     }
                   }
                 },
@@ -182,46 +185,116 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
     );
   }
 
-  Widget _buildQuestionPage(int index) {
+  Widget _buildQuestionPage(int index, TextTheme textTheme) {
     final question = _questions[index];
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          Text(
-            question.text,
-            style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+          Center(
+            child: Text(
+              question.text,
+              style:
+                  textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
           ),
-          const SizedBox(height: 16.0),
-          Column(
-            children: List.generate(
-              question.options!.length,
-              (optionIndex) {
-                return RadioListTile(
-                  visualDensity: const VisualDensity(vertical: -4),
-                  title: Text(
-                    question.options![optionIndex],
-                    style:
-                        TextStyle(fontWeight: FontWeight.w500, fontSize: 16.sp),
-                  ),
-                  value: optionIndex.toString(),
-                  fillColor: MaterialStateProperty.resolveWith<Color>(
-                        (Set<MaterialState> states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return Colors.black; // Color when selected
-                      }
-                      return Colors.black; // Color when not selected
-                    },
-                  ),
-                  groupValue: _answers![index],
-                  onChanged: (value) {
-                    setState(() {
-                      _answers![index] = value.toString();
-                    });
+          SizedBox(
+            height: 20,
+          ),
+          Image.asset(MyImgs.pcos),
+          const SizedBox(height: 40.0),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: List.generate(
+                  question.options!.length,
+                  (optionIndex) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: const BoxDecoration(
+                        color: MyColors.planColor,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                                 color:Colors.white,
+                                border: Border.all(color: Colors.black),
+                                borderRadius: BorderRadius.circular(4)),
+                            child: Checkbox(
+                              visualDensity:
+                                  const VisualDensity(horizontal: -4, vertical: -4),
+                              value: question.selectedIndex==optionIndex,
+                             hoverColor: Colors.white,
+
+                              onChanged: (value) {
+                                setState(() {
+
+                                  _answers![index] = question.options![optionIndex];
+
+                                  if (value == true) {
+                                    question.selectedIndex = optionIndex;
+                                  } else {
+                                    question.selectedIndex = null;
+                                  }
+                                });
+                              },
+                              side: BorderSide.none,
+
+                              checkColor: MyColors.primaryGradient1,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child: Text(
+                              question.options![optionIndex],
+                              style: textTheme.titleLarge!
+                                  .copyWith(fontWeight: FontWeight.w400,),
+                              maxLines: null,
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+              
+                    // return RadioListTile(
+                    //   shape: RoundedRectangleBorder(
+                    //     borderRadius: BorderRadius.circular(
+                    //         8.0), // Adjust the radius as needed
+                    //     side: BorderSide(
+                    //         color: Colors.black,
+                    //         width: 1.5), // Define border color and width
+                    //   ),
+                    //   visualDensity: const VisualDensity(vertical: -4),
+                    //   title: Text(
+                    //     question.options![optionIndex],
+                    //     style:
+                    //         TextStyle(fontWeight: FontWeight.w500, fontSize: 16.sp),
+                    //   ),
+                    //   value: optionIndex.toString(),
+                    //   fillColor: WidgetStateProperty.resolveWith<Color>(
+                    //     (Set<WidgetState> states) {
+                    //       if (states.contains(WidgetState.selected)) {
+                    //         return Colors.black; // Color when selected
+                    //       }
+                    //       return Colors.black; // Color when not selected
+                    //     },
+                    //   ),
+                    //   groupValue: _answers![index],
+                    //   onChanged: (value) {
+                    //     setState(() {
+                    //       _answers![index] = value.toString();
+                    //     });
+                    //   },
+                    // );
                   },
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],
@@ -233,9 +306,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 class Question {
   final String text;
   final List<String>? options;
+   int? selectedIndex;
 
-  Question({
+  Question( {
     required this.text,
     this.options,
+    this.selectedIndex,
   });
 }

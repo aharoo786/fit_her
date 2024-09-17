@@ -33,24 +33,16 @@ class GetAllPlansImages extends Serializable {
 class Datum {
   int id;
   String? image;
-  int datumPlanId;
-  int datumUserId;
   bool status;
-  DateTime createdAt;
-  DateTime updatedAt;
   int planId;
   int userId;
   User user;
-  UserImagePlan plan;
+  UserImagePlan? plan;
 
   Datum({
     required this.id,
     required this.image,
-    required this.datumPlanId,
-    required this.datumUserId,
     required this.status,
-    required this.createdAt,
-    required this.updatedAt,
     required this.planId,
     required this.userId,
     required this.user,
@@ -60,29 +52,22 @@ class Datum {
   factory Datum.fromJson(Map<String, dynamic> json) => Datum(
         id: json["id"],
         image: json["image"],
-        datumPlanId: json["planId"],
-        datumUserId: json["userId"],
         status: json["status"],
-        createdAt: DateTime.parse(json["createdAt"]),
-        updatedAt: DateTime.parse(json["updatedAt"]),
         planId: json["PlanId"],
         userId: json["UserId"],
         user: User.fromJson(json["User"]),
-        plan: UserImagePlan.fromJson(json["Plan"]),
+        plan:json["Plan"]==null?null: UserImagePlan.fromJson(json["Plan"]),
       );
 
   Map<String, dynamic> toJson() => {
         "id": id,
         "image": image,
-        "planId": datumPlanId,
-        "userId": datumUserId,
+
         "status": status,
-        "createdAt": createdAt.toIso8601String(),
-        "updatedAt": updatedAt.toIso8601String(),
         "PlanId": planId,
         "UserId": userId,
         "User": user.toJson(),
-        "Plan": plan.toJson(),
+        "Plan": plan?.toJson(),
       };
 }
 

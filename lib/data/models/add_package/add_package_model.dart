@@ -17,6 +17,7 @@ class AddPackageModel {
   String shortDescription;
   String longDescription;
   String categoryId;
+  String subCategoryId;
   String price;
   String duration;
   List<Time> times;
@@ -26,6 +27,7 @@ class AddPackageModel {
       required this.shortDescription,
       required this.longDescription,
       required this.categoryId,
+      required this.subCategoryId,
       required this.price,
       required this.times,
       required this.duration});
@@ -36,6 +38,7 @@ class AddPackageModel {
         shortDescription: json["shortDescription"],
         longDescription: json["longDescription"],
         categoryId: json["CategoryId"],
+        subCategoryId: json["subCategoryId"],
         price: json["price"],
         times: List<Time>.from(json["times"].map((x) => Time.fromJson(x))),
         duration: json["duration"],
@@ -46,6 +49,7 @@ class AddPackageModel {
         "shortDescription": shortDescription,
         "longDescription": longDescription,
         "CategoryId": categoryId,
+        "subCategoryId": subCategoryId,
         "price": price,
         "duration": duration,
         "times": List<dynamic>.from(times.map((x) => x.toJson())),

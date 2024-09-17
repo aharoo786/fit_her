@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "WhatsApp Image 2024-07-15 at 11.16.47 PM.jpeg",
+      "filename" : "white bg.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "WhatsApp Image 2024-07-15 at 11.16.47 PM@2x.jpeg",
+      "filename" : "white bg@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "WhatsApp Image 2024-07-15 at 11.16.47 PM@3x.jpeg",
+      "filename" : "white bg@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

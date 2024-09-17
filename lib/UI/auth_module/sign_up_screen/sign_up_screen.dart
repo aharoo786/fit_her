@@ -43,7 +43,7 @@ class SignUpScreen extends StatelessWidget {
                 RichText(
                   text: TextSpan(
                     text: "PCOS Assessment Task Information",
-                    style: textTheme.headline1!.copyWith(
+                    style: textTheme.headlineLarge!.copyWith(
                         fontSize: 24.sp,
                         color: MyColors.textColor,
                         fontWeight: FontWeight.w700),
@@ -65,19 +65,19 @@ class SignUpScreen extends StatelessWidget {
                 SizedBox(
                   height: 16.h,
                 ),
-                CustomTextField(
-                  text: "Phone",
-                  length: 500,
-                  controller: authController.phoneNumberController,
-                  validator: (value) =>
-                      Validators.emailValidator(value!.toString()),
-                  keyboardType: TextInputType.emailAddress,
-                  inputFormatters:
-                      FilteringTextInputFormatter.singleLineFormatter,
-                ),
-                SizedBox(
-                  height: 16.h,
-                ),
+                // CustomTextField(
+                //   text: "Phone",
+                //   length: 500,
+                //   controller: authController.phoneNumberController,
+                //   validator: (value) =>
+                //       Validators.emailValidator(value!.toString()),
+                //   keyboardType: TextInputType.emailAddress,
+                //   inputFormatters:
+                //       FilteringTextInputFormatter.singleLineFormatter,
+                // ),
+                // SizedBox(
+                //   height: 16.h,
+                // ),
                 CustomTextField(
                   text: "Email",
                   length: 500,
@@ -99,7 +99,7 @@ class SignUpScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             CustomButton(
-                text: "Sign up".tr,
+                text: "Check Your PCOS".tr,
                 onPressed: () async {
                   if (!signUpformKey.currentState!.validate()) {
                     CustomToast.failToast(

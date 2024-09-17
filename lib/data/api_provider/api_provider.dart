@@ -223,6 +223,7 @@ class ApiProvider extends GetConnect implements GetxService {
   Future<Response> setFormData(
       {required String url,
       required Map<String, dynamic> formData,
+      bool isProgress = false,
       Map<String, String>? headers}) async {
     debugPrint(
         '====> API Call: [${Constants.baseUrl + url}]\n$query  \n $headers');
@@ -232,12 +233,24 @@ class ApiProvider extends GetConnect implements GetxService {
     );
 
     formData.forEach((key, value) {
-      request.fields.addIf(key != "image", key, value);
+      request.fields.addIf(
+          key != "image" && key != "before" && key != "after", key, value);
     });
-    request.files.add(await http.MultipartFile.fromPath(
-      'image',
-      formData["image"],
-    ));
+    if (isProgress) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'after',
+        formData["after"],
+      ));
+      request.files.add(await http.MultipartFile.fromPath(
+        'before',
+        formData["before"],
+      ));
+    } else {
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        formData["image"],
+      ));
+    }
 
     var response = await http.Response.fromStream(await request.send());
     debugPrint(

@@ -1,6 +1,9 @@
 import 'package:fitness_zone_2/data/Repos/auth_repo/auth_repo.dart';
 import 'package:fitness_zone_2/data/Repos/home_repo/home_repo.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
+import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
+import 'package:fitness_zone_2/data/controllers/progress_controller/progress_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,6 +31,12 @@ Future init() async {
       notificationServices: notificationServices,
       chatApiProvider: Get.find()));
   Get.lazyPut(() => HomeController(
+      sharedPreferences: sharedPreferences, homeRepo: Get.find()));
+  Get.lazyPut(() => DietController(
+      sharedPreferences: sharedPreferences, homeRepo: Get.find()));
+  Get.lazyPut(() => ProgressController(
+      sharedPreferences: sharedPreferences, homeRepo: Get.find()));
+  Get.lazyPut(() => WorkOutController(
       sharedPreferences: sharedPreferences, homeRepo: Get.find()));
   // Get.lazyPut(() => AuthController(sharedPreferences:sharedPreferences));
 }

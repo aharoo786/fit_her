@@ -74,7 +74,7 @@ class CustomTextField extends StatelessWidget {
     var mediaQuery = MediaQuery.of(context).size;
 
     return Container(
-      height: height ?? 56.h,
+      height: height ?? 56,
       width: width,
       decoration: BoxDecoration(
           boxShadow: [
@@ -89,11 +89,11 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(
             roundCorner ?? 8,
           ),
-          border: Border.all(color: Colors.black)),
+          border: Border.all(color:bordercolor?? Colors.black)),
       child: TextFormField(
         // obscuringCharacter: '.',
         maxLength: length,
-        cursorHeight: 30.h,
+        cursorHeight: 30,
         maxLines: maxlines ?? 1,
         focusNode: focusNode,
         validator: (value) {
@@ -120,7 +120,7 @@ class CustomTextField extends StatelessWidget {
         onFieldSubmitted: onFieldSubmitted,
         decoration: InputDecoration(
           contentPadding:
-              EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           border: InputBorder.none,
           errorText: errorText,
           counterText: "",
@@ -128,12 +128,12 @@ class CustomTextField extends StatelessWidget {
           // focusedBorder: UnderlineInputBorder(
           //   borderSide: BorderSide(color: color ?? MyColors.purple, width: 2),
           // ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: roundCorner == null
-                ? BorderRadius.circular(8)
-                : BorderRadius.circular(roundCorner!),
-            borderSide: const BorderSide(color: MyColors.red500, width: 0.5),
-          ),
+          // errorBorder: OutlineInputBorder(
+          //   borderRadius: roundCorner == null
+          //       ? BorderRadius.circular(8)
+          //       : BorderRadius.circular(roundCorner!),
+          //   borderSide: const BorderSide(color: MyColors.red500, width: 0.5),
+          // ),
           hintText: text.tr,
           suffixIcon: suffixIcon,
           hintStyle: TextStyle(

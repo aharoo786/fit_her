@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
+import 'package:fitness_zone_2/values/values.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -29,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       if(Get.find<AuthController>().sharedPreferences.getBool(Constants.login)==null){
 
-        Get.offAll(() => WalkThroughScreen());
+        Get.offAll(() => const WalkThroughScreen());
       }
       else{
 
@@ -76,20 +77,28 @@ class _SplashScreenState extends State<SplashScreen>
         body: Container(
           height: height * 1,
           width: MediaQuery.of(context).size.width * 1,
+          decoration: const BoxDecoration(
+            gradient:LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: MyColors.mainGradient
+            )
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                height: 138.h,
-                width: 239.w,
-                decoration: const BoxDecoration(
-                    image: DecorationImage(
-                        image: AssetImage(MyImgs.logo), fit: BoxFit.contain)),
-              ),
-              SizedBox(
-                height: 20.h,
-              ),
+              // Container(
+              //   height: 138.h,
+              //   width: 239.w,
+              //   decoration: const BoxDecoration(
+              //       image: DecorationImage(
+              //           image: AssetImage(MyImgs.logo), fit: BoxFit.contain)),
+              // ),
+              Image.asset(MyImgs.logo),
+              // SizedBox(
+              //   height: 20.h,
+              // ),
               // Text(
               //   "Farm Sharing".tr,
               //   style: textTheme.headline4

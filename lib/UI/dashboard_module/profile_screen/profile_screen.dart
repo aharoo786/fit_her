@@ -1,14 +1,20 @@
 import 'package:fitness_zone_2/UI/auth_module/choose_any_one/choose_any_one.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/add_plan_diet.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/update_profile.dart';
+import 'package:fitness_zone_2/helper/get_di.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
+import '../../../data/controllers/home_controller/home_controller.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
 import '../../../widgets/CustomText.dart';
 import '../../auth_module/walt_through/walk_through_screenn.dart';
+import '../add_package/add_package.dart';
+import '../my_daily_meal/my_daily_meal.dart';
 import 'Imporatant_Screen.dart';
 import 'Success_Stories.dart';
 import 'about_us_screen.dart';
@@ -16,7 +22,7 @@ import 'about_us_screen.dart';
 class ProfileScreen extends StatelessWidget {
   ProfileScreen({Key? key, this.fromWelcomeScreen = false}) : super(key: key);
   final bool fromWelcomeScreen;
-//  final HomeController homeController = Get.find();
+  final HomeController homeController = Get.find();
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +69,21 @@ class ProfileScreen extends StatelessWidget {
                 SizedBox(
                   height: 10.h,
                 ),
+                fromWelcomeScreen
+                    ? const SizedBox.shrink()
+                    : rowWidget(MyImgs.package, "Add Plan", () {
+                        Get.to(() => AddPlanDiet());
+                        homeController.getSubCatBasedOnUserType(Get.find<AuthController>().loginAsA.value);
+                      }),
+
+                fromWelcomeScreen
+                    ? const SizedBox.shrink()
+                    : rowWidget(MyImgs.package, "Update Profile", () {
+                        Get.to(() => UpdateProfile());
+                        homeController.getSubCatBasedOnUserType(
+                            Get.find<AuthController>().loginAsA.value);
+                        // homeController.getCategories();
+                      }),
                 // Get.find<AuthController>().sharedPreferences.getBool(Constants.isGuest)!?SizedBox():
                 fromWelcomeScreen
                     ? const SizedBox.shrink()
@@ -89,8 +110,9 @@ class ProfileScreen extends StatelessWidget {
                                         style: textTheme.bodyMedium,
                                       )),
                                   TextButton(
-                                      onPressed: () {
+                                      onPressed: () async {
                                         // Get.find<AuthController>().logout();
+                                        await init();
                                         Get.offAll(() => ChooseAnyOne());
                                       },
                                       child: Text(
@@ -101,18 +123,23 @@ class ProfileScreen extends StatelessWidget {
                               );
                             });
                       }),
-                rowWidget(MyImgs.delete1, "Delete Account", () {
-                  Get.defaultDialog(
-                      title: "Alert",
-                      content: const Text(
-                          "Do you really want to delete your Account"),
-                      onConfirm: () async {
-                        Get.back();
+                SizedBox(
+                  height: 10.h,
+                ),
+                fromWelcomeScreen
+                    ? const SizedBox.shrink()
+                    : rowWidget(MyImgs.logOut, "Delete Account", () {
+                        Get.defaultDialog(
+                            title: "Alert",
+                            content: const Text(
+                                "Do you really want to delete your Account"),
+                            onConfirm: () async {
+                              Get.back();
 
-                        Get.find<AuthController>().deleteUser();
-                      },
-                      onCancel: () async {});
-                }),
+                              Get.find<AuthController>().deleteUser();
+                            },
+                            onCancel: () async {});
+                      }),
               ],
             ),
           )

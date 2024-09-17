@@ -1,7 +1,9 @@
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
@@ -54,10 +56,10 @@ class AllNewUserImages extends StatelessWidget {
                           reportRow("Name",
                               "${user.firstName} ${user.lastName}", context),
                           reportRow("Email", user.email, context),
-                          reportRow("Phone no", user.phone, context),
-                          reportRow("Plan Name", plan.plan.title, context),
+                          // reportRow("Phone no", user.phone, context),
+                          reportRow("Plan Name",plan.plan==null?"N/A": plan.plan!.title, context),
                           reportRow(
-                              "Plan Duration", plan.plan.duration, context),
+                              "Plan Duration",plan.plan==null?"N/A":  plan.plan!.duration, context),
                           SizedBox(
                             height: 20.h,
                           ),
@@ -98,18 +100,22 @@ class AllNewUserImages extends StatelessWidget {
       children: [
         Row(
           // crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              text1,
-              style: textTheme.bodyMedium!.copyWith(
-                  color: MyColors.textColor.withOpacity(0.6),
-                  fontWeight: FontWeight.w400),
+            Expanded(
+              child: Text(
+                text1,
+                style: textTheme.bodyMedium!.copyWith(
+                    color: MyColors.textColor.withOpacity(0.6),
+                    fontWeight: FontWeight.w400),
+              ),
             ),
-            Text(
-              text2,
-              style: textTheme.bodySmall!.copyWith(
-                  color: MyColors.textColor, fontWeight: FontWeight.w500),
+            Expanded(
+              child: Text(
+                text2,
+                style: textTheme.bodySmall!.copyWith(
+                    color: MyColors.textColor, fontWeight: FontWeight.w500),
+              ),
             ),
           ],
         ),
