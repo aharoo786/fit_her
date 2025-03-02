@@ -3,8 +3,10 @@ import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
+import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -16,6 +18,7 @@ import '../../../values/dimens.dart';
 import '../../../values/my_colors.dart';
 import '../../../widgets/circular_progress.dart';
 import '../../../widgets/plan_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BmiResult extends StatelessWidget {
   BmiResult({super.key, required this.bmi});
@@ -239,15 +242,78 @@ class BmiResult extends StatelessWidget {
                                       color: Colors.white,
                                     ))
                                   ],
+                                ),
+                                SizedBox(
+                                  height: 10,
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    text:
+                                        'This assessment is inspired by reputable sources such as ',
+                                    style: textTheme.titleLarge!.copyWith(
+                                        color: MyColors.black.withOpacity(0.5),
+                                        fontWeight: FontWeight.w400),
+                                    children: [
+                                      TextSpan(
+                                        text:
+                                            'HealthCentral\'s PCOS Symptoms Quiz',
+                                        style: textTheme.titleLarge!.copyWith(
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.w400),
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () async {
+                                            // if (await canLaunch(url)) {
+                                            //   await launch(url);
+                                            // } else {
+                                            //   throw 'Could not launch $url';
+                                            // }
+                                            launchUrl(Uri.parse(
+                                                "https://www.healthcentral.com/quiz/pcos-symptoms-quiz"));
+                                          },
+                                      ),
+                                      // TextSpan(
+                                      //   text:
+                                      //       '. For more detailed information and to explore the original resource, ',
+                                      //   style: textTheme.titleLarge!.copyWith(
+                                      //       fontSize: 13,
+                                      //       color:
+                                      //           MyColors.black.withOpacity(0.5),
+                                      //       fontWeight: FontWeight.w400),
+                                      // ),
+                                      // TextSpan(
+                                      //   text: 'click here',
+                                      //   style: TextStyle(
+                                      //       color: Colors.blue,
+                                      //       decoration:
+                                      //           TextDecoration.underline),
+                                      //   recognizer: TapGestureRecognizer()
+                                      //     ..onTap = () async {
+                                      //       // if (await canLaunch(url)) {
+                                      //       //   await launch(url);
+                                      //       // } else {
+                                      //       //   throw 'Could not launch $url';
+                                      //       // }
+                                      //     },
+                                      // ),
+                                      // TextSpan(
+                                      //   text: '.',
+                                      //   style: TextStyle(color: Colors.black),
+                                      // ),
+                                    ],
+                                  ),
                                 )
                               ],
                             ),
                           ),
                         ));
               } else {
-                AuthController authController = Get.find();
-
-                authController.updateUserDetails();
+                HelpingWidgets().showCustomDialog(context, () {
+                  AuthController authController = Get.find();
+                  authController.updateUserDetails();
+                },
+                    "Try FitHer for FREE! 🎉",
+                    "Unlock live workout sessions, and expert consultations. Start your 1-day free trial now and experience the change!",
+                    MyImgs.logo3);
               }
             }),
       ),

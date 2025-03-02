@@ -1,7 +1,12 @@
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/add_package.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/get_all_new_user_images/get_new_user_images.dart';
+import 'package:fitness_zone_2/UI/plans_module/add_country.dart';
+import 'package:fitness_zone_2/UI/plans_module/add_time_durations.dart';
+import 'package:fitness_zone_2/UI/plans_module/add_trainer_slots.dart';
 import 'package:fitness_zone_2/UI/plans_module/assign_workout_diet_plan.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/controllers/plan_controller/plan_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../UI/dashboard_module/add_new_user/add_new_user.dart';
@@ -13,6 +18,7 @@ import '../UI/dashboard_module/my_daily_meal/my_daily_meal.dart';
 import '../UI/dashboard_module/my_recordings/my_recordings_screen.dart';
 
 import '../UI/dashboard_module/reminders_screen/reminders_screen.dart';
+import '../values/constants.dart';
 import '../values/my_colors.dart';
 import '../values/my_imgs.dart';
 import 'package:get/get.dart';
@@ -22,6 +28,7 @@ import 'all_plans_screen.dart';
 class AdminHomeScreen extends StatelessWidget {
   AdminHomeScreen({Key? key}) : super(key: key);
   final HomeController homeController = Get.find();
+  final PlanController planController = Get.find();
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
@@ -119,7 +126,11 @@ class AdminHomeScreen extends StatelessWidget {
             GestureDetector(
               onTap: () {
                 Get.to(() => AddPackage());
-                homeController.getCategories();
+                planController.getCategories();
+                planController.getAllCountriesFunc();
+
+                homeController.selectedDietIdForMember.value = 0;
+                homeController.getUsersBasedOnUserType(Constants.dietitian);
               },
               child: containerWidget(
                   const Color(0xffFdE4F1), "Add Package", MyImgs.package),
@@ -127,25 +138,23 @@ class AdminHomeScreen extends StatelessWidget {
             SizedBox(
               height: 16.h,
             ),
-            GestureDetector(
-              onTap: () {
-                Get.to(() => AssignWorkoutDietPlan());
-                homeController.getAllDietitian();
-                homeController.getWorkoutAndTrainerPlan();
-              },
-              child: containerWidget(const Color(0xffFdE4F1),
-                  "Assign Workout and Diet Plan", MyImgs.package),
-            ),
-            SizedBox(
-              height: 16.h,
-            ),
+            // GestureDetector(
+            //   onTap: () {
+            //     Get.to(() => AssignWorkoutDietPlan());
+            //     homeController.getAllDietitian();
+            //     homeController.getWorkoutAndTrainerPlan();
+            //   },
+            //   child: containerWidget(const Color(0xffFdE4F1),
+            //       "Assign Workout and Diet Plan", MyImgs.package),
+            // ),
+            // SizedBox(
+            //   height: 16.h,
+            // ),
             GestureDetector(
               onTap: () {
                 Get.to(() => AddNewUser(
                       isMember: true,
                     ));
-                homeController.selectedSubCatId.value = 0;
-                homeController.getPlans();
               },
               child: containerWidget(
                   const Color(0xffE9ECEF), "Add Team Member", MyImgs.addMember),
@@ -190,15 +199,50 @@ class AdminHomeScreen extends StatelessWidget {
             SizedBox(
               height: 20.h,
             ),
-            Obx(
-              () => homeController.trialPlanLoad.value
-                  ? containerWidget(const Color(0xffE6EEFF), "Start Free Trial",
-                      MyImgs.annoucements,
-                      isShowSwitch: true,
-                      switchValue: homeController.trailPlan?.status,
-                      id: homeController.trailPlan!.id.toString())
-                  : SizedBox(),
+            GestureDetector(
+              onTap: () {
+                Get.to(() => AddCountry());
+              },
+              child: containerWidget(
+                  const Color(0xffE6EEFF), "Add Country", MyImgs.annoucements),
             ),
+            SizedBox(
+              height: 20.h,
+            ),
+            GestureDetector(
+              onTap: () {
+                Get.find<WorkOutController>().getAllTimesSlotsTrainerFunc();
+                homeController.getUsersBasedOnUserType(Constants.trainer,
+                    addNull: true);
+                Get.to(() => AddTrainerSlots());
+              },
+              child: containerWidget(const Color(0xffE6EEFF),
+                  "Add Trainer Slots", MyImgs.annoucements),
+            ),
+            SizedBox(
+              height: 20.h,
+            ),
+            GestureDetector(
+              onTap: () {
+                Get.find<PlanController>().getAllCountriesFunc();
+
+                Get.to(() => AddTimeDurations());
+              },
+              child: containerWidget(const Color(0xffE6EEFF),
+                  "Add Time Duration", MyImgs.annoucements),
+            ),
+            SizedBox(
+              height: 20.h,
+            ),
+            // Obx(
+            //   () => homeController.trialPlanLoad.value
+            //       ? containerWidget(const Color(0xffE6EEFF), "Start Free Trial",
+            //           MyImgs.annoucements,
+            //           isShowSwitch: true,
+            //           switchValue: homeController.trailPlan?.status,
+            //           id: homeController.trailPlan!.id.toString())
+            //       : SizedBox(),
+            // ),
 
             SizedBox(
               height: 20.h,

@@ -38,15 +38,16 @@ class ForgotPassword extends StatelessWidget {
                     SizedBox(
                       height: Dimens.size40.h,
                     ),
-                    Text(
-                      'Forgot Password?'.tr,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontSize: Dimens.size32.sp,
-                          color: MyColors.black),
-                    ),
+                    // Text(
+                    //   'Forgot Password?'.tr,
+                    //   style: TextStyle(
+                    //       fontWeight: FontWeight.w400,
+                    //       fontSize: Dimens.size32.sp,
+                    //       color: MyColors.black),
+                    // ),
+                    Image.asset(MyImgs.logo3),
                     SizedBox(
-                      height: (Dimens.size140).h,
+                      height: (Dimens.size100).h,
                     ),
                     Text(
                       'Please enter your email address to receive a verification code'
@@ -62,7 +63,7 @@ class ForgotPassword extends StatelessWidget {
                       height: 31.h,
                     ),
                     CustomTextField(
-                        height: 48.h,
+                        height: 58.h,
                         controller: email,
                         text: "Enter email".tr,
                         background: MyColors.textFieldColor,
@@ -78,7 +79,7 @@ class ForgotPassword extends StatelessWidget {
                       text: 'Send Code'.tr,
                       onPressed: () {
                         if (emailFormKey.currentState!.validate()) {
-                          // authController.forgotPassword(email: email.text);
+                          authController.forgotPassword(email.text);
                         } else {
                           CustomToast.failToast(
                               msg: "Please enter valid data".tr);

@@ -50,7 +50,7 @@ class UserPlan {
   factory UserPlan.fromJson(Map<String, dynamic> json) => UserPlan(
         id: json["id"],
         dietitionLink: json["dietitionLink"],
-        status: json["status"],
+        status: json["status"]??false,
         trainerId: json["trainerId"],
         dietitianId: json["dietitianId"],
         dietPlanOfUser: DietPlanOfUser.fromJson(json["Plan"]),
@@ -70,15 +70,11 @@ class DietPlanOfUser {
   String title;
   String shortDescription;
   String longDescription;
-  String duration;
-  int price;
 
   DietPlanOfUser({
     required this.title,
     required this.shortDescription,
     required this.longDescription,
-    required this.duration,
-    required this.price,
   });
 
   factory DietPlanOfUser.fromRawJson(String str) =>
@@ -90,15 +86,11 @@ class DietPlanOfUser {
         title: json["title"],
         shortDescription: json["shortDescription"],
         longDescription: json["longDescription"],
-        duration: json["duration"],
-        price: json["price"],
       );
 
   Map<String, dynamic> toJson() => {
         "title": title,
         "shortDescription": shortDescription,
-        "longDescription": longDescription,
-        "duration": duration,
-        "price": price,
+        "longDescription": longDescription
       };
 }

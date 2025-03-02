@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
+import 'package:fitness_zone_2/UI/auth_module/managePassword/forgot_password/otp_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
@@ -40,6 +44,7 @@ class AuthController extends GetxController implements GetxService {
 
   ///Generating unique id
   var uuid = const Uuid();
+  var showDot = false.obs;
 
   ///TextEditing Controller for Adding User
   TextEditingController firstNameController = TextEditingController();
@@ -66,6 +71,7 @@ class AuthController extends GetxController implements GetxService {
     "Trainer",
     "Gynecologist",
     "Psychiatrist",
+    "Customer_Support_Representative",
     "Admin"
   ];
 
@@ -121,6 +127,11 @@ class AuthController extends GetxController implements GetxService {
     }
   }
 
+  ///Listerner
+  ///
+  ValueNotifier<List<dynamic>?> sharedPrefNotifier =
+      ValueNotifier<List<dynamic>?>(null);
+
   initializeFireBase() {
     notificationServices.requestNotificationPermission();
     notificationServices.forgroundMessage();
@@ -150,7 +161,17 @@ class AuthController extends GetxController implements GetxService {
     super.onInit();
   }
 
-  login(String userType) {
+  addLocalStorage(LoginModel model, String password) {
+    sharedPreferences.setString(Constants.accessToken, model.accessToken);
+    sharedPreferences.setString(Constants.userId, model.id.toString());
+    sharedPreferences.setString(Constants.email, model.email.toString());
+    sharedPreferences.setString(Constants.password, password);
+    sharedPreferences.setString(Constants.loginAsa, loginAsA.value);
+
+    sharedPreferences.setBool(Constants.isGuest, false);
+  }
+
+  login({String? userType, String? email, String? password}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
@@ -158,40 +179,43 @@ class AuthController extends GetxController implements GetxService {
       } else {
         Get.dialog(const Center(child: CircularProgressIndicator()),
             barrierDismissible: false);
+        if (userType != null) {
+          loginAsA.value = userType;
+        }
         await authRepo
             .loginUserRepo(
-          email: loginUserPhone.text,
-          password: loginUserPassword.text,
+          email: email ?? loginUserPhone.text,
+          password: password ?? loginUserPassword.text,
           deviceToken: sharedPreferences.getString(Constants.deviceToken) ?? "",
           userType: loginAsA.value,
         )
             .then((response) async {
           Get.back();
-
+          print('AuthController.login ${response}}');
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
+              if (email != null) {
+                Get.offAll(() => const WalkThroughScreen());
+              }
             } else if (response.body["status"] != "0") {
               ApiResponse<LoginModel> model =
                   ApiResponse.fromJson(response.body, LoginModel.fromJson);
               debugPrint(model.data!.accessToken.toString());
               if (model.status == "1") {
                 logInUser = model.data;
-                sharedPreferences.setString(
-                    Constants.accessToken, model.data!.accessToken);
-                sharedPreferences.setString(
-                    Constants.userId, model.data!.id.toString());
 
-                sharedPreferences.setBool(Constants.isGuest, false);
+                addLocalStorage(logInUser!, password ?? loginUserPassword.text);
+
                 if (loginAsA.value == Constants.trainer) {
-                  Get.find<HomeController>().getTrainerHomeFunc();
+                  //  Get.find<HomeController>().getTrainerHomeFunc();
                 } else if (loginAsA.value == Constants.dietitian) {
-                  Get.find<HomeController>().getDietHomeFunc();
+                  //   Get.find<HomeController>().getDietHomeFunc();
                 } else if (loginAsA.value == Constants.admin) {
-                  Get.find<HomeController>().getTrialPlanDetails();
+                  // Get.find<HomeController>().getTrialPlanDetails();
                 } else if (loginAsA.value == Constants.user) {
                   if (!logInUser!.status) {
-                    Get.find<HomeController>().getPlans();
+                    Get.find<HomeController>().getPlansUser();
                   } else {
                     Get.find<HomeController>().getUserHomeFunc();
                   }
@@ -220,23 +244,23 @@ class AuthController extends GetxController implements GetxService {
       "name": logInUser!.firstName,
       "time": Timestamp.now(),
       "remoteId": 0,
+      "newMessageArrived": false,
+      "days": "",
       "deviceToken": sharedPreferences.getString(Constants.deviceToken)
     });
-    var userMap1 = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(logInUser!.adminId.toString())
-        .get();
-    userMap = userMap1.data()!;
-    String roomId = (logInUser!.id.toString().hashCode +
-            logInUser!.adminId.toString().hashCode)
-        .toString();
+    // var userMap1 = await FirebaseFirestore.instance
+    //     .collection("users")
+    //     .doc(logInUser!.adminId.toString())
+    //     .get();
+    // userMap = userMap1.data()!;
+    // String roomId = (logInUser!.id.toString().hashCode +
+    //         logInUser!.adminId.toString().hashCode)
+    //     .toString();
     editFirstName.text = logInUser!.firstName;
     editLastName.text = logInUser!.lastName;
     editEmail.text = logInUser!.email;
-    Get.offAll(() => BottomBarScreen(
-          roomId: roomId,
-          userMap: userMap,
-        ));
+    Get.find<HomeController>().getUserHomeFunc();
+    Get.offAll(() => BottomBarScreen());
   }
 
   guestLogin(String result) {
@@ -276,11 +300,102 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
+  forgotPassword(String email) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+        await authRepo
+            .forgotPasswordRepo(
+          email: email,
+        )
+            .then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              if (response.body["status"] == "1") {
+                Get.off(() => OtpScreen(
+                      email: response.body["data"]["email"],
+                      otp: response.body["data"]["otp"],
+                    ));
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  resetPassword(String email, String password) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+        await authRepo
+            .resetPasswordRepo(
+          email: email,
+          password: password,
+        )
+            .then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              if (response.body["status"] == "1") {
+                Get.off(() => Login());
+                Get.back();
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  void removeItem(int index) {
+    // Update the list by removing the item at the given index
+    if (sharedPrefNotifier.value != null) {
+      var list = sharedPreferences.getString(Constants.notificationList);
+
+      // Create a new list if none exists
+      List<NotificationMessage> notificationMessages = [];
+
+      // If the list already exists in SharedPreferences
+      if (list != null) {
+        // Decode the existing list
+        var list2 = jsonDecode(list);
+
+        // Convert each item back to NotificationMessage and add to notificationMessages list
+        notificationMessages = List<NotificationMessage>.from(
+            list2.map((item) => NotificationMessage.fromJson(item)));
+      }
+
+      sharedPrefNotifier.value?.removeAt(index);
+      notificationMessages.removeAt(index);
+      sharedPreferences.setString(
+          Constants.notificationList, jsonEncode(notificationMessages));
+      sharedPrefNotifier.notifyListeners();
+    }
+  }
+
   logout() {
     var token = sharedPreferences.getString(Constants.accessToken);
     if (token != null) {
-      debugPrint(" => Access Token :$token");
-
       connectionService.checkConnection().then((value) async {
         if (!value) {
           CustomToast.noInternetToast();
@@ -313,8 +428,6 @@ class AuthController extends GetxController implements GetxService {
   deleteUser() {
     var token = sharedPreferences.getString(Constants.accessToken);
     if (token != null) {
-      debugPrint(" => Access Token :$token");
-
       connectionService.checkConnection().then((value) async {
         if (!value) {
           CustomToast.noInternetToast();

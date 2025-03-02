@@ -54,12 +54,12 @@ class AllNewUserImages extends StatelessWidget {
                             ),
 
                           reportRow("Name",
-                              "${user.firstName} ${user.lastName}", context),
-                          reportRow("Email", user.email, context),
+                              "${user?.firstName} ${user?.lastName}", context),
+                          reportRow("Email", user?.email??"", context),
                           // reportRow("Phone no", user.phone, context),
                           reportRow("Plan Name",plan.plan==null?"N/A": plan.plan!.title, context),
                           reportRow(
-                              "Plan Duration",plan.plan==null?"N/A":  plan.plan!.duration, context),
+                              "Plan Duration",plan.plan==null?"N/A":  plan.priceDuration.duration, context),
                           SizedBox(
                             height: 20.h,
                           ),

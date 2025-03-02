@@ -1,9 +1,19 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
+import 'package:fitness_zone_2/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/controllers/home_controller/home_controller.dart';
+import '../firebase_options.dart';
 import '../values/constants.dart';
+import 'package:get/get.dart';
+
+const vapidKey =
+    "BDWl3SA7SiHCyDYKJSWH_e6kgFg_EcvJvoWhUAvqH-6wLK14vBIO5INqVNnmkXq8_ZiArqUsJ7iBHEqaKM_hXEU";
 
 class NotificationServices {
   //initialising firebase message plugin
@@ -34,6 +44,8 @@ class NotificationServices {
 
   Future<void> firebaseInit() async {
     FirebaseMessaging.onMessage.listen((message) {
+      print('----------- valuee    ');
+
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification!.android;
 
@@ -42,14 +54,14 @@ class NotificationServices {
       print("notifications body:${notification.body}");
       print('data:${message.data.toString()}');
       //}
-
-      if (Platform.isIOS) {
+      if (kIsWeb) {
+        initLocalNotifications(message);
+        showNotification(message);
+      } else if (Platform.isIOS) {
         forgroundMessage();
         //initLocalNotifications( message);
         showNotification(message);
-      }
-
-      if (Platform.isAndroid) {
+      } else if (Platform.isAndroid) {
         initLocalNotifications(message);
         showNotification(message);
       }
@@ -89,52 +101,117 @@ class NotificationServices {
   Future<void> showNotification(RemoteMessage message) async {
     AndroidNotificationDetails? androidNotificationDetails;
     DarwinNotificationDetails? darwinNotificationDetails;
-    if (Platform.isAndroid) {
-      AndroidNotificationChannel channel = AndroidNotificationChannel(
-        message.messageId!,
-        message.messageId!,
-        importance: Importance.max,
-        showBadge: true,
-        playSound: true,
-      );
-      androidNotificationDetails = AndroidNotificationDetails(
-          channel.id, channel.name.toString(),
-          channelDescription: 'your channel description',
-          importance: Importance.high,
-          priority: Priority.high,
+
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        AndroidNotificationChannel channel = AndroidNotificationChannel(
+          message.messageId!,
+          message.messageId!,
+          importance: Importance.max,
+          showBadge: true,
           playSound: true,
-          ticker: 'ticker',
-          sound: channel.sound
-          //c
-          //  icon: largeIconPath
-          );
+        );
+        androidNotificationDetails = AndroidNotificationDetails(
+            channel.id, channel.name.toString(),
+            channelDescription: 'your channel description',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            ticker: 'ticker',
+            sound: channel.sound
+            //c
+            //  icon: largeIconPath
+            );
+      } else {
+        darwinNotificationDetails = const DarwinNotificationDetails(
+            presentAlert: true, presentBadge: true, presentSound: null);
+      }
+      NotificationDetails notificationDetails = NotificationDetails(
+          android: androidNotificationDetails, iOS: darwinNotificationDetails);
+      _flutterLocalNotificationsPlugin.show(
+        message.messageId!.hashCode,
+        message.notification!.title.toString(),
+        message.notification!.body.toString(),
+        notificationDetails,
+      );
+      if (message.notification?.title == "Trainer has Joined") {
+        if (selectedPlan != "") {
+          Get.find<WorkOutController>().getDietPlanDetailsFunc(selectedPlan);
+        }
+      } else if (message.notification?.title == "Congratulations!") {
+        Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
+      }
+      addNotification(message);
     } else {
-      darwinNotificationDetails = const DarwinNotificationDetails(
-          presentAlert: true, presentBadge: true, presentSound: null);
+      Get.snackbar(
+        message.notification?.title ?? '',
+        message.notification?.body ?? '',
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 5),
+      );
+    }
+  }
+
+  addNotification(RemoteMessage message) {
+    AuthController authController = Get.find();
+
+    if (message.notification?.title == "A new message arrived") {
+      sharedPreferences.setBool("showDot", true);
+      Get.find<AuthController>().showDot.value = true;
     }
 
-    NotificationDetails notificationDetails = NotificationDetails(
-        android: androidNotificationDetails, iOS: darwinNotificationDetails);
+    // Retrieve the existing list from SharedPreferences
+    var list = sharedPreferences.getString(Constants.notificationList);
 
-    _flutterLocalNotificationsPlugin.show(
-      message.messageId!.hashCode,
-      message.notification!.title.toString(),
-      message.notification!.body.toString(),
-      notificationDetails,
-    );
+    // Create a new list if none exists
+    List<NotificationMessage> notificationMessages = [];
+
+    // If the list already exists in SharedPreferences
+    if (list != null) {
+      // Decode the existing list
+      var list2 = jsonDecode(list);
+
+      // Convert each item back to NotificationMessage and add to notificationMessages list
+      notificationMessages = List<NotificationMessage>.from(
+          list2.map((item) => NotificationMessage.fromJson(item)));
+    }
+
+    // Add the new message
+    notificationMessages.add(NotificationMessage.fromRemoteMessage(message));
+    authController.sharedPrefNotifier.value = notificationMessages;
+
+    // Encode the list back to JSON and save it
+    sharedPreferences.setString(Constants.notificationList,
+        jsonEncode(notificationMessages.map((msg) => msg.toJson()).toList()));
+
+    // Update the notifier with the new list
   }
 
   static String? deviceToken;
   Future<String?> getDeviceToken() async {
-    await FirebaseMessaging.instance.getToken().then((token) {
-      if (token != null) {
-        deviceToken = token;
-        print("device Token: $token");
-        sharedPreferences.setString(Constants.deviceToken, deviceToken!);
-      }
-    }).catchError((onError) {
-      print("the error is $onError");
-    });
+    FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+    if (DefaultFirebaseOptions.currentPlatform == DefaultFirebaseOptions.web) {
+      await _firebaseMessaging.deleteToken();
+    }
+    if (DefaultFirebaseOptions.currentPlatform == DefaultFirebaseOptions.web) {
+      deviceToken = await _firebaseMessaging.getToken(
+        vapidKey: vapidKey,
+      );
+    } else {
+      deviceToken = await _firebaseMessaging.getToken();
+    }
+    sharedPreferences.setString(Constants.deviceToken, deviceToken!);
+    print("device toke $deviceToken");
+
+    // await FirebaseMessaging.instance.getToken().then((token) {
+    //   if (token != null) {
+    //     deviceToken = token;
+    //     print("device Token: $token");
+    //     sharedPreferences.setString(Constants.deviceToken, deviceToken!);
+    //   }
+    // }).catchError((onError) {
+    //   print("the error is $onError");
+    // });
     return deviceToken;
   }
 
@@ -206,6 +283,37 @@ class NotificationServices {
       alert: true,
       badge: true,
       sound: true,
+    );
+  }
+}
+
+class NotificationMessage {
+  final String title;
+  final String body;
+
+  NotificationMessage({required this.title, required this.body});
+
+  // Convert to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'body': body,
+    };
+  }
+
+  // Create from JSON
+  factory NotificationMessage.fromJson(Map<String, dynamic> json) {
+    return NotificationMessage(
+      title: json['title'] ?? '',
+      body: json['body'] ?? '',
+    );
+  }
+
+  // Create a NotificationMessage from RemoteMessage
+  factory NotificationMessage.fromRemoteMessage(RemoteMessage message) {
+    return NotificationMessage(
+      title: message.notification?.title ?? '',
+      body: message.notification?.body ?? '',
     );
   }
 }

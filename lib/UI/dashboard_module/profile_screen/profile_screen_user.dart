@@ -102,6 +102,8 @@ class ProfileScreenUser extends StatelessWidget {
                                     TextButton(
                                         onPressed: () async {
                                           // Get.find<AuthController>().logout();
+                                          authController.sharedPreferences.clear();
+
                                           Get.offAll(() => ChooseAnyOne());
                                           await init();
                                           authController.loginAsA.value =
@@ -143,30 +145,30 @@ class ProfileScreenUser extends StatelessWidget {
               ),
             ],
           ),
-          // Positioned(
-          //   top: 0,
-          //   // left: MediaQuery.of(context).size.width/2.7,
-          //   child: CircleAvatar(
-          //     radius: 60,
-          //     backgroundImage: AssetImage(
-          //         MyImgs.userProfileIcon), // Replace with your image asset
-          //     child: Align(
-          //       alignment: Alignment.bottomRight,
-          //       child: Container(
-          //         padding: EdgeInsets.all(4),
-          //         decoration: BoxDecoration(
-          //           color: Colors.black,
-          //           shape: BoxShape.circle,
-          //         ),
-          //         child: Icon(
-          //           Icons.edit,
-          //           color: Colors.white,
-          //           size: 20,
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
+          Positioned(
+            top: 0,
+            // left: MediaQuery.of(context).size.width/2.7,
+            child: CircleAvatar(
+              radius: 60,
+              backgroundImage: AssetImage(
+                  MyImgs.userProfileIcon), // Replace with your image asset
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.edit,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

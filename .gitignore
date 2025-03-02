@@ -31,9 +31,15 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+ios/Pods
+ios/.symlinks
+ios/Podfile.lock
 
 # Symbolication related
 app.*.symbols
+.idea
+build
+pubspec.lock
 
 # Obfuscation related
 app.*.map.json

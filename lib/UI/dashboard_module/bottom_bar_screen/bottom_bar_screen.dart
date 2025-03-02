@@ -1,10 +1,12 @@
 import 'dart:ui';
 
 import 'package:fitness_zone_2/UI/chat/widgets/chat_room.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/Help_Screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_plans_of_user.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/progress_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/work_out_bottom_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/workout_plans_of_user.dart';
+import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -32,9 +34,13 @@ class BottomBarScreen extends StatefulWidget {
 
 class _BottomBarScreenState extends State<BottomBarScreen> {
   late List<Widget> _widgetOption = [];
+  AuthController authController = Get.find();
   @override
   void initState() {
     super.initState();
+
+    authController.showDot.value =
+        authController.sharedPreferences.getBool("showDot") ?? false;
     _widgetOption = Get.find<AuthController>().loginAsA.value == Constants.admin
         ? [
             HomeScreen(),
@@ -47,14 +53,28 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                 WorkPlansOfUser(),
                 DietPlansOfUser(),
                 ProgressScreen(),
-                ChatRoom(
-                    chatRoomId: widget.roomId ?? "",
-                    userMap: widget.userMap ?? {}),
+                HelpScreen()
+                // ChatRoom(
+                //     chatRoomId: widget.roomId ?? "",
+                //     userMap: widget.userMap ?? {}),
               ]
             : [
                 HomeScreen(),
+                ChatHomeScreen(),
                 ProfileScreen(),
               ];
+
+    if (authController.sharedPreferences.getBool("isFirstTime") == null) {
+      WidgetsBinding.instance.addPostFrameCallback((value) {
+        HelpingWidgets().showCustomDialog(context, () {
+          authController.sharedPreferences.setBool("isFirstTime", false);
+          Get.back();
+        },
+            "Welcome to FitHer!",
+            "We’re thrilled to have you on this journey. Let’s kickstart it to a healthier, happier you.",
+            MyImgs.welcomeEmoji);
+      });
+    }
   }
 
   // int _currentIndex = wi;
@@ -69,7 +89,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         // drawer: MyDrawer(),
         backgroundColor: MyColors.primaryColor,
         key: scaffoldKey,
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         body: _widgetOption.elementAt(widget.index!),
         bottomNavigationBar: Get.find<AuthController>().loginAsA.value ==
                 Constants.user
@@ -180,26 +200,43 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                       label: "Progress",
                     ),
                     BottomNavigationBarItem(
-                      icon: SvgPicture.asset(
-                        MyImgs.helpSVG,
-                        height: 30,
+                      icon: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          SvgPicture.asset(
+                            MyImgs.helpSVG,
+                            height: 30,
+                          ),
+                          dotWidget()
+                        ],
                       ),
-                      activeIcon: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: MyColors.buttonColor),
-                        child: SvgPicture.asset(
-                          MyImgs.helpSVG,
-                          height: 30,
-                          colorFilter: const ColorFilter.mode(
-                              Colors.white, BlendMode.srcIn),
-                        ),
+                      activeIcon: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: MyColors.buttonColor),
+                            child: SvgPicture.asset(
+                              MyImgs.helpSVG,
+                              height: 30,
+                              colorFilter: const ColorFilter.mode(
+                                  Colors.white, BlendMode.srcIn),
+                            ),
+                          ),
+                          dotWidget()
+                        ],
                       ),
                       label: "Help",
                     ),
                   ],
                   onTap: (value) async {
+                    if (value == 3) {
+                      authController.sharedPreferences
+                          .setBool("showDot", false);
+                      authController.showDot.value = false;
+                    }
                     setState(() {
                       widget.index = value;
                     });
@@ -229,112 +266,69 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                       // selectedLabelStyle: const TextStyle(
                       //   fontFamily: 'Roboto',
                       // ),
-                      items: Get.find<AuthController>().loginAsA.value ==
-                              Constants.admin
-                          ? [
-                              BottomNavigationBarItem(
-                                icon: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.home),
-                                    SizedBox(
-                                      width: 5.w,
-                                    ),
-                                    Text(
-                                      "Home",
-                                      style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: widget.index == 0
-                                              ? Colors.white
-                                              : Colors.black),
-                                    )
-                                  ],
-                                ),
-                                label: "",
+                      items: [
+                        BottomNavigationBarItem(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.home),
+                              SizedBox(
+                                width: 5.w,
                               ),
-                              BottomNavigationBarItem(
-                                icon: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.message),
-                                    SizedBox(
-                                      width: 5.w,
-                                    ),
-                                    Text(
-                                      "Chat",
-                                      style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: widget.index == 1
-                                              ? Colors.white
-                                              : Colors.black),
-                                    )
-                                  ],
-                                ),
-                                label: "",
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.person),
-                                    SizedBox(
-                                      width: 5.w,
-                                    ),
-                                    Text(
-                                      "Profile",
-                                      style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: widget.index == 2
-                                              ? Colors.white
-                                              : Colors.black),
-                                    )
-                                  ],
-                                ),
-                                label: "",
-                              ),
-                            ]
-                          : [
-                              BottomNavigationBarItem(
-                                icon: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.home),
-                                    SizedBox(
-                                      width: 5.w,
-                                    ),
-                                    Text(
-                                      "Home",
-                                      style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: widget.index == 0
-                                              ? Colors.white
-                                              : Colors.black),
-                                    )
-                                  ],
-                                ),
-                                label: "",
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.person),
-                                    SizedBox(
-                                      width: 5.w,
-                                    ),
-                                    Text(
-                                      "Profile",
-                                      style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: widget.index == 1
-                                              ? Colors.white
-                                              : Colors.black),
-                                    )
-                                  ],
-                                ),
-                                label: "",
-                              ),
+                              Text(
+                                "Home",
+                                style: textTheme.bodyMedium!.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.index == 0
+                                        ? Colors.white
+                                        : Colors.black),
+                              )
                             ],
+                          ),
+                          label: "",
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.message),
+                              SizedBox(
+                                width: 5.w,
+                              ),
+                              Text(
+                                "Chat",
+                                style: textTheme.bodyMedium!.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.index == 1
+                                        ? Colors.white
+                                        : Colors.black),
+                              )
+                            ],
+                          ),
+                          label: "",
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.person),
+                              SizedBox(
+                                width: 5.w,
+                              ),
+                              Text(
+                                "Profile",
+                                style: textTheme.bodyMedium!.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.index == 2
+                                        ? Colors.white
+                                        : Colors.black),
+                              )
+                            ],
+                          ),
+                          label: "",
+                        ),
+                      ],
+
                       onTap: (value) async {
                         setState(() {
                           widget.index = value;
@@ -343,39 +337,17 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                     ),
                   ),
                 ),
-              )
-        //body: _widgetOption.elementAt(_currentIndex),
-        // drawer: MyDrawer(),
-        //
-        // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        // floatingActionButton: FloatingActionButton(
-        //   // isExtended: true,
-        //   mini: false,
-        //   elevation: 0,
-        //   foregroundColor: MyColors.green,
-        //   backgroundColor: MyColors.primaryColor,
-        //   child: Material(
-        //     // height: getHeight(200),
-        //     type: MaterialType.transparency,
-        //     child: Ink(
-        //       decoration: BoxDecoration(
-        //         border: Border.all(color: MyColors.bodyBackground, width: 5.0.w),
-        //         shape: BoxShape.circle,
-        //         color: MyColors.primary2,
-        //       ),
-        //       child: Center(
-        //         child: Image.asset(
-        //           MyImgs.logo3,
-        //           width: 80.w,
-        //           height: 80.w,
-        //           fit: BoxFit.contain,
-        //         ),
-        //       ),
-        //     ),
-        //   ),
-        //   onPressed: () async {},
-        //   // label: null,
-        // ),
-        );
+              ));
+  }
+
+  dotWidget() {
+    return Obx(() => authController.showDot.value
+        ? Container(
+            height: 5,
+            width: 5,
+            decoration:
+                BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+          )
+        : SizedBox.shrink());
   }
 }

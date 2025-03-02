@@ -1,4 +1,6 @@
 import 'package:fitness_zone_2/UI/dashboard_module/paste_link/paste_link.dart';
+import 'package:fitness_zone_2/UI/workout_module/class_details.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:fitness_zone_2/widgets/custom_textfield.dart';
@@ -11,8 +13,14 @@ import '../data/controllers/home_controller/home_controller.dart';
 import '../data/models/add_package/add_package_model.dart';
 import '../values/my_imgs.dart';
 
-class TrainerHomeScreen extends StatelessWidget {
+class TrainerHomeScreen extends StatefulWidget {
   TrainerHomeScreen({Key? key}) : super(key: key);
+  @override
+  State<TrainerHomeScreen> createState() => _TrainerHomeScreenState();
+}
+
+class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
+  WorkOutController workOutController = Get.find();
 
   final List days = [
     "Monday",
@@ -22,9 +30,16 @@ class TrainerHomeScreen extends StatelessWidget {
     "Friday",
     "Saturday",
   ];
+  @override
+  initState() {
+    workOutController.getTrainerHomeFunc();
+
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
+    print("i am here to update");
     var textTheme = Theme.of(context).textTheme;
     return SingleChildScrollView(
       child: Padding(
@@ -60,153 +75,153 @@ class TrainerHomeScreen extends StatelessWidget {
             SizedBox(
               height: 10.h,
             ),
-            GetBuilder<HomeController>(builder: (homeController) {
-              return homeController.trainerHomeLoad.value
-                  ? ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (BuildContext context, int planIndex) {
-                      var plan=  homeController
-                            .getTrainerHome!.plans[planIndex];
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              homeController
-                                  .getTrainerHome!.plans[planIndex].title,
-                              style: textTheme.headlineSmall,
-                            ),
-                            ListView.separated(
-                                physics: const NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                itemBuilder: (context, int index) {
-                                  var dayTime = homeController.getTrainerHome!
-                                      .plans[planIndex].times[index];
-                                  return ExpansionTile(
-                                    onExpansionChanged: (bool value) {
-                                      if (value) {}
-                                    },
-                                    trailing: const Icon(
-                                        Icons.keyboard_arrow_down_rounded),
-                                    tilePadding: EdgeInsets.zero,
-                                    title: Text(
-                                      dayTime.day,
-                                      style: textTheme.bodyLarge,
+            Obx(() => workOutController.trainerHomeLoad.value
+                ? ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (BuildContext context, int planIndex) {
+                      var day = workOutController
+                          .getTrainerHome!.trainerSlots[planIndex];
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            day.day,
+                            style: textTheme.headlineSmall,
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemBuilder: (context, int timeIndex) {
+                                var slot = day.slots[timeIndex];
+                                return Row(children: [
+                                  Container(
+                                    height: 56.h,
+                                    width: 120.w,
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 12.w),
+                                    alignment: Alignment.centerLeft,
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border:
+                                            Border.all(color: Colors.black)),
+                                    child: Text(
+                                      slot.start,
+                                      style: TextStyle(
+                                          color: MyColors.textColor,
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w400),
                                     ),
+                                  ),
+                                  SizedBox(
+                                    width: 10.w,
+                                  ),
+                                  Container(
+                                    height: 56.h,
+                                    width: 120.w,
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 12.w),
+                                    alignment: Alignment.centerLeft,
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border:
+                                            Border.all(color: Colors.black)),
+                                    child: Text(
+                                      slot.end,
+                                      style: TextStyle(
+                                          color: MyColors.textColor,
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w400),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 10.w,
+                                  ),
+                                  Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      ListView.separated(
-                                          shrinkWrap: true,
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
-                                          itemBuilder:
-                                              (context, int timeIndex) {
-                                            var slot = dayTime.slots[timeIndex];
-                                            return Row(children: [
-                                              Container(
-                                                height: 56.h,
-                                                width: 120.w,
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 12.w),
-                                                alignment: Alignment.centerLeft,
-                                                decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                        color: Colors.black)),
-                                                child: Text(
-                                                  slot.start,
-                                                  style: TextStyle(
-                                                      color: MyColors.textColor,
-                                                      fontSize: 16.sp,
-                                                      fontWeight:
-                                                          FontWeight.w400),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 10.w,
-                                              ),
-                                              Container(
-                                                height: 56.h,
-                                                width: 120.w,
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 12.w),
-                                                alignment: Alignment.centerLeft,
-                                                decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                        color: Colors.black)),
-                                                child: Text(
-                                                  slot.end,
-                                                  style: TextStyle(
-                                                      color: MyColors.textColor,
-                                                      fontSize: 16.sp,
-                                                      fontWeight:
-                                                          FontWeight.w400),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 10.w,
-                                              ),
-                                              GestureDetector(
-                                                onTap: () =>
-                                                    Get.to(() => SessionScreen(
-                                                          slotId: slot.id, userId: 0,
-                                                        )),
-                                                // Get.to(() => PasteLink(
-                                                //       slotId: slot.id,
-                                                //     )),
-                                                child: Container(
-                                                  alignment: Alignment.center,
-                                                  width: 100.w,
-                                                  height: 30.h,
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                      color:
-                                                          MyColors.buttonColor),
-                                                  child: Text(
-                                                    "Paste Link",
-                                                    style: textTheme.bodySmall,
-                                                  ),
-                                                ),
-                                              ),
-                                            ]);
-                                          },
-                                          separatorBuilder:
-                                              (context, int index) {
-                                            return SizedBox(
-                                              height: 10.h,
-                                            );
-                                          },
-                                          itemCount: dayTime.slots.length)
+                                      GestureDetector(
+                                        onTap: () => Get.to(() => SessionScreen(
+                                              slotId: slot.id,
+                                              isDiet: false,
+                                              planId: workOutController
+                                                  .getTrainerHome?.plan?.id
+                                                  .toString(),
+                                              userId: 0,
+                                              link: slot.trainerLink,
+                                            )),
+                                        // Get.to(() => PasteLink(
+                                        //       slotId: slot.id,
+                                        //     )),
+                                        child: Container(
+                                          alignment: Alignment.center,
+                                          width: 100.w,
+                                          height: 28.h,
+                                          decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: MyColors.buttonColor),
+                                          child: Text(
+                                            "Paste Link",
+                                            style: textTheme.titleLarge,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: 4,
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => Get.to(() =>
+                                            ClassDetails(slotId: slot.id)),
+                                        // Get.to(() => PasteLink(
+                                        //       slotId: slot.id,
+                                        //     )),
+                                        child: Container(
+                                          alignment: Alignment.center,
+                                          width: 100.w,
+                                          height: 28.h,
+                                          decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: MyColors.buttonColor),
+                                          child: Text(
+                                            "Class Details",
+                                            style: textTheme.titleLarge,
+                                          ),
+                                        ),
+                                      ),
                                     ],
-                                  );
-                                },
-                                separatorBuilder: (context, int index) {
-                                  return SizedBox(
-                                    height: 10.h,
-                                  );
-                                },
-                                itemCount: homeController.getTrainerHome!
-                                    .plans[planIndex].times.length),
-                          ],
-                        );
-                      },
-                      separatorBuilder: (BuildContext context, int index) {
-                        return SizedBox(
-                          height: 10.h,
-                        );
-                      },
-                      itemCount: homeController.getTrainerHome!.plans.length,
-                    )
-                  : const Center(
-                      child: CircularProgressIndicator(),
-                    );
-            }),
+                                  ),
+                                ]);
+                              },
+                              separatorBuilder: (context, int index) {
+                                return SizedBox(
+                                  height: 10.h,
+                                );
+                              },
+                              itemCount: day.slots.length)
+                        ],
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) {
+                      return SizedBox(
+                        height: 10.h,
+                      );
+                    },
+                    itemCount:
+                        workOutController.getTrainerHome!.trainerSlots.length,
+                  )
+                : const Center(
+                    child: CircularProgressIndicator(),
+                  )),
+            const SizedBox(
+              height: 20,
+            )
+
             // Expanded(
             //   child: ListView.builder(
             //

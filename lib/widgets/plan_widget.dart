@@ -25,36 +25,75 @@ class PlanWidget extends StatelessWidget {
       elevation: 5,
       child: Container(
         // width: 300,
+        padding: EdgeInsets.symmetric(horizontal: 30),
         decoration: BoxDecoration(
-          color: MyColors.primaryGradient1,
+          color: Colors.white,
+          border: Border.all(color: MyColors.primaryGradient1),
           borderRadius: BorderRadius.circular(20.0),
         ),
         child: Column(
           children: [
-            SizedBox(
-              height: 6.h,
+            const SizedBox(
+              height: 20,
             ),
-            Text('Recommended',
+            Text('${plan.title}',
+                textAlign: TextAlign.center,
                 style: textTheme.titleLarge!.copyWith(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
-            SizedBox(
-              height: 6.h,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(
+              height: 5,
             ),
-            Container(
-              width: double.maxFinite,
-              color: MyColors.planColor,
-              alignment: Alignment.center,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Rs. ${plan.price}',
-                      style: textTheme.titleLarge!.copyWith(
-                          fontSize: 36.sp, fontWeight: FontWeight.w600)),
-                  Text('per ${plan.duration}',
-                      style: textTheme.titleLarge!
-                          .copyWith(fontWeight: FontWeight.w600)),
-                ],
+            DropdownButtonFormField<DurationPlan>(
+              itemHeight: null,
+              padding: const EdgeInsets.only(left: 10, bottom: 10),
+              iconSize: 40,
+              style: TextStyle(
+                color: MyColors.textColor,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
               ),
+              borderRadius: BorderRadius.circular(12),
+              decoration: InputDecoration(
+                contentPadding: EdgeInsets.symmetric(horizontal: 5.w),
+                border: InputBorder.none,
+              ),
+              value: plan.selectedDurationId.value == 0
+                  ? plan.countries!.first.duration![0]
+                  : plan.countries!.first.duration!.firstWhere(
+                      (value) => value.id == plan.selectedDurationId.value,
+                      orElse: () =>
+                          plan.countries!.first.duration![0], // Safety check
+                    ),
+              onChanged: (DurationPlan? newValue) {
+                if (newValue != null) {
+                  plan.selectedDurationId.value = newValue.id!;
+                }
+              },
+              items: plan.countries![0].duration!.map((DurationPlan cat) {
+                return DropdownMenuItem<DurationPlan>(
+                  value: cat,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${plan.countries?.first.currency} ${cat.priceAmount}',
+                        style: textTheme.titleLarge!.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                      ),
+                      // const SizedBox(width: 5), // Spacing between texts
+                      Text(
+                        '/${cat.days}',
+                        style: textTheme.titleLarge!.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
             SizedBox(height: 10.h),
             Expanded(
@@ -68,19 +107,21 @@ class PlanWidget extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: 20.h),
             CustomButton(
-              height: 50.h,
-              width: 120.w,
-              roundCorner: 20,
+              height: 34,
+              width: 190.w,
+              roundCorner: 4,
               text: "Subscribe",
               fontSize: 14.sp,
-              textColor: Colors.black,
+              textColor: Colors.white,
               onPressed: () {
                 Get.to(() => SelectPaymentMode(
-                    planId: plan.id.toString(), planCategory: plan.categoryId));
+                      planId: plan.id.toString(),
+                      durationId: plan.selectedDurationId.value,
+                    ));
               },
-              color: Colors.white,
+              // color: Myc.white,
             ),
             SizedBox(height: 14.h),
           ],
@@ -95,7 +136,11 @@ class PlanWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SvgPicture.asset(MyImgs.arrowCircleRight),
+          SvgPicture.asset(
+            MyImgs.arrowCircleRight,
+            colorFilter:
+                const ColorFilter.mode(MyColors.buttonColor, BlendMode.srcIn),
+          ),
           SizedBox(
             width: 10.w,
           ),
@@ -104,9 +149,8 @@ class PlanWidget extends StatelessWidget {
             child: Text(
               text ?? 'Live Workout Session',
               style: textTheme.bodySmall!.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-
+                fontWeight: FontWeight.w400,
+                color: Colors.black,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

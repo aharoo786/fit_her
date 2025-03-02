@@ -1,11 +1,15 @@
+import 'dart:ui';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PermissionOfPhotos {
   Future<bool> getFromGallery(BuildContext context) async {
@@ -31,82 +35,9 @@ class PermissionOfPhotos {
         await platform.request();
       } else {
         showDeleteDialog(context,
-            "FarmSharing app requires access to the gallery to upload pictures");
-        // await platform.request();
-        //   if (await platform.status.isPermanentlyDenied) {
-        //     if (Platform.isIOS) {
-        //       showDialog(
-        //           context: context,
-        //           builder: (BuildContext context) => CupertinoAlertDialog(
-        //                 title: Text("Settings "),
-        //                 content: Text(
-        //                     "Farm sharing want to access camera open settings and give permission"),
-        //                 actions: <Widget>[
-        //                   CupertinoDialogAction(
-        //                     isDefaultAction: true,
-        //                     child: Text("No"),
-        //                     onPressed: () => Navigator.pop(context),
-        //                   ),
-        //                   CupertinoDialogAction(
-        //                     onPressed: () => openAppSettings(),
-        //                     child: Text("open settings"),
-        //                   )
-        //                 ],
-        //               ));
-        //     } else {
-        //       showDeleteDialog(context);
-        //     }
-        //     // showDialog(
-        //     //     context: context,
-        //     //     builder: (context) {
-        //     //       return Center(
-        //     //
-        //     //         child: Container(
-        //     //           color: Colors.white,
-        //     //           height: 300,
-        //     //           width: 400,
-        //     //           child: Column(
-        //     //             mainAxisSize: MainAxisSize.min,
-        //     //             children: [
-        //     //               TextButton(onPressed: (){}, child: Text("nfjk"))
-        //     //             ],
-        //     //           ),
-        //     //
-        //     //         ),
-        //     //       );
-        //     //     });
-        //
-        //     // openAppSettings();
-        //     print("is permanant");
-        //     //  if (await Permission.camera.request().isDenied) {
-        //     //   print("is denied");
-        //     //   openAppSettings();
-        //     //
-        //
-        //     //   // We didn't ask for permission yet or the permission has been denied before but not permanently.
-        //     // }
-        //
-        //   } else if (await platform.isGranted) {
-        //     print("is grandted");
-        //     var picked = ImagePicker().pickImage(source: ImageSource.gallery);
-        //     Get.log("ggranted");
-        //     // Either the permission was already granted before or the user just granted it.
-        //   } else if (await platform.isLimited) {
-        //     var picked = ImagePicker().pickImage(source: ImageSource.gallery);
-        //   } else if (await platform.isDenied) {
-        //        showDeleteDialog(context);
-        //     // Either the permission was already granted before or the user just granted it.
-        //   }
+            "Fit Her app requires access to the gallery to upload pictures");
       }
 
-      //  if (await Permission.camera.request().isDenied) {
-      //   print("is denied");
-      //   openAppSettings();
-      //
-
-      //   // We didn't ask for permission yet or the permission has been denied before but not permanently.
-      //   // We didn't ask for permission yet or the permission has been denied before but not permanently.
-      // }
       return false;
     } else if (await platform.status.isPermanentlyDenied) {
       if (Platform.isIOS) {
@@ -115,7 +46,7 @@ class PermissionOfPhotos {
             builder: (BuildContext context) => CupertinoAlertDialog(
                   title: Text("Settings"),
                   content: Text(
-                      "Farm sharing want to access camera open settings and give permission"),
+                      "Fit Her want to access camera open settings and give permission"),
                   actions: <Widget>[
                     CupertinoDialogAction(
                       isDefaultAction: true,
@@ -130,62 +61,16 @@ class PermissionOfPhotos {
                 ));
       } else {
         showDeleteDialog(context,
-            "FarmSharing app requires access to the gallery to upload pictures");
+            "Fit her app requires access to the gallery to upload pictures");
       }
-      // showDialog(
-      //     context: context,
-      //     builder: (context) {
-      //       return Center(
-      //
-      //         child: Container(
-      //           color: Colors.white,
-      //           height: 300,
-      //           width: 400,
-      //           child: Column(
-      //             mainAxisSize: MainAxisSize.min,
-      //             children: [
-      //               TextButton(onPressed: (){}, child: Text("nfjk"))
-      //             ],
-      //           ),
-      //
-      //         ),
-      //       );
-      //     });
 
-      // openAppSettings();
-      print("is permanant");
-      //  if (await Permission.camera.request().isDenied) {
-      //   print("is denied");
-      //   openAppSettings();
-      //
-
-      //   // We didn't ask for permission yet or the permission has been denied before but not permanently.
-      // }
       return false;
     } else if (await platform.isGranted) {
-      print("is grandted");
-      //  var picked = ImagePicker().pickImage(source: ImageSource.gallery);
-      Get.log("ggranted");
       return true;
-      // Either the permission was already granted before or the user just granted it.
     } else if (await platform.isLimited) {
-      // ImagePicker().pickImage(source: ImageSource.gallery).then((value) {
-      //   print(value.toString());
-      // });
       return true;
     }
-    // final targetPath1 = dir1.absolute.path + "/dp${profileController.i}.jpg";
-    // var compressedFile1 = aw
-    // ait FlutterImageCompress.compressAndGetFile(
-    //     imagePath, targetPath1,
-    //     quality: 60);
-    // print("compressedFile File: ${compressedFile1!.path}");
-    // // Get.find<ProfileController>().image = compressedFile1;
-    // // Get.find<ProfileController>().imagePath.value = compressedFile1.path;
-    // profileController.addedFiles.add(compressedFile1);
-    // profileController.i++;
-    // Get.find<ProfileController>().update();
-    //}
+
     return false;
   }
 
@@ -198,72 +83,7 @@ class PermissionOfPhotos {
         await Permission.camera.request();
       } else {
         showDeleteDialog(context,
-            "FarmSharing app requires access to the camera to upload pictures");
-        // await platform.request();
-        //   if (await platform.status.isPermanentlyDenied) {
-        //     if (Platform.isIOS) {
-        //       showDialog(
-        //           context: context,
-        //           builder: (BuildContext context) => CupertinoAlertDialog(
-        //                 title: Text("Settings "),
-        //                 content: Text(
-        //                     "Farm sharing want to access camera open settings and give permission"),
-        //                 actions: <Widget>[
-        //                   CupertinoDialogAction(
-        //                     isDefaultAction: true,
-        //                     child: Text("No"),
-        //                     onPressed: () => Navigator.pop(context),
-        //                   ),
-        //                   CupertinoDialogAction(
-        //                     onPressed: () => openAppSettings(),
-        //                     child: Text("open settings"),
-        //                   )
-        //                 ],
-        //               ));
-        //     } else {
-        //       showDeleteDialog(context);
-        //     }
-        //     // showDialog(
-        //     //     context: context,
-        //     //     builder: (context) {
-        //     //       return Center(
-        //     //
-        //     //         child: Container(
-        //     //           color: Colors.white,
-        //     //           height: 300,
-        //     //           width: 400,
-        //     //           child: Column(
-        //     //             mainAxisSize: MainAxisSize.min,
-        //     //             children: [
-        //     //               TextButton(onPressed: (){}, child: Text("nfjk"))
-        //     //             ],
-        //     //           ),
-        //     //
-        //     //         ),
-        //     //       );
-        //     //     });
-        //
-        //     // openAppSettings();
-        //     print("is permanant");
-        //     //  if (await Permission.camera.request().isDenied) {
-        //     //   print("is denied");
-        //     //   openAppSettings();
-        //     //
-        //
-        //     //   // We didn't ask for permission yet or the permission has been denied before but not permanently.
-        //     // }
-        //
-        //   } else if (await platform.isGranted) {
-        //     print("is grandted");
-        //     var picked = ImagePicker().pickImage(source: ImageSource.gallery);
-        //     Get.log("ggranted");
-        //     // Either the permission was already granted before or the user just granted it.
-        //   } else if (await platform.isLimited) {
-        //     var picked = ImagePicker().pickImage(source: ImageSource.gallery);
-        //   } else if (await platform.isDenied) {
-        //        showDeleteDialog(context);
-        //     // Either the permission was already granted before or the user just granted it.
-        //   }
+            "Fit Her app requires access to the camera to upload pictures");
         return false;
       }
     }
@@ -274,7 +94,7 @@ class PermissionOfPhotos {
             builder: (BuildContext context) => CupertinoAlertDialog(
                   title: Text("Settings"),
                   content: Text(
-                      "Farm sharing want to access camera open settings and give permission"),
+                      "Fit Her want to access camera open settings and give permission"),
                   actions: <Widget>[
                     CupertinoDialogAction(
                       isDefaultAction: true,
@@ -289,136 +109,136 @@ class PermissionOfPhotos {
                 ));
       } else {
         showDeleteDialog(context,
-            "FarmSharing app requires access to the camera to capture pictures");
+            "Fit Her app requires access to the camera to capture pictures");
       }
-      // showDialog(
-      //     context: context,
-      //     builder: (context) {
-      //       return Center(
-      //
-      //         child: Container(
-      //           color: Colors.white,
-      //           height: 300,
-      //           width: 400,
-      //           child: Column(
-      //             mainAxisSize: MainAxisSize.min,
-      //             children: [
-      //               TextButton(onPressed: (){}, child: Text("nfjk"))
-      //             ],
-      //           ),
-      //
-      //         ),
-      //       );
-      //     });
 
-      // openAppSettings();
-      print("is permanant");
-      //  if (await Permission.camera.request().isDenied) {
-      //   print("is denied");
-      //   openAppSettings();
-      //
-
-      //   // We didn't ask for permission yet or the permission has been denied before but not permanently.
-      // }
       return false;
     } else if (await Permission.camera.isGranted ||
         await Permission.camera.isLimited) {
-      // print("is grandted");
-      // var picked = ImagePicker().pickImage(source: ImageSource.camera);
-      // Get.log("ggranted");
       return true;
-      // Either the permission was already granted before or the user just granted it.
     }
 
-// You can can also directly ask the permission about its status.
-//   else if (await Permission.camera.request().isPermanentlyDenied) {
-//     var picked = ImagePicker().pickImage(source: ImageSource.camera);
-//
-//     // The OS restricts access, for example because of parental controls.
-//   }
-
-    // else{
-    //   openAppSettings();
-    //
-    // }
-
-// You can request multiple permissions at once.
-// var statuses =
-//     Permission.camera.request();
-//   print(statuses);
-
-    // Get.log("status ......  $status");
-    // // if(!status.isPermanentlyDenied){
-    // //   final pickedFile =
-    // //      await ImagePicker().pickImage(source: ImageSource.camera);
-    // // }
-    // // Get.log("camera value,  $status");
-    // //
-    // //   var status =await Permission.camera.request();
-    // //
-    // //   final pickedFile =
-    // //   await ImagePicker().pickImage(source: ImageSource.camera);
-    // //   if (pickedFile != null) {
-    // //     print("Picked File: ${pickedFile.path}");
-    // //     var imagePath = pickedFile.path;
-    // //     // Get.find<AuthController>().image = File(imagePath);
-    // //     // Get.find<AuthController>().update();
-    // //
-    // //     var imageName = imagePath.split("/").last;
-    // //     print("Image Name: $imageName");
-    // //     final dir1 = Directory.systemTemp;
-    // //     // final targetPath1 =
-    // //     //     dir1.absolute.path + "/camera${profileController.i}.jpg";
-    // //     // var compressedFile1 = await FlutterImageCompress.compressAndGetFile(
-    // //     //     imagePath, targetPath1,
-    // //     //     quality: 60);
-    // //     // print("compressedFile File: ${compressedFile1!.path}");
-    // //     // // Get.find<ProfileController>().image = compressedFile1;
-    // //     // // Get.find<ProfileController>().imagePath.value = compressedFile1.path;
-    // //     // profileController.i++;
-    // //     // //profileController.businessData.sellerImageData.
-    // //     // profileController.addedFiles.add(compressedFile1);
-    // //     // Get.find<ProfileController>().update();
-    // //   }
-    // // else{
-    // //
-    // // }
-    //
-    //   if (status.isDenied) {
-    //
-    //
-    //   }
-    //   else  if (status.isGranted || status.isLimited) {
-    //     final pickedFile =
-    //     await ImagePicker().pickImage(source: ImageSource.camera);
-    //     if (pickedFile != null) {
-    //       print("Picked File: ${pickedFile.path}");
-    //       var imagePath = pickedFile.path;
-    //       // Get.find<AuthController>().image = File(imagePath);
-    //       // Get.find<AuthController>().update();
-    //
-    //       var imageName = imagePath.split("/").last;
-    //       print("Image Name: $imageName");
-    //       final dir1 = Directory.systemTemp;
-    //       // final targetPath1 =
-    //       //     dir1.absolute.path + "/camera${profileController.i}.jpg";
-    //       // var compressedFile1 = await FlutterImageCompress.compressAndGetFile(
-    //       //     imagePath, targetPath1,
-    //       //     quality: 60);
-    //       // print("compressedFile File: ${compressedFile1!.path}");
-    //       // // Get.find<ProfileController>().image = compressedFile1;
-    //       // // Get.find<ProfileController>().imagePath.value = compressedFile1.path;
-    //       // profileController.i++;
-    //       // //profileController.businessData.sellerImageData.
-    //       // profileController.addedFiles.add(compressedFile1);
-    //       // Get.find<ProfileController>().update();
-    //     }
-    //   }
-    //  else if (status.isPermanentlyDenied) {
-    //
-    //   }
     return false;
   }
+}
+// String getCountryCode()  {
+//   // DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+//   // if (Platform.isAndroid) {
+//   //   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+//   //   print('Android Device: ${androidInfo}');
+//   //   return 'PK';
+//   // } else if (Platform.isIOS) {
+//   //   IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+//   //   print('iOS Device: ${iosInfo.utsname.machine}');
+//   //
+//   //   return "PK";
+//   // } else {
+//   //   return 'PK';
+//   // } // Returns 'US', 'IN', etc.
+//  return "";
+//
+// }
+
+Future<String> getTimezoneOffset() async {
+  DateTime now = DateTime.now();
+  // Duration offset = now.timeZoneOffset;
+  final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+  print("utc $currentTimeZone");
+  return currentTimeZone;
+}
+
+int covertToTimeStamp(String timeString) {
+  DateTime now = DateTime.now();
+
+  // Extract time and AM/PM
+  var time = timeString.split(" ").first;
+  var amPM = timeString.split(" ").last;
+
+  int hour = int.parse(time.split(":").first);
+  int minute = int.parse(time.split(":").last);
+
+  // Handle AM/PM conversion properly
+  if (amPM == "PM" && hour != 12) {
+    hour += 12; // Convert PM hours to 24-hour format
+  } else if (amPM == "AM" && hour == 12) {
+    hour = 0; // Midnight case
+  }
+
+  DateTime combinedDateTime =
+      DateTime(now.year, now.month, now.day, hour, minute);
+
+  // Check if we need to move to the next day (crossing midnight)
+  if (amPM == "AM" && now.hour >= 12) {
+    combinedDateTime = combinedDateTime.add(Duration(days: 1));
+  }
+
+  Timestamp timestamp = Timestamp.fromDate(combinedDateTime);
+  return timestamp.millisecondsSinceEpoch;
+}
+// int covertToTimeStamp(String timeString) {
+//   // Step 1: Parse the time string into a DateTime object
+//   DateTime now = DateTime.now();
+//   //  DateTime parsedTime = DateFormat.jm().parse("7:00 AM");
+//   var time = timeString.split(" ").first;
+//   var amPM = timeString.split(" ").last;
+//
+//   print("${time}  ${amPM}");
+//   DateTime combinedDateTime = DateTime(
+//       now.year,
+//       now.month,
+//       now.day,
+//       amPM == "AM"
+//           ? int.parse(time.split(":").first)
+//           : (int.parse(time.split(":").first) + 12),
+//       int.parse(
+//         time.split(":").last,
+//       ));
+//
+//   Timestamp timestamp = Timestamp.fromDate(combinedDateTime);
+//   return timestamp.millisecondsSinceEpoch;
+// }
+
+Future<String> getCountryCode() async {
+  Map<String, String> timezoneToCountry = {
+    // India Time Zones
+    "Asia/Kolkata": "India",
+    "Asia/Calcutta": "India", // Historical name
+
+    // Pakistan Time Zone
+    "Asia/Karachi": "Pakistan",
+
+    // Saudi Arabia Time Zones
+    "Asia/Riyadh": "Saudi Arabia",
+    "Asia/Jeddah": "Saudi Arabia", // Alternative for Riyadh
+
+    // United Arab Emirates (UAE) Time Zones
+    "Asia/Dubai": "United Arab Emirates",
+    "Asia/Abu_Dhabi": "United Arab Emirates",
+
+    // Oman Time Zone
+    "Asia/Muscat": "Oman",
+
+    // Kuwait Time Zone
+    "Asia/Kuwait": "Kuwait",
+
+    // Bahrain Time Zone
+    "Asia/Bahrain": "Bahrain",
+
+    // Qatar Time Zone
+    "Asia/Qatar": "Qatar",
+
+    // United Kingdom (UK) Time Zones
+    "Europe/London": "United Kingdom (UK)",
+    "Europe/Belfast": "United Kingdom (UK)", // Northern Ireland
+    "Europe/Guernsey": "United Kingdom (UK)",
+    "Europe/Isle_of_Man": "United Kingdom (UK)",
+    "Europe/Jersey": "United Kingdom (UK)"
+  };
+
+  String timezone = await getTimezoneOffset();
+  String? countries = timezoneToCountry[timezone];
+  print("-----$countries");
+  return countries ?? "default";
 }
 
 showDeleteDialog(BuildContext context, String text) {
@@ -427,7 +247,7 @@ showDeleteDialog(BuildContext context, String text) {
     onTap: () {
       Navigator.pop(context);
     },
-    child: Text(
+    child: const Text(
       "Not now",
       style: TextStyle(fontSize: 12),
     ),
@@ -437,21 +257,21 @@ showDeleteDialog(BuildContext context, String text) {
       openAppSettings();
     },
     child: Text("Open settings".tr,
-        style: TextStyle(fontStyle: FontStyle.normal, fontSize: 12)),
+        style: const TextStyle(fontStyle: FontStyle.normal, fontSize: 12)),
   );
 
   // set up the AlertDialog
   AlertDialog alert = AlertDialog(
-    actionsPadding: EdgeInsets.only(right: 15, bottom: 15),
+    actionsPadding: const EdgeInsets.only(right: 15, bottom: 15),
     // shape: RoundedRectangleBorder(
     //     borderRadius: BorderRadius.all(Radius.circular(36.0))),
     title: Text(
       "Settings".tr,
-      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
     ),
     content: Text(
       text.tr,
-      style: TextStyle(fontWeight: FontWeight.w400),
+      style: const TextStyle(fontWeight: FontWeight.w400),
     ),
     actions: [
       cancelButton,

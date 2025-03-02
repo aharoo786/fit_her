@@ -1,503 +1,586 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:math';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitness_zone_2/UI/chat/group_chat_room.dart';
+import 'package:fitness_zone_2/data/controllers/call_controller/chat_controller.dart';
+import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
+import '../../../data/models/get_user_plan/get_workout_user_plan_details.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
+import '../../../widgets/toasts.dart';
 
 class CallScreen extends StatefulWidget {
+  final String channelName;
+  final String token;
+  final String userId;
+  final int? slotId;
+  final bool isDiet;
+  final Plan? plan;
+  final int? trainerUID;
+  final String title;
+
   CallScreen({
     Key? key,
     required this.channelName,
     required this.token,
     required this.userId,
-    // required this.camera
+    this.isDiet = false,
+    this.plan,
+    required this.title,
+    this.slotId,
+    this.trainerUID,
   }) : super(key: key);
-  final String channelName;
-  final String token;
-  final String userId;
-  // final CameraDescription camera;
 
   @override
-  State<CallScreen> createState() => _MyAppState();
+  State<CallScreen> createState() => _CallScreenState();
 }
 
-class _MyAppState extends State<CallScreen> {
-  //ScreenRecorderController controller = ScreenRecorderController();
-  //EdScreenRecorder screenRecorder = EdScreenRecorder();
+class _CallScreenState extends State<CallScreen> {
   final AuthController authController = Get.find();
+  final CallController callController = Get.put(CallController());
+  final HomeController homeController = Get.find();
+  RtcEngine? _engine;
   int? _remoteUid;
   bool _localUserJoined = false;
-  bool recordingStart = false;
-
-  List participantName = [];
-  late RtcEngine _engine;
-  //late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  Map<String, dynamic>? _response;
-
+  bool isTrainer = false;
   @override
   void initState() {
     super.initState();
-    // Get.find<HomeController>().recordSession(widget.channelName);();
-    // startRecord()
-    // ;
-    Get.find<HomeController>().participantList = [];
-    // Get.find<HomeController>().listenForDataChanges();
+    callController.participantList.value = [];
     initAgora();
+    isTrainer = authController.loginAsA.value == Constants.trainer;
+
     WakelockPlus.enable();
-    // _controller = CameraController(
-    //   widget.camera,
-    //   ResolutionPreset.medium,
-    // );
+  }
+
+  Future<void> muteAllExceptOne(int uid) async {
+    await _engine?.muteAllRemoteAudioStreams(true);
+    callController.muteAudioAll.value = true; // Mute all first
+    await _engine?.muteRemoteAudioStream(
+        uid: widget.trainerUID ?? 0, mute: false); // Unmute only one user
   }
 
   Future<void> initAgora() async {
-    // retrieve permissions
+    callController.muteVideo.value = false;
+    callController.muteAudio.value = true;
+    callController.muteAudioAll.value = false;
     await [Permission.microphone, Permission.camera].request();
 
-    //create the engine
     _engine = createAgoraRtcEngine();
-    await _engine.initialize(const RtcEngineContext(
-      appId: Constants.appID,
-      channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-    ));
+    await _engine!.initialize(
+      const RtcEngineContext(
+        appId: Constants.appID,
+        channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+      ),
+    );
+    print('_CallScreenState.initAgora ${widget.trainerUID}');
 
-    _engine.registerEventHandler(
+    _engine!.registerEventHandler(
       RtcEngineEventHandler(
-        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          debugPrint("local user ${connection.localUid} joined");
+        onJoinChannelSuccess: (RtcConnection connection, int elapsed) async {
+          if (isTrainer) {
+            await homeController.updateTrainerJoin(
+                connection.localUid ?? 0, widget.slotId ?? 0);
+          }
+          if (widget.plan != null || isTrainer) {
+            callController.joinRoom(widget.channelName.hashCode.toString(),
+                connection.localUid ?? 0, widget.plan?.id ?? -1, isTrainer);
 
-          Get.find<HomeController>().updateUserRemoteId(connection.localUid!);
+            // await homeController.updateUserRemoteId(
+            //     connection.localUid ?? 0, widget.plan!.id);
+          }
 
-          _localUserJoined = true;
-          Get.find<HomeController>().update();
+          setState(() => _localUserJoined = true);
+          callController.update();
         },
-        onUserJoined:
-            (RtcConnection connection, int remoteUid, int elapsed) async {
-          debugPrint("remote user $remoteUid joined");
+        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+          // Map<String, dynamic> user =
+          //     await homeController.getUserNameUsingId(remoteUid);
+          // homeController.participantList.add(
+          //   {
+          //     "id": remoteUid,
+          //     "name": user["name"],
+          //     "days": user["days"],
+          //     "isMute": false
+          //   },
+          // );
+          // print('_CallScreenState.initAgora ${widget.trainerUID}');
+          //
+          print('_CallScreenState.initAgora ${remoteUid}');
+          print('_CallScreenState.initAgora ${widget.trainerUID}');
+          if (authController.loginAsA.value == Constants.user) {
+            if (widget.trainerUID == remoteUid) {
+              _engine!.setRemoteVideoStreamType(
+                  uid: remoteUid, streamType: VideoStreamType.videoStreamHigh);
+              setState(() => _remoteUid = remoteUid);
+            } else {
+              _engine!.muteRemoteVideoStream(uid: remoteUid, mute: true);
+            }
+            // _engine?.setRemoteVideoStreamType(
+            //     uid: callController.trainerJoinedUID.value,
+            //     streamType: VideoStreamType.videoStreamHigh);
+            // setState(() => _remoteUid = callController.trainerJoinedUID.value);
+            // Ignore other users
+          }
 
-          // setState(() {
-
-          // String name =
-          //     ;
-          // print("name123456  $name");
-          // participantName.add(name);
-          _remoteUid = remoteUid;
-          //  await Get.find<HomeController>().getUsersCollection();
-          String name =
-              await Get.find<HomeController>().getUserNameUsingId(remoteUid);
-          // Get.log("getting name.....$name");
-          Get.find<HomeController>()
-              .participantList
-              .add({"id": _remoteUid, "name": name});
-
-          Get.find<HomeController>().update();
-
-          // });
-
-          Get.log("list12345  ${Get.find<HomeController>().participantList}");
+          callController.update();
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
-          debugPrint("remote user $remoteUid left channel");
           setState(() {
-            Get.find<HomeController>()
-                .participantList
-                .removeWhere((element) => element["id"] == remoteUid);
-            _remoteUid = null;
+            callController.participantList
+                .removeWhere((e) => e["userUID"] == remoteUid);
+            callController.participantListFree
+                .removeWhere((e) => e["userUID"] == remoteUid);
+            if (authController.loginAsA.value == Constants.user) {
+              _remoteUid = null;
+            }
           });
-        },
-        onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
-          debugPrint(
-              '[onTokenPrivilegeWillExpire] connection: ${connection.toJson()}, token: $token');
         },
       ),
     );
 
-    await _engine.setClientRole(
-        role:
+    const role = ClientRoleType.clientRoleBroadcaster;
+    await _engine!.setClientRole(role: role);
 
-            // authController.loginAsA.value == Constants.host
-            //     ?
-            ClientRoleType.clientRoleAudience
-        // : ClientRoleType.clientRoleAudience
+    await _engine!.enableVideo();
+    await _engine!.enableAudio();
+    // await _engine!.muteLocalVideoStream(true);
+    await _engine!.muteLocalAudioStream(true);
+    await _engine!.startPreview();
 
-        );
-    await _engine.enableVideo();
-    await _engine.startPreview();
-    await _engine.joinChannel(
+    await _engine!.joinChannel(
       token: widget.token,
       channelId: widget.channelName,
       uid: 0,
       options: const ChannelMediaOptions(
-          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-          clientRoleType: ClientRoleType.clientRoleBroadcaster),
+        channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+        clientRoleType: ClientRoleType.clientRoleBroadcaster,
+      ),
     );
+
+    //   freeUser();
+  }
+
+  Future<void> _dispose() async {
+    await _engine?.leaveChannel();
+    await _engine?.release();
+    callController.muteVideo.value = true;
+    callController.muteAudio.value = true;
+    WakelockPlus.disable();
   }
 
   @override
   void dispose() {
-    super.dispose();
-
     _dispose();
+    super.dispose();
   }
 
-  Future<void> deleteCollection() async {
-    CollectionReference collectionReference = FirebaseFirestore.instance
-        .collection(widget.channelName.hashCode.toString());
-
-    QuerySnapshot querySnapshot = await collectionReference.get();
-
-    for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
-      await documentSnapshot.reference.delete();
-    }
-  }
-
-  Future<void> _dispose() async {
-    //await stopRecord();
-    //await stopRecord();
-
-    if (Get.find<AuthController>().loginAsA.value == Constants.dietitian ||
-        Get.find<AuthController>().loginAsA.value == Constants.trainer) {
-      await deleteCollection();
-      // await stopRecording();
-    }
-    await _engine.leaveChannel();
-    await _engine.release();
-    WakelockPlus.enable();
-    //_controller.dispose();
-  }
-
-  // Create UI with local view and remote view
   @override
   Widget build(BuildContext context) {
-    print("toke   ${widget.token}");
-    return GetBuilder<HomeController>(builder: (contr) {
+    return GetBuilder<CallController>(builder: (controller) {
       return WillPopScope(
-        onWillPop: () {
-          Get.defaultDialog(
-              title: "End Session",
-              content: const Text("Are you sure you want to end session?"),
-              onCancel: () async {},
-              onConfirm: () async {
-                await _dispose();
-                Get.back();
-                Get.back();
-              });
-          return Future.value(true);
+        onWillPop: () async {
+          backButtonClick();
+          return false;
         },
         child: Scaffold(
-          body: GetBuilder<HomeController>(builder: (homeController) {
-            return GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // Set the number of items in a row
-                  crossAxisSpacing:
-                      8.0, // Optional spacing between items horizontally
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio:
-                      0.7 // Optional spacing between items vertically
-                  ),
-              itemCount: Get.find<HomeController>().participantList.length +
-                  1, // Replace with your actual item count
-              itemBuilder: (BuildContext context, int index) {
-                // Replace this with the widget for each item
-                if (index == 0) {
-                  return GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) => Container(
-                            height: double.infinity,
-                            width: double.infinity,
-                            color: Colors.black,
-                            child: Stack(
-                              children: [
-                                _buildLocalUserWidget(),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Container(
-                                    height: 40.h,
-                                    width: 40.h,
-                                    margin:
-                                        EdgeInsets.only(top: 10.h, left: 10.w),
-                                    decoration: const BoxDecoration(
-                                        color: MyColors.primaryColor,
-                                        shape: BoxShape.circle),
-                                    child: const Icon(
-                                      Icons.clear,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                      child: _buildLocalUserWidget());
-                } else {
-                  return GestureDetector(
-                    onTap: () {
-                      showDialog(
-                          context: context,
-                          builder: (BuildContext context) => Container(
-                                height: double.infinity,
-                                width: double.infinity,
-                                color: Colors.black,
-                                child: Stack(
-                                  children: [
-                                    _remoteVideoUser(
-                                        Get.find<HomeController>()
-                                            .participantList[index - 1]["id"],
-                                        Get.find<HomeController>()
-                                                .participantList[index - 1]
-                                            ["name"]),
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: Container(
-                                        height: 40.h,
-                                        width: 40.h,
-                                        margin: EdgeInsets.only(
-                                            top: 10.h, left: 10.w),
-                                        decoration: const BoxDecoration(
-                                            color: MyColors.primaryColor,
-                                            shape: BoxShape.circle),
-                                        child: const Icon(
-                                          Icons.clear,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ));
-                    },
-                    child: _remoteVideoUser(
-                        Get.find<HomeController>().participantList[index - 1]
-                            ["id"],
-                        Get.find<HomeController>().participantList[index - 1]
-                            ["name"]),
-                  );
-                }
-              },
-            );
+          appBar: HelpingWidgets().appBarWidget(text: widget.title, () {
+            backButtonClick();
           }),
-          floatingActionButton: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              FloatingActionButton(
-                mini: true,
-                onPressed: () {
-                  contr.muteAudio.value = !contr.muteAudio.value;
-                  _engine.muteLocalAudioStream(contr.muteAudio.value);
-                  contr.update();
-                },
-                backgroundColor: Colors.white,
-                child: Obx(() => Icon(
-                      contr.muteAudio.value ? Icons.mic_off_rounded : Icons.mic,
-                      color: Colors.black,
-                    )),
-              ),
-              FloatingActionButton(
-                mini: true,
-                onPressed: () async {
-                  contr.muteVideo.value = !contr.muteVideo.value;
-                  await _engine.muteLocalAudioStream(contr.muteVideo.value);
-                  contr.update();
-                },
-                backgroundColor: Colors.white,
-                child: Obx(() => Icon(
-                      contr.muteVideo.value
-                          ? Icons.videocam_off
-                          : Icons.videocam,
-                      color: Colors.black,
-                    )),
-              ),
-              FloatingActionButton(
-                mini: true,
-                onPressed: () async {
-                  Get.to(() => GroupChatRoom(
-                        chatRoomId: widget.channelName.hashCode.toString(),
-                      ));
-                },
-                backgroundColor: Colors.white,
-                child: const Icon(
-                  Icons.message,
-                  color: Colors.black,
-                ),
-              ),
-              // Get.find<AuthController>().loginAsA.value == Constants.host
-              //     ? FloatingActionButton(
-              //         mini: true,
-              //         onPressed: () async {
-              //           try {
-              //             await startRecording();
-              //           } catch (e) {
-              //             print('Error: $e');
-              //           }
-              //         },
-              //         backgroundColor: Colors.white,
-              //         child: const Icon(
-              //           Icons.emergency_recording_rounded,
-              //           color: Colors.black,
-              //         ),
-              //       )
-              //     : SizedBox(),
-              FloatingActionButton(
-                mini: true,
-                onPressed: () async {
-                  Get.defaultDialog(
-                      title: "End Session",
-                      content:
-                          const Text("Are you sure you want to end session?"),
-                      onCancel: () async {},
-                      onConfirm: () async {
-                        await _dispose();
-                        Get.back();
-                        Get.back();
-                      });
-                },
-                backgroundColor: Colors.red,
-                child: const Icon(
-                  Icons.call_end,
-                  color: Colors.white,
-                ),
-              ),
-              // FloatingActionButton(
-              //   mini: true,
-              //   onPressed: () async {
-              //     _toggleCamera();
-              //   },
-              //   backgroundColor: Colors.white,
-              //   child: const Icon(
-              //     Icons.cameraswitch_sharp,
-              //     color: Colors.black,
-              //   ),
-              // ),
-            ],
-          ),
+          body: widget.isDiet || authController.loginAsA.value == Constants.user
+              ? _buildSingleUserView()
+              : _buildGridView(),
+          bottomNavigationBar: _buildBottomBar(),
         ),
       );
     });
   }
 
-  Widget _buildLocalUserWidget() {
-    // Your logic for building the local user's video widget
-    if (_localUserJoined) {
-      return Get.find<HomeController>().muteVideo.value
-          ? Container(
-              color: Colors.black,
-              child: const Icon(
-                Icons.videocam_off,
-                color: Colors.white,
-              ),
-            )
-          : Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                AgoraVideoView(
-                  controller: VideoViewController(
-                    rtcEngine: _engine,
-                    canvas: const VideoCanvas(uid: 0),
-                  ),
+  Widget _buildSingleUserView() {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            children: [
+              _remoteUid != null
+                  ? _remoteVideoUser(
+                      _remoteUid!, "Trainer", callController, false)
+                  : const Center(child: Text("No user joined yet")),
+              Positioned(
+                bottom: 30,
+                right: 20,
+                child: SizedBox(
+                  height: 200,
+                  width: 100,
+                  child: _localUserJoined
+                      ? _buildLocalUserWidget()
+                      : const SizedBox(),
                 ),
-                Container(
-                  height: 30.h,
-                  color: Colors.white,
-                  width: double.infinity,
-                  child: Text(
-                      "${authController.logInUser!.firstName} ${authController.logInUser!.lastName}"),
-                )
-              ],
-            );
-    } else {
-      return const CircularProgressIndicator();
-    }
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
-  // Future<void> _toggleCamera() async {
-  //   final cameras = await availableCameras();
-  //   print("cameras  $cameras");
-  //   final newCamera = cameras
-  //       .firstWhere((element) => element.name != _controller.description.name);
-  //
-  //   _controller.setDescription(newCamera);
-  //
-  //   setState(() {});
-  // }
+  _buildListView(List participantList) {
+    return Expanded(
+      child: ListView.separated(
+          itemBuilder: (context, index) {
+            final participant = participantList[index];
+            return Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: GestureDetector(
+                onTap: () => _showParticipantDialog(participant),
+                child: _remoteVideoUser(
+                    participant["userUID"],
+                    participant["username"],
+                    callController,
+                    participant["isMute"],
+                    days: participant["days"]),
+              ),
+            );
+          },
+          separatorBuilder: (context, index) => SizedBox(
+                height: 10,
+              ),
+          itemCount: participantList.length),
+    );
+  }
 
-  Widget _remoteVideoUser(int id, String name) {
-    print("remotid $_remoteUid");
-    if (_remoteUid != null) {
-      return Stack(
-        alignment: Alignment.bottomCenter,
+  Widget _buildGridView() {
+    return Stack(
+      children: [
+        Obx(
+          () => Row(
+            children: [
+              _buildListView(callController.participantListFree.value),
+              SizedBox(
+                width: 10,
+              ),
+              _buildListView(callController.participantList.value)
+            ],
+          ),
+        ),
+        // GridView.builder(
+        //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        //     crossAxisCount: 2,
+        //     crossAxisSpacing: 8.0,
+        //     mainAxisSpacing: 8.0,
+        //     childAspectRatio: 0.7,
+        //   ),
+        //   itemCount: callController.participantList.length,
+        //   itemBuilder: (context, index) {
+        //     final participant = callController.participantList[index];
+        //     return GestureDetector(
+        //       onTap: () => _showParticipantDialog(participant),
+        //       child: _remoteVideoUser(
+        //           participant["userUID"],
+        //           participant["username"],
+        //           homeController,
+        //           participant["isMute"],
+        //           days: participant["days"]),
+        //     );
+        //   },
+        // ),
+        Positioned(
+          bottom: 30,
+          right: 20,
+          child: SizedBox(
+            height: 200,
+            width: 150,
+            child: _buildLocalUserWidget(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        color: Color(0xff6F8064),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          AgoraVideoView(
-            controller: VideoViewController.remote(
-              rtcEngine: _engine,
-              canvas: VideoCanvas(uid: id),
-              connection: RtcConnection(channelId: widget.channelName),
+          _buildBottomBarButton(
+            icon: callController.muteAudio.value
+                ? Icons.mic_off_rounded
+                : Icons.mic,
+            onTap: () async {
+              //  if (!freeUser()) {
+              callController.muteAudio.value = !callController.muteAudio.value;
+              _engine!.muteLocalAudioStream(callController.muteAudio.value);
+              callController.update();
+              //  }
+            },
+          ),
+          _buildBottomBarButton(
+            icon: callController.muteVideo.value
+                ? Icons.videocam_off
+                : Icons.videocam,
+            onTap: () {
+              //  if (!freeUser()) {
+              callController.muteVideo.value = !callController.muteVideo.value;
+              _engine!.muteLocalVideoStream(callController.muteVideo.value);
+              callController.update();
+              //   }
+            },
+          ),
+          Obx(
+            () => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                _buildBottomBarButton(
+                  icon: Icons.message,
+                  onTap: () {
+                    Get.to(() => GroupChatRoom(
+                          chatRoomId: widget.channelName.hashCode.toString(),
+                        ));
+                  },
+                ),
+                callController.showNewMessageIcon.value
+                    ? Container(
+                        height: 15,
+                        width: 15,
+                        decoration: const BoxDecoration(
+                            color: Colors.red, shape: BoxShape.circle),
+                      )
+                    : SizedBox.shrink(),
+              ],
             ),
           ),
-          Container(
-            height: 30.h,
-            color: Colors.white,
-            width: double.infinity,
-            child: Text(name),
-          )
+          _buildBottomBarButton(
+            icon: Icons.call_end,
+            onTap: () async {
+              backButtonClick();
+            },
+          ),
+          if (authController.loginAsA.value == Constants.trainer)
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: 25,
+              child: GetBuilder<CallController>(
+                builder: (homeController) => PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'mute_all') {
+                      muteAllExceptOne(0);
+                      callController.muteAudioAll.value = true;
+                    } else {
+                      await _engine?.muteAllRemoteAudioStreams(false);
+                      callController.muteAudioAll.value = false;
+                    }
+                    callController.update(); // Update UI
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    PopupMenuItem(
+                      value: callController.muteAudioAll.value
+                          ? 'un_mute_all'
+                          : 'mute_all',
+                      child: Text(
+                        callController.muteAudioAll.value
+                            ? "Unmute All"
+                            : "Mute All",
+                      ),
+                    ),
+                  ],
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
         ],
-      );
-    } else {
-      return const Text(
-        'Please wait for remote user to join',
-        textAlign: TextAlign.center,
-      );
-    }
+      ),
+    );
   }
 
-// startRecording() async {
-//   try {
-//     // if (!_controller.value.isInitialized) {
-//     //   await _controller.initialize();
-//     // }
-//     await _controller.initialize();
-//
-//     await _controller.startVideoRecording();
-//     CustomToast.successToast(msg: "Recording start");
-//     Get.find<HomeController>().update();
-//   } catch (e) {
-//     print('Error: $e');
-//   }
-// }
-//
-// stopRecording() async {
-//   if (_controller.value.isRecordingVideo) {
-//     await _controller.stopVideoRecording().then((value) {
-//       Get.find<HomeController>().videoFile = XFile(value.path);
-//       Get.find<HomeController>().update();
-//     });
-//   }
-// }
+  backButtonClick() async {
+    await Get.defaultDialog<bool>(
+      title: "End Session",
+      content: const Text("Are you sure you want to end session?"),
+      onCancel: () => Get.back(result: false),
+      onConfirm: () async {
+        if (isTrainer) {
+          await homeController.updateTrainerJoin(0, widget.slotId ?? 0,
+              isTrainerJoined: false);
+          callController
+              .onTrainerLogout(widget.channelName.hashCode.toString());
+          Get.back();
+          Get.back();
+        } else {
+          Get.back();
+          await _dispose();
+          var s = homeController.sharedPreferences;
+          if (s.getString(Constants.reviewDate) == null) {
+            Get.back(result: true);
+          } else {
+            int dif = DateTime.now()
+                .difference(DateTime.parse(s.getString(Constants.reviewDate)!))
+                .inDays;
+
+            // DateTime.parse(s.getString(Constants.reviewDate)!)
+            // .difference(DateTime.now().add(Duration(days: 1)))
+            // .inDays;
+            print(" ${dif}");
+
+            if (dif >= 2) {
+              Get.back(result: true);
+            } else {
+              Get.back();
+            }
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildBottomBarButton(
+      {required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: CircleAvatar(
+        backgroundColor: Colors.white,
+        radius: 25,
+        child: Icon(icon, color: MyColors.buttonColor),
+      ),
+    );
+  }
+
+  checkUserMicOnOff(int uid, bool mute) async {
+    await _engine?.muteRemoteAudioStream(uid: uid, mute: mute);
+    var index =
+        callController.participantList.indexWhere((v) => v["userUID"] == uid);
+    if (index != -1) {
+      callController.participantList[index]["isMute"] = mute;
+    }
+    callController.update();
+  }
+
+  Widget _remoteVideoUser(
+      int uid, String name, CallController controller, bool isMute,
+      {String? days}) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(5.0),
+                decoration: BoxDecoration(
+                    // border: Border.all(color: Colors.grey),
+                    // borderRadius: BorderRadius.circular(10.0),
+                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10.0),
+                  child: AgoraVideoView(
+                    controller: VideoViewController(
+                      rtcEngine: _engine!,
+                      canvas: VideoCanvas(uid: uid),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            if (days != null)
+              Text(
+                "$days",
+                style: const TextStyle(color: Colors.grey),
+              ),
+          ],
+        ),
+        if (isTrainer)
+          Positioned(
+            bottom: 50,
+            right: 10,
+            child: _buildBottomBarButton(
+              icon: isMute ? Icons.mic_off_rounded : Icons.mic,
+              onTap: () async {
+                checkUserMicOnOff(uid, !isMute);
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLocalUserWidget() {
+    if (_engine == null) {
+      return const CircularProgressIndicator(
+        color: MyColors.primaryColor,
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.all(5.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: AgoraVideoView(
+        controller: VideoViewController(
+          rtcEngine: _engine!,
+          canvas: const VideoCanvas(uid: 0),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showParticipantDialog(Map<String, dynamic> participant) async {
+    await Get.defaultDialog(
+      title: participant["name"],
+      content: Text("Days: ${participant["days"]}"),
+      confirm: ElevatedButton(
+        onPressed: () => Get.back(),
+        child: const Text(
+          "OK",
+          style: TextStyle(color: Colors.black),
+        ),
+      ),
+    );
+  }
+
+  freeUser({bool showToast = true}) {
+    if (widget.plan != null) {
+      if (widget.plan!.title == "Free Trial") {
+        callController.muteAudio.value = true;
+        callController.muteVideo.value = true;
+        _engine!.muteLocalAudioStream(true);
+        _engine!.muteLocalVideoStream(true);
+        if (showToast) CustomToast.failToast(msg: "You are in Free Mode");
+        return true;
+      }
+    }
+    return false;
+  }
 }

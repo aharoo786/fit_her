@@ -1,3 +1,4 @@
+
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -18,15 +19,29 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void initState() {
     controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(JavaScriptMode.disabled)
       ..setBackgroundColor(const Color(0x00000000))
+      // ..loadRequest(Uri.parse(widget.url))
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
             // Update loading bar.
           },
-          onPageStarted: (String url) {},
-          onPageFinished: (String url) {},
+          onPageStarted: (String url) {
+
+          },
+          onPageFinished: (String url) {
+            if(mounted) {
+              Future.delayed(const Duration(seconds: 2),(){
+             // var uri=   Uri.parse("https://meet.google.com/aig-xvta-fpd");
+             //    // controller?.loadRequest(
+             //    //     Uri.parse("https://meet.google.com/aig-xvta-fpd"));
+             //    controller?..setJavaScriptMode(JavaScriptMode.unrestricted)..loadRequest(uri);
+
+              });
+
+            }
+          },
           onHttpError: (HttpResponseError error) {},
           onWebResourceError: (WebResourceError error) {},
           onNavigationRequest: (NavigationRequest request) {
@@ -37,7 +52,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(widget.url));
+      ..loadRequest(Uri.parse("https://meet.google.com/landing"));
     super.initState();
   }
 

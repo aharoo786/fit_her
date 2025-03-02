@@ -48,7 +48,7 @@ class WorkoutScreen extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     children: [
                       Container(
-                        height: 120.h,
+                        height: 130.h,
                         width: double.maxFinite,
                         padding: EdgeInsets.symmetric(
                             vertical: 13.h, horizontal: 25.w),
@@ -65,13 +65,18 @@ class WorkoutScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              isProduct
-                                  ? "Workout Equipment"
-                                  : "${trainer.description ?? ""}",
-                              style: textTheme.bodySmall!.copyWith(
-                                  color: MyColors.workOutTextColor,
-                                  fontWeight: FontWeight.w500),
+                            SizedBox(
+                              width: 270,
+                              child: Text(
+                                isProduct
+                                    ? "Workout Equipment"
+                                    : "${trainer.description ?? ""}",
+                                style: textTheme.bodySmall!.copyWith(
+                                    color: MyColors.workOutTextColor,
+                                    fontWeight: FontWeight.w500),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             Text(
                               isProduct

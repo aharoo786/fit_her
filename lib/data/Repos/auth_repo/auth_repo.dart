@@ -46,6 +46,21 @@ class AuthRepo extends GetxService {
     return await apiProvider.postData(Constants.guestLogin, body: body);
   }
 
+  Future<Response> forgotPasswordRepo({required String email}) async {
+    var body = {
+      "email": email,
+    };
+
+    return await apiProvider.postData(Constants.forgotPassword, body: body);
+  }
+
+  Future<Response> resetPasswordRepo(
+      {required String email, required String password}) async {
+    var body = {"email": email, "password": password};
+
+    return await apiProvider.postData(Constants.resetPassword, body: body);
+  }
+
   Future<Response> dietitianLogin({
     required String email,
     required String password,
@@ -109,6 +124,7 @@ class AuthRepo extends GetxService {
     return await apiProvider
         .postData(Constants.logout, body: {"accessToken": accessToken});
   }
+
   Future deleteUser({required String id}) async {
     return await apiProvider
         .postData(Constants.deleteUser, body: {"userId": id});
@@ -123,8 +139,6 @@ class AuthRepo extends GetxService {
     return await apiProvider
         .postData(Constants.resendOtpPath, body: {"email": email});
   }
-
-
 
   getHomeData({required String accessToken}) async {
     return await apiProvider

@@ -17,9 +17,10 @@ import '../../../values/my_imgs.dart';
 import '../../../widgets/custom_button.dart';
 import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/toasts.dart';
+import '../sign_up_screen/signup_screen_user.dart';
 
 class Login extends StatelessWidget {
-  Login({super.key,this.showDropDown=false});
+  Login({super.key, this.showDropDown = false});
 
   final bool showDropDown;
 
@@ -90,81 +91,63 @@ class Login extends StatelessWidget {
                     SizedBox(
                       height: 16.h,
                     ),
-             showDropDown?          Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black),
-                        color: MyColors.textFieldColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        style: TextStyle(
-                            color: MyColors.textColor,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600),
-                        decoration: InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w, vertical: 12.h),
-                          border: InputBorder.none,
-                        ),
-
-                        //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                        value: authController.loginAsA.value,
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            authController.loginAsA.value = newValue;
-                          }
-                        },
-                        items: authController.addTeamMember.map((String cat) {
-                          return DropdownMenuItem<String>(
-                            value: cat,
-                            child: Text(
-                              cat,
-                              style: textTheme.bodySmall!
-                                  .copyWith(color: Colors.black),
+                    showDropDown
+                        ? Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black),
+                              color: MyColors.textFieldColor,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    ):SizedBox.shrink(),
-                    SizedBox(
-                      height: Dimens.size40.h,
-                    ),
+                            child: DropdownButtonFormField<String>(
+                              style: TextStyle(
+                                  color: MyColors.textColor,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600),
+                              decoration: InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16.w, vertical: 12.h),
+                                border: InputBorder.none,
+                              ),
 
+                              //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                              value: authController.loginAsA.value,
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  authController.loginAsA.value = newValue;
+                                }
+                              },
+                              items: authController.addTeamMember
+                                  .map((String cat) {
+                                return DropdownMenuItem<String>(
+                                  value: cat,
+                                  child: Text(
+                                    cat,
+                                    style: textTheme.bodySmall!
+                                        .copyWith(color: Colors.black),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          )
+                        : SizedBox.shrink(),
                     SizedBox(
-                      height: 20.h,
+                      height: 10.h,
                     ),
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     // Row(
-                    //     //   mainAxisAlignment: MainAxisAlignment.center,
-                    //     //   children: [
-                    //     //     Text(
-                    //     //       "No Account Yet? ",
-                    //     //       style: textTheme.bodySmall,
-                    //     //     ),
-                    //     //     GestureDetector(
-                    //     //         onTap: () {
-                    //     //           Get.off(() => SignUpScreen());
-                    //     //         },
-                    //     //         child: Text(
-                    //     //           "Sign Up",
-                    //     //           style: textTheme.bodySmall!
-                    //     //               .copyWith(color: MyColors.buttonColor),
-                    //     //         )),
-                    //     //   ],
-                    //     // ),
-                    //     GestureDetector(
-                    //       onTap: () {
-                    //         Get.to(() => ForgotPassword());
-                    //       },
-                    //       child: Text(
-                    //         "Forgot password?",
-                    //         style: textTheme.bodySmall,
-                    //       ),
-                    //     ),
-                    //   ],
-                    // )
+                    Row(
+                      crossAxisAlignment:CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Get.to(() => ForgotPassword());
+                          },
+                          child: Text(
+                            "Forgot password?",
+                            style: textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    )
                   ],
                 ),
               ),
@@ -198,29 +181,32 @@ class Login extends StatelessWidget {
                       CustomToast.failToast(msg: "Please provide valid email");
                     } else {
                       authController
-                          .login(homeController.addedTeamMember.value);
+                          .login();
                     }
                     // Get.offAll(()=>BottomBarScreen());
                   }),
-              // SizedBox(
-              //   height: 10.h,
-              // ),
-              // GestureDetector(
-              //   onTap: () {
-              //     // Get.to(() => ChooseAnyOne());
-              //   },
-              //   child: RichText(
-              //       text: TextSpan(
-              //           text: "Specify if you’re a Team Member ",
-              //           children: [
-              //             TextSpan(
-              //                 text: "Team",
-              //                 style: textTheme.bodyMedium!.copyWith(
-              //                     decoration: TextDecoration.underline,
-              //                     fontWeight: FontWeight.w700))
-              //           ],
-              //           style: textTheme.bodyMedium)),
-              // ),
+              SizedBox(
+                height: 20.h,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Does not have an account? ",
+                      style: textTheme.titleLarge!
+                          .copyWith(fontWeight: FontWeight.w500)),
+                  GestureDetector(
+                    onTap: () {
+                      Get.off(() => SignUpNewUser());
+                    },
+                    child: Text(
+                      "Create Account",
+                      style: textTheme.titleLarge!.copyWith(
+                          color: MyColors.buttonColor,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
               SizedBox(
                 height: 20.h,
               ),

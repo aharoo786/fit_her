@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
+import 'package:fitness_zone_2/UI/auth_module/welcom_screen.dart';
 import 'package:fitness_zone_2/values/values.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +20,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with WidgetsBindingObserver {
+  AuthController authController = Get.find();
   @override
   void initState() {
     super.initState();
@@ -27,15 +29,18 @@ class _SplashScreenState extends State<SplashScreen>
 
     WidgetsBinding.instance.addObserver(this);
     Timer(const Duration(seconds: 2), () async {
+      var share = authController.sharedPreferences;
 
-      if(Get.find<AuthController>().sharedPreferences.getBool(Constants.login)==null){
-
-        Get.offAll(() => const WalkThroughScreen());
+      if (share.getString(Constants.email) == null ||
+          share.getString(Constants.password) == null ||
+          share.getString(Constants.loginAsa) == null) {
+        Get.offAll(() => WelcomeScreen());
+      } else {
+        Get.find<AuthController>().login(
+            userType: share.getString(Constants.loginAsa),
+            email: share.getString(Constants.email),
+            password: share.getString(Constants.password));
       }
-      else{
-
-      }
-
     });
   }
 
@@ -78,12 +83,10 @@ class _SplashScreenState extends State<SplashScreen>
           height: height * 1,
           width: MediaQuery.of(context).size.width * 1,
           decoration: const BoxDecoration(
-            gradient:LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: MyColors.mainGradient
-            )
-          ),
+              gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: MyColors.mainGradient)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,

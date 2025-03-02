@@ -7,11 +7,13 @@ class Constants {
   static const chatAppKey = '411039298#1214303';
   static const String chatRoom = "chatRoom";
   static const String allMessages = "allMessages";
+  static const String reviewDate = "reviewDate";
 
   static const String subscriptionDuration = "subscriptionDuration";
   static String countryCode = "92";
   static String countryName = "PK";
   static String screenShot = "screenShot";
+  static String notificationList = "notificationList";
   static String type = "type";
   static String recording = "recording";
   static String fullName = "fullName";
@@ -19,12 +21,14 @@ class Constants {
   static String userId = "userId";
 
   static String email = "email";
-  static String password = "password";
+  static String password = "p";
+  static String loginAsa = "loginAsa";
   static String userMobileNumber = "userMobileNumber";
   static String userUid = "userUid";
   static String userCountryCode = "userCountryCode";
   static String trainer = "Trainer";
   static String dietitian = "Dietition";
+  static String customerSupport = "Customer_Support_Representative";
   static String admin = "Admin";
   static String GYNECOLOGIST = "Gynecologist";
   static String PSYCHIATRIST = "Psychiatrist";
@@ -35,8 +39,10 @@ class Constants {
   static String weeklyReports = "weeklyReports";
 
   ///base url
-  // static String baseUrl = "http://192.168.1.2:8001";
+  //  static String baseUrl = "http://192.168.1.19:8104";
   static String baseUrl = "https://backend.thefither.com";
+  static String customerSupportLink =
+      "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =
       "https://fcm.googleapis.com/v1/projects/fither-e7a36/messages:send";
 
@@ -53,21 +59,32 @@ class Constants {
   static String signupPath = "/users/registration";
   static String loginPath = "/admin/login";
   static String guestLogin = "/admin/guestlogin";
+  static String forgotPassword = "/users/forget_password";
+  static String resetPassword = "/users/change_password_after_otp";
   static String dietitianLogin = "/users/dietition_login";
   static String trainerLogin = "/users/trainer_login";
   static String getAllCategories = "/admin/all_categories";
   static String getSubCat = "/admin/get_subcategories";
   static String getUserDietPlans = "/admin/userDietPlans";
+  static String getClients = "/dietTimes/getClients";
+  static String getAppointments = "/appointment/dietAppointments";
+  static String dietTimes = "/dietTimes";
+  static String addReview = "/admin/addReview";
   static String getUserWorkoutPlans = "/admin/user_workout_plans";
   static String getUserImagesProgress = "/admin/getProgressImages";
   static String getUserDietPlanDetails = "/admin/dietPlanDetails";
+  static String getDietPdf = "/admin/getDietPdf";
   static String getUserWorkoutPlanDetails = "/admin/workout_plan_details";
-  static String getSubCatBasedOnUserType = "/admin/get_subcategories_based_on_user_types";
+  static String getSubCatBasedOnUserType =
+      "/admin/get_subcategories_based_on_user_types";
   static String getUsersOnUserType = "/admin/get_users_based_on_types";
-  static String getPlansBasedOnSubCat = "/admin/get_plans_based_on_sub_categories";
+  static String getPlansBasedOnSubCat =
+      "/admin/get_plans_based_on_sub_categories";
   static String getWorkoutAndTrainersPlan = "/admin/workout_plans";
   static String getAllDietAndTrain = "/admin/getAllDeititions";
   static String getAllUsers = "/admin/get_all_users";
+  static String getAllUserWithSpecificCustomer =
+      "/admin/getAllCustomSupporters";
   static String getTrainerHome = "/admin/trainerHome";
   static String getReports = "/admin/userReports";
   static String getDietHome = "/admin/dietitionHome";
@@ -77,11 +94,13 @@ class Constants {
   static String getTeamMembers = "/admin/getTeamMember";
   static String getUserHome = "/admin/userHome";
   static String getAllPlans = "/admin/get_plans";
+  static String addFreeTrial = "/admin/assignFreePlan";
   static String getAllHealthTips = "/admin/getAllHealthTips";
   static String postAddPlan = "/admin/add_plan";
-  static String postUpdatePlan = "/admin/add_plan";
+  static String postUpdatePlan = "/admin/update_plan";
   static String addNewUser = "/admin/addUser";
   static String payment = "/admin/payment";
+  static String getAllTimesWithSlots = "/admin/getAllTimesWithSlots";
   static String changeFreeTrialStatus = "/admin/changeFreeTrialStatus";
   static String assignWorkoutAndTrainerPlan = "/admin/assign_workout_diet_plan";
   static String addDietionPlan = "/admin/dietition_add_plan";
@@ -91,11 +110,13 @@ class Constants {
   static String addReport = "/admin/addReport";
   static String updateLink = "/admin/updateLink";
   static String updateDietLink = "/admin/updateDietitionLink";
+  static String updateTrainerJoin = "/admin/updateTrainerJoin";
   static String addTeamMember = "/admin/addTeamMember";
   static String updateUser = "/admin/updateUser";
   static String paymentSuccess = "/admin/payment_success";
   static String approveUser = "/admin/approvedImage";
   static String addTestimonials = "/admin/add_testimonial";
+  static String addPdfFile = "/admin/addDietPdf";
   static String updateUserProfile = "/admin/update_user";
   static String updateUserDietOfWeek = "/admin/addDiet";
   static String addPlanImage = "/admin/addImage";
@@ -107,4 +128,12 @@ class Constants {
   static String stripePayment = "/users/stripe_payment";
   static String logout = "/users/logout";
   static String deleteUser = "/users/delete_user";
+  static String updateSlotTrainer = "/admin/update_slot_trainer";
+
+  ///  Country ///
+  static String country = "/country";
+  static String add_slots = "/admin/update_slots";
+
+  ///Duration
+  static String timeDuration = "/duration/create";
 }

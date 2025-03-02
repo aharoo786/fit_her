@@ -9,24 +9,24 @@ import 'package:get/get.dart';
 import '../../values/my_colors.dart';
 
 class DietDetails extends StatelessWidget {
-  DietDetails({
-    super.key,
-    this.isPlan = false,
-    this.title = "Keto Diet Plan",
-    this.longDescription = "Transform your health with us",
-    this.description =
-        "The Keto Diet, short for the ketogenic diet, is a high-fat, low-carbohydrate eating plan designed to shift your body's primary energy source from carbohydrates to fats.",
-    this.price="2000",
-    this.duration="3 months",
-    this.planId="0",this.planCategory=0
-  });
+  DietDetails(
+      {super.key,
+      this.isPlan = false,
+      this.title = "Keto Diet Plan",
+      this.longDescription = "Transform your health with us",
+      this.description =
+          "The Keto Diet, short for the ketogenic diet, is a high-fat, low-carbohydrate eating plan designed to shift your body's primary energy source from carbohydrates to fats.",
+      this.price = "2000",
+      this.duration = "3 months",
+      this.planId = "0",
+      this.durationId = 0});
   String description;
   String title;
   String longDescription;
   String price;
   String duration;
   String planId;
-  int planCategory;
+  int? durationId;
 
   final bool isPlan;
   final List workoutText = [
@@ -51,10 +51,11 @@ class DietDetails extends StatelessWidget {
               children: [
                 Container(
                   height: 360.h,
-                  decoration:  BoxDecoration(
-                    color:isPlan?MyColors.primaryGradient2:Colors.white ,
+                  decoration: BoxDecoration(
+                      color: isPlan ? MyColors.primaryGradient2 : Colors.white,
                       image: DecorationImage(
-                          image: AssetImage(isPlan?MyImgs.logo:MyImgs.doctor2),
+                          image:
+                              AssetImage(isPlan ? MyImgs.logo : MyImgs.doctor2),
                           fit: BoxFit.cover)),
                 ),
                 Column(
@@ -139,7 +140,7 @@ class DietDetails extends StatelessWidget {
                             height: 25.h,
                           ),
                           Text(
-                           isPlan?"Description":"Purpose",
+                            isPlan ? "Description" : "Purpose",
                             style: textTheme.bodySmall!
                                 .copyWith(fontWeight: FontWeight.w600),
                           ),
@@ -150,32 +151,31 @@ class DietDetails extends StatelessWidget {
                                 height: 1.5,
                                 fontWeight: FontWeight.w400),
                           ),
-
-                          isPlan?Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 25.h,
-
-                              ),
-                              Text(
-                                "Duration",
-                                style: textTheme.bodySmall!
-                                    .copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                duration,
-                                style: textTheme.titleLarge!.copyWith(
-                                    color: MyColors.workOutTextColor,
-                                    height: 1.5,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                              SizedBox(
-                                height: 8.h,
-                              ),
-                            ],
-                          ):SizedBox.shrink(),
-
+                          isPlan
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      height: 25.h,
+                                    ),
+                                    Text(
+                                      "Duration",
+                                      style: textTheme.bodySmall!.copyWith(
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                    Text(
+                                      duration,
+                                      style: textTheme.titleLarge!.copyWith(
+                                          color: MyColors.workOutTextColor,
+                                          height: 1.5,
+                                          fontWeight: FontWeight.w400),
+                                    ),
+                                    SizedBox(
+                                      height: 8.h,
+                                    ),
+                                  ],
+                                )
+                              : SizedBox.shrink(),
                           Text(
                             "Benefits",
                             style: textTheme.bodySmall!
@@ -245,18 +245,21 @@ class DietDetails extends StatelessWidget {
                         fontSize: 32.sp,
                       )),
                   TextSpan(
-                      text: " /month",
+                      text: " /${duration}",
                       style: textTheme.bodySmall!.copyWith(
                         fontWeight: FontWeight.w600,
                       )),
                 ]))),
             CustomButton(
-              text: 'Book Now',
+              text: 'Upload Slip',
               onPressed: () {
                 // Get.find<HomeController>().makePayment();
-                Get.to(()=>SelectPaymentMode(planId: planId, planCategory: planCategory,));
+                Get.to(() => SelectPaymentMode(
+                      planId: planId,
+                      durationId: durationId??0,
+                    ));
               },
-              width: 100.w,
+              width: 150.w,
               fontSize: 12.sp,
               height: 30.h,
             ),

@@ -1,9 +1,12 @@
+import 'package:fitness_zone_2/data/models/country_model.dart';
+import 'package:fitness_zone_2/data/models/duration_model.dart';
 import 'package:fitness_zone_2/data/models/get_all_cat_plan/get_all_sub_cat.dart';
-import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../data/controllers/diet_contoller/diet_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
+import '../../../data/controllers/plan_controller/plan_controller.dart';
 import '../../../data/models/add_package/add_package_model.dart';
 import '../../../data/models/get_all_cat_plan/get_all_categories.dart';
 import '../../../helper/validators.dart';
@@ -13,13 +16,18 @@ import '../../../widgets/app_bar_widget.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../widgets/circular_progress.dart';
 import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/toasts.dart';
+import '../../diet_screen/doctor_details.dart';
 
 class AddPackage extends StatelessWidget {
-  AddPackage({super.key, this.isFromUpdate = false});
+  AddPackage({super.key, this.isFromUpdate = false, this.id});
   final bool isFromUpdate;
+  final String? id;
+  final PlanController planController = Get.find();
   final HomeController homeController = Get.find();
+
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
@@ -39,7 +47,7 @@ class AddPackage extends StatelessWidget {
               CustomTextField(
                 text: "Package name",
                 length: 500,
-                controller: homeController.packageName,
+                controller: planController.packageName,
                 validator: (value) =>
                     Validators.firstNameValidation(value!.toString()),
                 keyboardType: TextInputType.text,
@@ -52,7 +60,7 @@ class AddPackage extends StatelessWidget {
               CustomTextField(
                 text: "Description",
                 length: 500,
-                controller: homeController.shortDis,
+                controller: planController.shortDis,
                 validator: (value) =>
                     Validators.firstNameValidation(value!.toString()),
                 keyboardType: TextInputType.text,
@@ -65,7 +73,7 @@ class AddPackage extends StatelessWidget {
               CustomTextField(
                 text: "Long Description",
                 length: 500,
-                controller: homeController.longDis,
+                controller: planController.longDis,
                 validator: (value) =>
                     Validators.emailValidator(value!.toString()),
                 keyboardType: TextInputType.text,
@@ -75,61 +83,7 @@ class AddPackage extends StatelessWidget {
               SizedBox(
                 height: 16.h,
               ),
-              CustomTextField(
-                text: "Price",
-                length: 500,
-                controller: homeController.price,
-                validator: (value) =>
-                    Validators.emailValidator(value!.toString()),
-                keyboardType: TextInputType.number,
-                inputFormatters: FilteringTextInputFormatter.digitsOnly,
-              ),
-              SizedBox(
-                height: 16.h,
-              ),
-              CustomTextField(
-                keyboardType: TextInputType.text,
-                text: "Duration".tr,
-                length: 30,
-                controller: homeController.packageDuration,
-                Readonly: true,
-                inputFormatters:
-                    FilteringTextInputFormatter.singleLineFormatter,
-                suffixIcon: GestureDetector(
-                  onTap: () async {
-                    final DateTime? picked = await showDatePicker(
-                        context: context,
-                        builder: (BuildContext context, Widget? child) {
-                          return Theme(
-                            data: ThemeData.light().copyWith(
-                              primaryColor: MyColors
-                                  .buttonColor, // OK button background color
-                              hintColor:
-                                  MyColors.buttonColor, // OK button text color
-                              dialogBackgroundColor:
-                                  Colors.white, // Dialog background color
-                            ),
-                            child: child!,
-                          );
-                        },
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2099));
-                    if (picked != null) {
-                      homeController.packageDuration.text =
-                          "${picked.difference(DateTime.now()).inDays} days";
-                    }
-                  },
-                  child: Image.asset(
-                    MyImgs.calender2,
-                    scale: 3,
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 16.h,
-              ),
-              Obx(() => homeController.getCatLoaded.value
+              Obx(() => planController.getCatLoaded.value
                   ? Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.black),
@@ -148,17 +102,18 @@ class AddPackage extends StatelessWidget {
                         ),
 
                         //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                        value: homeController.allCategoriesOfPlan!.categories
+                        value: planController.allCategoriesOfPlan!.categories
                             .firstWhere((element) =>
-                                element.id == homeController.selectedId.value),
+                                element.id == planController.selectedId.value),
                         onChanged: (Category? newValue) {
                           if (newValue != null) {
-                            homeController.selectedId.value = newValue.id;
-                            homeController
+                            planController.selectedId.value = newValue.id;
+                            planController
                                 .getSubCategories(newValue.id.toString());
+                            planController.update();
                           }
                         },
-                        items: homeController.allCategoriesOfPlan!.categories
+                        items: planController.allCategoriesOfPlan!.categories
                             .map((Category cat) {
                           return DropdownMenuItem<Category>(
                             value: cat,
@@ -178,9 +133,9 @@ class AddPackage extends StatelessWidget {
               SizedBox(
                 height: 16.h,
               ),
-              Obx(() => homeController.selectedSubCatId.value == 0
+              Obx(() => planController.selectedSubCatId.value == 0
                   ? const SizedBox.shrink()
-                  : homeController.getSubCatLoaded.value
+                  : planController.getSubCatLoaded.value
                       ? Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.black),
@@ -199,17 +154,17 @@ class AddPackage extends StatelessWidget {
                             ),
 
                             //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                            value: homeController.allSubCategories!.data
+                            value: planController.allSubCategories!.data
                                 .firstWhere((element) =>
                                     element.id ==
-                                    homeController.selectedSubCatId.value),
+                                    planController.selectedSubCatId.value),
                             onChanged: (SubCategory? newValue) {
                               if (newValue != null) {
-                                homeController.selectedSubCatId.value =
+                                planController.selectedSubCatId.value =
                                     newValue.id;
                               }
                             },
-                            items: homeController.allSubCategories!.data
+                            items: planController.allSubCategories!.data
                                 .map((SubCategory cat) {
                               return DropdownMenuItem<SubCategory>(
                                 value: cat,
@@ -218,8 +173,9 @@ class AddPackage extends StatelessWidget {
                                   child: Text(
                                     cat.title,
                                     maxLines: 2,
-                                    style: textTheme.bodySmall!
-                                        .copyWith(color: Colors.black,overflow: TextOverflow.ellipsis),
+                                    style: textTheme.bodySmall!.copyWith(
+                                        color: Colors.black,
+                                        overflow: TextOverflow.ellipsis),
                                   ),
                                 ),
                               );
@@ -233,234 +189,236 @@ class AddPackage extends StatelessWidget {
               SizedBox(
                 height: 20.h,
               ),
-              Obx(() => homeController.selectedId.value == 2 ||homeController.selectedId.value == 6
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Add Time",
-                          style: textTheme.headlineMedium!
-                              .copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        SizedBox(
-                          height: 10.h,
-                        ),
-                        GetBuilder<HomeController>(builder: (homeController) {
-                          return ListView.separated(
-                              physics: const NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              itemBuilder: (context, int index) {
-                                var dayTime =
-                                    homeController.addPackageTimeTable[index];
-                                return ExpansionTile(
+              GetBuilder<PlanController>(builder: (planCont) {
+                return Column(
+                  children: [
+                    if (planCont.addCountriesList.isEmpty)
+                      CustomButton(
+                          text: "Add Country",
+                          onPressed: () {
+                            planCont.addCountry(
+                                planCont.countryList!.countries.first);
+                          }),
+                    ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemBuilder: (context, int index) {
+                          var country = planCont.addCountriesList[index];
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: ExpansionTile(
                                   onExpansionChanged: (bool value) {
                                     if (value) {}
                                   },
+                                  collapsedIconColor: Colors.black,
+                                  iconColor: Colors.black,
                                   trailing: const Icon(
                                       Icons.keyboard_arrow_down_rounded),
                                   tilePadding: EdgeInsets.zero,
-                                  title: Text(
-                                    dayTime.day,
-                                    style: textTheme.bodyLarge,
-                                  ),
+                                  title: Obx(() => planController
+                                          .getAllCountriesLoad.value
+                                      ? Container(
+                                          // width: 80,
+                                          decoration: BoxDecoration(
+                                            // border: Border.all(color: Colors.black),
+                                            // color: MyColors.textFieldColor,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child:
+                                              DropdownButtonFormField<Country>(
+                                            style: TextStyle(
+                                                color: MyColors.textColor,
+                                                fontSize: 20.sp,
+                                                fontWeight: FontWeight.w700),
+                                            decoration: InputDecoration(
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                      horizontal: 5.w,
+                                                      vertical: 5.h),
+                                              border: InputBorder.none,
+                                            ),
+
+                                            //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                            value: country.id == 0
+                                                ? planCont
+                                                    .countryList?.countries[0]
+                                                : planCont
+                                                    .countryList?.countries
+                                                    .firstWhere((value) =>
+                                                        value.id == country.id),
+                                            onChanged: (Country? newValue) {
+                                              if (newValue != null) {
+                                                country.id = newValue.id;
+                                                planCont.update();
+                                              }
+                                            },
+                                            items: planCont
+                                                .countryList?.countries
+                                                .map((Country cat) {
+                                              return DropdownMenuItem<Country>(
+                                                value: cat,
+                                                child: SizedBox(
+                                                  //  width: 60.w,
+                                                  child: Text(
+                                                    cat.name,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: textTheme.bodySmall!
+                                                        .copyWith(
+                                                            color: Colors.black,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        )
+                                      : CircularProgress()),
                                   children: [
                                     ListView.separated(
                                         shrinkWrap: true,
                                         physics:
                                             const NeverScrollableScrollPhysics(),
                                         itemBuilder: (context, int timeIndex) {
-                                          var slot = dayTime.slots[timeIndex];
+                                          var duration =
+                                              country.durationList[timeIndex];
                                           return Row(children: [
-                                            GestureDetector(
-                                                onTap: () async {
-                                                  TimeOfDay? time =
-                                                      await showTimePicker(
-                                                    context: context,
-                                                    initialTime:
-                                                        TimeOfDay.now(),
-                                                    builder:
-                                                        (BuildContext context,
-                                                            Widget? child) {
-                                                      return Theme(
-                                                        data: ThemeData.light()
-                                                            .copyWith(
-                                                          primaryColor: Colors
-                                                              .blue, // Change the primary color
-                                                          dialogBackgroundColor:
-                                                              Colors
-                                                                  .white, // Change the dialog background color
-                                                          textTheme:
-                                                              const TextTheme(
-                                                            bodyLarge: TextStyle(
-                                                                color: Colors
-                                                                    .black), // Change the text color
-                                                          ),
-                                                        ),
-                                                        child: child!,
-                                                      );
-                                                    },
-                                                  );
-                                                  if (time != null) {
-                                                    slot.start =
-                                                        time.format(context);
-                                                    homeController.update();
-                                                  }
-                                                },
-                                                child: Container(
-                                                  height: 56.h,
-                                                  width: 140.w,
-                                                  padding: EdgeInsets.symmetric(
-                                                      horizontal: 12.w),
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  decoration: BoxDecoration(
+                                            Obx(() => planController
+                                                    .getAllDurationLoad.value
+                                                ? Container(
+                                                    width: 110,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                          color: Colors.black),
+                                                      color: MyColors
+                                                          .textFieldColor,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               8),
-                                                      border: Border.all(
-                                                          color: Colors.black)),
-                                                  child: Text(
-                                                    slot.start,
-                                                    style: slot.start ==
-                                                            "Start Time"
-                                                        ? TextStyle(
-                                                            color: MyColors
-                                                                .hintText,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .normal,
-                                                            fontSize: 14.sp)
-                                                        : TextStyle(
-                                                            color: MyColors
-                                                                .textColor,
-                                                            fontSize: 16.sp,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w400),
-                                                  ),
-                                                )),
-                                            SizedBox(
-                                              width: 10.w,
-                                            ),
-                                            GestureDetector(
-                                                onTap: () async {
-                                                  TimeOfDay? time =
-                                                      await showTimePicker(
-                                                    context: context,
-                                                    initialTime:
-                                                        TimeOfDay.now(),
-                                                    builder:
-                                                        (BuildContext context,
-                                                            Widget? child) {
-                                                      return Theme(
-                                                        data: ThemeData.light()
-                                                            .copyWith(
-                                                          primaryColor: Colors
-                                                              .blue, // Change the primary color
-                                                          dialogBackgroundColor:
-                                                              Colors
-                                                                  .white, // Change the dialog background color
-                                                          textTheme:
-                                                              const TextTheme(
-                                                            bodyLarge: TextStyle(
-                                                                color: Colors
-                                                                    .black), // Change the text color
-                                                          ),
-                                                        ),
-                                                        child: child!,
-                                                      );
-                                                    },
-                                                  );
-                                                  if (time != null) {
-                                                    slot.end =
-                                                        time.format(context);
-                                                    homeController.update();
-                                                  }
-                                                },
-                                                child: Container(
-                                                  height: 56.h,
-                                                  width: 140.w,
-                                                  padding: EdgeInsets.symmetric(
-                                                      horizontal: 12.w),
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                      border: Border.all(
-                                                          color: Colors.black)),
-                                                  child: Text(
-                                                    slot.end,
-                                                    style:
-                                                        slot.end == "End Time"
-                                                            ? TextStyle(
-                                                                color: MyColors
-                                                                    .hintText,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .normal,
-                                                                fontSize: 14.sp)
-                                                            : TextStyle(
-                                                                color: MyColors
-                                                                    .textColor,
-                                                                fontSize: 16.sp,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w400),
-                                                  ),
-                                                )),
-                                            SizedBox(
-                                              width: 10.w,
-                                            ),
-                                            timeIndex ==
-                                                    dayTime.slots.length - 1
-                                                ? GestureDetector(
-                                                    onTap: () {
-                                                      dayTime.slots.add(Slot(
-                                                          start: "Start Time",
-                                                          end: "End Time"));
-                                                      homeController.update();
-                                                    },
-                                                    child: Container(
-                                                      height: 40.h,
-                                                      width: 40.h,
-                                                      decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          border: Border.all(
-                                                              color: MyColors
-                                                                  .buttonColor,
-                                                              width: 2)),
-                                                      child: const Icon(
-                                                        Icons.add,
-                                                        color: MyColors
-                                                            .buttonColor,
+                                                    ),
+                                                    child:
+                                                        DropdownButtonFormField<
+                                                            DurationModel>(
+                                                      style: TextStyle(
+                                                          color: MyColors
+                                                              .textColor,
+                                                          fontSize: 16.sp,
+                                                          fontWeight:
+                                                              FontWeight.w600),
+                                                      decoration:
+                                                          InputDecoration(
+                                                        contentPadding:
+                                                            EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        7.w,
+                                                                    vertical:
+                                                                        12.h),
+                                                        border:
+                                                            InputBorder.none,
                                                       ),
+
+                                                      //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                                      value: duration.id == 0
+                                                          ? planCont
+                                                              .durationList
+                                                              ?.durations[0]
+                                                          : planCont
+                                                              .durationList
+                                                              ?.durations
+                                                              .firstWhere(
+                                                                  (value) =>
+                                                                      value
+                                                                          .id ==
+                                                                      duration
+                                                                          .id),
+                                                      onChanged: (DurationModel?
+                                                          newValue) {
+                                                        if (newValue != null) {
+                                                          duration.id =
+                                                              newValue.id;
+                                                          planCont.update();
+                                                        }
+                                                      },
+                                                      items: planCont
+                                                          .durationList
+                                                          ?.durations
+                                                          .map((DurationModel
+                                                              cat) {
+                                                        return DropdownMenuItem<
+                                                            DurationModel>(
+                                                          value: cat,
+                                                          child: SizedBox(
+                                                            //  width: 60.w,
+                                                            child: Text(
+                                                              cat.duration
+                                                                  .toString(),
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: textTheme
+                                                                  .bodySmall!
+                                                                  .copyWith(
+                                                                      color: Colors
+                                                                          .black,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }).toList(),
                                                     ),
                                                   )
-                                                : GestureDetector(
+                                                : CircularProgress()),
+                                            SizedBox(
+                                              width: 10.w,
+                                            ),
+                                            SizedBox(
+                                              width: 100,
+                                              child: CustomTextField(
+                                                text: "Amount",
+                                                length: 100,
+                                                height: 50,
+                                                keyboardType:
+                                                    TextInputType.text,
+                                                inputFormatters:
+                                                    FilteringTextInputFormatter
+                                                        .digitsOnly,
+                                                controller: duration.amount,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            timeIndex ==
+                                                    country.durationList
+                                                            .length -
+                                                        1
+                                                ? HelpingWidgets()
+                                                    .iconPlusMinus(
                                                     onTap: () {
-                                                      dayTime.slots
-                                                          .removeAt(timeIndex);
-                                                      homeController.update();
+                                                      country.durationList.add(
+                                                          DurationPackageSent(
+                                                              id: 0));
+
+                                                      planCont.update();
                                                     },
-                                                    child: Container(
-                                                      height: 40.h,
-                                                      width: 40.h,
-                                                      decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          border: Border.all(
-                                                              color: MyColors
-                                                                  .buttonColor,
-                                                              width: 2)),
-                                                      child: const Icon(
-                                                        Icons.remove,
-                                                        color: MyColors
-                                                            .buttonColor,
-                                                      ),
-                                                    ),
+                                                  )
+                                                : HelpingWidgets()
+                                                    .iconPlusMinus(
+                                                    onTap: () {
+                                                      country.durationList
+                                                          .removeAt(timeIndex);
+                                                      planCont.update();
+                                                    },
+                                                    icon: Icons.remove,
                                                   )
                                           ]);
                                         },
@@ -469,39 +427,125 @@ class AddPackage extends StatelessWidget {
                                             height: 10.h,
                                           );
                                         },
-                                        itemCount: dayTime.slots.length)
+                                        itemCount: country.durationList.length)
                                   ],
-                                );
-                              },
-                              separatorBuilder: (context, int index) {
-                                return SizedBox(
-                                  height: 10.h,
-                                );
-                              },
-                              itemCount:
-                                  homeController.addPackageTimeTable.length);
-                        }),
-                      ],
-                    )
-                  : const SizedBox()),
-              SizedBox(
-                height: 20.h,
-              ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              index ==
+                                      planController.addCountriesList.length - 1
+                                  ? HelpingWidgets().iconPlusMinus(
+                                      onTap: () {
+                                        Country? con = planCont
+                                            .findCountryWhichIsNotAdded();
+                                        print("coming  alue  ${con}");
+                                        if (con == null) {
+                                          CustomToast.failToast(
+                                              msg:
+                                                  "No other Countries available");
+                                          return;
+                                        }
+                                        planCont.addCountry(con);
+                                      },
+                                    )
+                                  : HelpingWidgets().iconPlusMinus(
+                                      onTap: () {
+                                        planCont.addCountriesList
+                                            .removeAt(index);
+                                        planCont.update();
+                                      },
+                                      icon: Icons.remove,
+                                    )
+                            ],
+                          );
+                        },
+                        separatorBuilder: (context, int index) {
+                          return SizedBox(
+                            height: 10.h,
+                          );
+                        },
+                        itemCount: planController.addCountriesList.length),
+                    SizedBox(
+                      height: 20.h,
+                    ),
+                    if (planController.allCategoriesOfPlan?.categories
+                            .firstWhere(
+                              (category) =>
+                                  category.id ==
+                                  planController.selectedId.value,
+                              orElse: () => Category(
+                                  id: -1,
+                                  title: ''), // default in case not found
+                            )
+                            .title !=
+                        "Workout") ...{
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Associate Dietitian to Plan"),
+                          SizedBox(
+                            height: 110.h,
+                            child: Obx(() {
+                              // Check loading state to display list or progress indicator
+                              return homeController
+                                      .getUsersBasedOnUserTypeLoad.value
+                                  ? HelpingWidgets().list(
+                                      homeController
+                                          .getUsersBasedOnUserTypeModel!.users,
+                                      homeController.selectedDietIdForMember,
+                                      textTheme,
+                                    )
+                                  : const CircularProgress();
+                            }),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      )
+                    } else ...{
+                      SizedBox()
+                    }
+                  ],
+                );
+              }),
               CustomButton(
                   text: isFromUpdate ? "Update Package" : "Add Package",
                   onPressed: () {
-                    if (homeController.packageName.text.isEmpty ||
-                        homeController.shortDis.text.isEmpty ||
-                        homeController.longDis.text.isEmpty ||
-                        homeController.price.text.isEmpty ||
-                        homeController.packageDuration.text.isEmpty) {
+                    if (planController.packageName.text.isEmpty ||
+                        planController.shortDis.text.isEmpty ||
+                        planController.longDis.text.isEmpty) {
                       CustomToast.failToast(
                           msg: "Please provide all information");
                     } else {
                       if (isFromUpdate) {
-                        homeController.updatePlan();
+                        planController.updatePlan(id ?? "");
                       } else {
-                        homeController.addPlan();
+                        final selectedCategoryTitle =
+                            planController.allCategoriesOfPlan?.categories
+                                .firstWhere(
+                                  (category) =>
+                                      category.id ==
+                                      planController.selectedId.value,
+                                  orElse: () => Category(
+                                      id: -1,
+                                      title: ''), // default in case not found
+                                )
+                                .title;
+                        if (selectedCategoryTitle == "Workout") {
+                          planController.addPlan();
+                        } else {
+                          if (homeController.selectedDietIdForMember.value ==
+                              0) {
+                            CustomToast.failToast(
+                                msg: "Please select dietitian first");
+                          } else {
+                            planController.addPlan(
+                                dietitianId: homeController
+                                    .selectedDietIdForMember.value
+                                    .toString());
+                          }
+                        }
                       }
                     }
                   }),

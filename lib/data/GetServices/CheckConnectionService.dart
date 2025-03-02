@@ -1,55 +1,61 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class CheckConnectionService {
   bool hasConnection = false;
 
-  //This is how we'll allow subscribing to connection changes
-  StreamController connectionChangeController =
-      StreamController.broadcast();
+  // StreamController to notify about connection changes
+  StreamController<bool> connectionChangeController =
+      StreamController<bool>.broadcast();
 
-  //flutter_connectivity
+  // Instance of Connectivity class
   final Connectivity _connectivity = Connectivity();
 
-  //Hook into flutter_connectivity's Stream to listen for changes
-  //And check the connection status out of the gate
+  // Initializes the service and listens for connectivity changes
   void initialize() {
-    _connectivity.onConnectivityChanged.listen(_connectionChange);
-    checkConnection();
+    // Listen for connectivity changes and call _connectionChange
+    _connectivity.onConnectivityChanged.listen((event) {
+      _connectionChange(event.first);
+    });
+    checkConnection(); // Initial check when the app starts
   }
 
-  Stream get connectionChange => connectionChangeController.stream;
+  // Expose the connection change stream to other parts of the app
+  Stream<bool> get connectionChange => connectionChangeController.stream;
 
-  //A clean up method to close our StreamController
-  //   Because this is meant to exist through the entire application life cycle this isn't
-  //   really an issue
+  // Clean up the StreamController when not needed anymore
   void dispose() {
     connectionChangeController.close();
   }
 
-  //flutter_connectivity's listener
-  void _connectionChange(ConnectivityResult result) {
-    checkConnection();
+  // Handles connectivity changes
+  Future<void> _connectionChange(ConnectivityResult result) async {
+    await checkConnection();
   }
 
-  //The test to actually see if there is a connection
+  // Check if there is an actual internet connection
   Future<bool> checkConnection() async {
     bool previousConnection = hasConnection;
 
     try {
-      final result = await InternetAddress.lookup('google.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        hasConnection = true;
+      // For non-web platforms, perform an InternetAddress.lookup
+      if (kIsWeb) {
+        final response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/posts/1'))
+            .timeout(Duration(seconds: 5));        hasConnection = response.statusCode == 200;
+
       } else {
-        hasConnection = false;
+        // For web or platforms where InternetAddress.lookup doesn't work
+        final result = await InternetAddress.lookup('google.com');
+        hasConnection = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
       }
-    } on SocketException catch (_) {
+    }on SocketException catch (_) {
       hasConnection = false;
     }
 
-    //The connection status changed send out an update to all listeners
+    // If connection status changes, notify listeners
     if (previousConnection != hasConnection) {
       connectionChangeController.add(hasConnection);
     }

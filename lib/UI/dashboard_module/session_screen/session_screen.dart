@@ -25,21 +25,26 @@ class SessionScreen extends StatelessWidget {
   SessionScreen(
       {Key? key,
       required this.slotId,
+      this.planId,
+      this.link,
       this.isDiet = false,
       required this.userId})
       : super(key: key);
   final int slotId;
   final bool isDiet;
   final int userId;
+  final String? planId;
+  String? link;
   final AuthController authController = Get.find();
   final HomeController homeController = Get.find();
-  final TextEditingController channelName = TextEditingController();
+  late TextEditingController channelName;
   final TextEditingController googleMeet = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    // print("link token  ${homeController.generatedToken}");
+    print("link token  ${planId}");
     var textTheme = Theme.of(context).textTheme;
+    channelName = TextEditingController(text: link??"");
     return GetBuilder<HomeController>(builder: (con) {
       return Scaffold(
         appBar: HelpingWidgets().appBarWidget(() {
@@ -88,7 +93,7 @@ class SessionScreen extends StatelessWidget {
                       FilteringTextInputFormatter.singleLineFormatter,
                 ),
                 SizedBox(
-                  height: 60.h,
+                  height: 20.h,
                 ),
                 CustomButton(
                     text: "Update",
@@ -98,7 +103,7 @@ class SessionScreen extends StatelessWidget {
                             msg: "Please provide channel name to join");
                       } else {
                         Get.find<HomeController>().updateLinkFunc(
-                            channelName, slotId, isDiet, userId);
+                            channelName, slotId, isDiet, userId, planId ?? "");
                       }
                     }),
                 SizedBox(
@@ -118,14 +123,17 @@ class SessionScreen extends StatelessWidget {
                         //final cameras = await availableCameras();
                         // final firstCamera = cameras.first;
                         Get.to(() => CallScreen(
-                          channelName: channelName.text,
-                          token: token!,
-                          userId: Get.find<AuthController>()
-                              .logInUser!
-                              .id
-                              .toString(),
-                          // camera: firstCamera,
-                        ));
+                              isDiet: isDiet,
+                              channelName: channelName.text,
+                              token: token!,
+                              userId: Get.find<AuthController>()
+                                  .logInUser!
+                                  .id
+                                  .toString(),
+                              title: "",
+                              slotId: slotId,
+                              // camera: firstCamera,
+                            ));
                       }
                     }),
                 SizedBox(
@@ -149,7 +157,7 @@ class SessionScreen extends StatelessWidget {
                             msg: "Please provide link to update");
                       } else {
                         Get.find<HomeController>().updateLinkFunc(
-                            googleMeet, slotId, isDiet, userId);
+                            googleMeet, slotId, isDiet, userId, planId ?? "");
                       }
                     }),
               ],

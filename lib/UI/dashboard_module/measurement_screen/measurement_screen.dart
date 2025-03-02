@@ -22,9 +22,9 @@ class MeasureMentScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(() {
-        Get.back();
-      }, text: "My Weekly Report"),
+      // appBar: HelpingWidgets().appBarWidget(() {
+      //   Get.back();
+      // }, text: "My Weekly Report"),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -82,39 +82,132 @@ class MeasureMentScreen extends StatelessWidget {
               SizedBox(
                 height: 16.h,
               ),
+              CustomTextField(
+                text: "Tell us about our services",
+                length: 1500,
+                controller: homeController.tellUsMore,
+                validator: (value) =>
+                    Validators.emailValidator(value!.toString()),
+                keyboardType: TextInputType.text,
+                inputFormatters:
+                    FilteringTextInputFormatter.singleLineFormatter,
+                moreThanOneLine: true,
+                height: 150,
+              ),
+              SizedBox(
+                height: 16.h,
+              ),
+              Obx(
+                () => Text(
+                  "Give a Review about Progress: ${homeController.labels[homeController.selectedSatisfaction.value]}",
+                  style: textTheme.titleLarge!
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              SizedBox(
+                height: 10.h,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(
+                    homeController.satisfactionEmojis.length, (index) {
+                  return GestureDetector(
+                    onTap: () {
+                      homeController.selectedSatisfaction.value = index;
+                    },
+                    child: Obx(
+                      () => Container(
+                        padding: EdgeInsets.all(
+                            3.0), // Add some padding around emoji
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle, // Circle shape for border
+                          border: Border.all(
+                            color: homeController.selectedSatisfaction.value ==
+                                    index
+                                ? MyColors
+                                    .buttonColor // Highlight the border when selected
+                                : Colors
+                                    .transparent, // No border when not selected
+                            width: 3.0, // Border width
+                          ),
+                        ),
+                        child: Text(
+                          homeController
+                              .satisfactionEmojis[index], // Display emoji
+                          style: TextStyle(
+                            fontSize: 30,
+                            color: homeController.selectedSatisfaction.value ==
+                                    index
+                                ? Colors.blue // Highlight the selected emoji
+                                : Colors
+                                    .grey, // Default color for unselected emojis
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              SizedBox(
+                height: 10.h,
+              ),
+              CustomButton(
+                  text: "Update Progress".tr,
+                  onPressed: () async {
+                    if (homeController.firstDay.text.isEmpty ||
+                        homeController.currentDate.text.isEmpty ||
+                        homeController.firstWeight.text.isEmpty ||
+                        homeController.currentWeight.text.isEmpty ||
+                        homeController.waist.text.isEmpty ||
+                        homeController.hips.text.isEmpty ||
+                        homeController.shoulder.text.isEmpty ||
+                        homeController.arms.text.isEmpty ||
+                        homeController.chest.text.isEmpty ||
+                        homeController.abdonmen.text.isEmpty ||
+                        homeController.tellUsMore.text.isEmpty ||
+                        homeController.thighs.text.isEmpty) {
+                      CustomToast.failToast(
+                          msg: "Please provide all necessary information");
+                    } else {
+                      homeController.updateMyWeeklyReport();
+                    }
+                  }),
+              SizedBox(
+                height: 10.h,
+              ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomButton(
-                text: "Share".tr,
-                onPressed: () async {
-                  if (
-                      homeController.firstDay.text.isEmpty ||
-                      homeController.currentDate.text.isEmpty ||
-                      homeController.firstWeight.text.isEmpty ||
-                      homeController.currentWeight.text.isEmpty ||
-                      homeController.waist.text.isEmpty ||
-                      homeController.hips.text.isEmpty ||
-                      homeController.shoulder.text.isEmpty ||
-                      homeController.arms.text.isEmpty ||
-                      homeController.chest.text.isEmpty ||
-                      homeController.abdonmen.text.isEmpty ||
-                      homeController.thighs.text.isEmpty) {
-                    CustomToast.failToast(
-                        msg: "Please provide all necessary information");
-                  } else {
-                    homeController.updateMyWeeklyReport();
-                  }
-                }),
-          ],
-        ),
-      ),
+      // bottomNavigationBar: Padding(
+      //   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+      //   child: Column(
+      //     mainAxisSize: MainAxisSize.min,
+      //     children: [
+      //       CustomButton(
+      //           text: "Share".tr,
+      //           onPressed: () async {
+      //             if (homeController.firstDay.text.isEmpty ||
+      //                 homeController.currentDate.text.isEmpty ||
+      //                 homeController.firstWeight.text.isEmpty ||
+      //                 homeController.currentWeight.text.isEmpty ||
+      //                 homeController.waist.text.isEmpty ||
+      //                 homeController.hips.text.isEmpty ||
+      //                 homeController.shoulder.text.isEmpty ||
+      //                 homeController.arms.text.isEmpty ||
+      //                 homeController.chest.text.isEmpty ||
+      //                 homeController.abdonmen.text.isEmpty ||
+      //                 homeController.tellUsMore.text.isEmpty ||
+      //                 homeController.thighs.text.isEmpty) {
+      //               CustomToast.failToast(
+      //                   msg: "Please provide all necessary information");
+      //             } else {
+      //               homeController.updateMyWeeklyReport();
+      //             }
+      //           }),
+      //     ],
+      //   ),
+      // ),
     );
   }
 

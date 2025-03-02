@@ -1,4 +1,6 @@
+import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/models/get_all_users/get_all_users_based_on_type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
@@ -14,10 +16,24 @@ import '../../../widgets/custom_button.dart';
 import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/toasts.dart';
 
-class SignUpNewUser extends StatelessWidget {
+class SignUpNewUser extends StatefulWidget {
   SignUpNewUser({Key? key}) : super(key: key);
+
+  @override
+  State<SignUpNewUser> createState() => _SignUpNewUserState();
+}
+
+class _SignUpNewUserState extends State<SignUpNewUser> {
   final AuthController authController = Get.find();
+
   final HomeController homeController = Get.find();
+
+  @override
+  void initState() {
+    homeController.getUsersBasedOnUserType(
+        homeController.addTeamMember[4].replaceAll(" ", "_"));
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,17 +124,16 @@ class SignUpNewUser extends StatelessWidget {
                 inputFormatters:
                     FilteringTextInputFormatter.singleLineFormatter,
               ),
-              // SizedBox(
-              //   height: 20.h,
-              // ),
-              // CustomTextField(
-              //   keyboardType: TextInputType.text,
-              //   text: "Phone no".tr,
-              //   length: 30,
-              //   controller: homeController.phoneController,
-              //   inputFormatters:
-              //       FilteringTextInputFormatter.singleLineFormatter,
-              // ),
+              SizedBox(
+                height: 20.h,
+              ),
+              CustomTextField(
+                keyboardType: TextInputType.number,
+                text: "Phone no".tr,
+                length: 30,
+                controller: homeController.phoneController,
+                inputFormatters: FilteringTextInputFormatter.digitsOnly,
+              ),
               SizedBox(
                 height: 20.h,
               ),
@@ -133,6 +148,72 @@ class SignUpNewUser extends StatelessWidget {
               SizedBox(
                 height: 20.h,
               ),
+              Text(
+                "Please select customer support representative",
+                style: textTheme.headlineSmall!.copyWith(
+                    fontSize: 15.sp,
+                    color: MyColors.textColor3,
+                    fontWeight: FontWeight.w600),
+              ),
+              SizedBox(
+                height: 10.h,
+              ),
+              Obx(() => homeController.getUsersBasedOnUserTypeLoad.value
+                  ? homeController
+                          .getUsersBasedOnUserTypeModel!.users.isNotEmpty
+                      ? Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black),
+                            color: MyColors.textFieldColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonFormField<UserTypeData>(
+                            style: TextStyle(
+                                color: MyColors.textColor,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600),
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16.w, vertical: 12.h),
+                              border: InputBorder.none,
+                            ),
+
+                            //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            value: homeController
+                                .getUsersBasedOnUserTypeModel!.users
+                                .firstWhere((element) =>
+                                    element.id ==
+                                    homeController.selectCustomerSupport.value),
+                            onChanged: (UserTypeData? newValue) {
+                              if (newValue != null) {
+                                homeController.selectCustomerSupport.value =
+                                    newValue.id;
+                              }
+                            },
+                            items: homeController
+                                .getUsersBasedOnUserTypeModel!.users
+                                .map((UserTypeData cat) {
+                              return DropdownMenuItem<UserTypeData>(
+                                value: cat,
+                                child: SizedBox(
+                                  width: 200.w,
+                                  child: Text(
+                                    "${cat.id}: ${cat.firstName} ${cat.lastName}",
+                                    maxLines: 2,
+                                    style: textTheme.bodySmall!.copyWith(
+                                        color: Colors.black,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      : SizedBox.shrink()
+                  : const Center(
+                      child: CircularProgressIndicator(
+                      color: MyColors.buttonColor,
+                    ))),
             ],
           ),
         ),
@@ -190,14 +271,16 @@ class SignUpNewUser extends StatelessWidget {
                   if (homeController.firstNameController.text.isEmpty ||
                       homeController.lastNameController.text.isEmpty ||
                       homeController.emailController.text.isEmpty ||
-                      // homeController.phoneController.text.isEmpty ||
+                      homeController.phoneController.text.isEmpty ||
                       homeController.passwordController.text.isEmpty) {
                     CustomToast.failToast(
                         msg: "Please provide all information");
                   } else if (!homeController.emailController.text.isEmail) {
                     CustomToast.failToast(msg: "Please provide valid email");
                   } else {
-                    homeController.addUser(status: false);
+                    Get.to(() => SignUpScreenQuestions());
+
+                    // homeController.addUser(status: false);
                   }
                 }),
           ],

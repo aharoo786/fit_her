@@ -28,14 +28,15 @@ class DoctorDetails extends StatelessWidget {
                 Container(
                   height: 360.h,
                   decoration: const BoxDecoration(
+                    color: MyColors.primaryGradient1,
                       image: DecorationImage(
-                          image: AssetImage(MyImgs.doctor2),
+                          image: AssetImage(MyImgs.logo),
                           fit: BoxFit.cover)),
                 ),
                 Column(
                   children: [
                     const SizedBox(
-                      height: kToolbarHeight / 2,
+                      height: kToolbarHeight / 3,
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 13.w),
@@ -123,28 +124,24 @@ class DoctorDetails extends StatelessWidget {
                           SizedBox(
                             height: 25.h,
                           ),
-                          Row(
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 25.w),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Description",
-                                      style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                    Text(
-                                      userTypeData.description ?? "N/A",
-                                      style: textTheme.titleLarge!.copyWith(
-                                          color: MyColors.workOutTextColor,
-                                          fontWeight: FontWeight.w400),
-                                    ),
-                                  ],
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 25.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Description",
+                                  style: textTheme.bodyMedium!.copyWith(
+                                      fontWeight: FontWeight.w600),
                                 ),
-                              ),
-                            ],
+                                Text(
+                                  userTypeData.description ?? "N/A",
+                                  style: textTheme.titleLarge!.copyWith(
+                                      color: MyColors.workOutTextColor,
+                                      fontWeight: FontWeight.w400),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

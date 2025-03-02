@@ -18,6 +18,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final TextInputFormatter inputFormatters;
   bool? Readonly = false;
+  bool moreThanOneLine;
   final Widget? icon;
   final suffixIcon;
   final InputBorder? border;
@@ -30,6 +31,7 @@ class CustomTextField extends StatelessWidget {
   final int? maxlines;
   final Color? color;
   final bool? isObscure;
+  final bool authFocus;
   final Function(String)? onFieldSubmitted;
 
   TextEditingController? controller;
@@ -57,6 +59,7 @@ class CustomTextField extends StatelessWidget {
     this.icon,
     this.color,
     this.suffixtext,
+    this.moreThanOneLine=false,
     required this.length,
     required this.keyboardType,
     required this.inputFormatters,
@@ -64,7 +67,7 @@ class CustomTextField extends StatelessWidget {
     this.textColor,
     this.cursorColor,
     this.onFieldSubmitted,
-    this.verticalPadding,
+    this.verticalPadding,  this.authFocus=false,
   }) : super(key: key);
 
   @override
@@ -94,7 +97,7 @@ class CustomTextField extends StatelessWidget {
         // obscuringCharacter: '.',
         maxLength: length,
         cursorHeight: 30,
-        maxLines: maxlines ?? 1,
+        maxLines: moreThanOneLine ?null:  maxlines ?? 1,
         focusNode: focusNode,
         validator: (value) {
           if (value == "" || value!.isEmpty) {
@@ -118,7 +121,9 @@ class CustomTextField extends StatelessWidget {
         readOnly: Readonly == true ? true : false,
         obscureText: isObscure ?? false,
         onFieldSubmitted: onFieldSubmitted,
+        autofocus:authFocus ,
         decoration: InputDecoration(
+
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           border: InputBorder.none,

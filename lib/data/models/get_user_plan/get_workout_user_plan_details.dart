@@ -5,6 +5,8 @@
 import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
+import 'package:fitness_zone_2/data/models/get_clients_diet.dart';
+import 'package:intl/intl.dart';
 
 GetUserWorkoutPlanDetails getUserWorkoutPlanDetailsFromJson(String str) =>
     GetUserWorkoutPlanDetails.fromJson(json.decode(str));
@@ -13,19 +15,24 @@ String getUserWorkoutPlanDetailsToJson(GetUserWorkoutPlanDetails data) =>
     json.encode(data.toJson());
 
 class GetUserWorkoutPlanDetails extends Serializable {
-  Plan plan;
+  List<TrainerSlot> trainerSlots;
+  Plan? plan;
 
   GetUserWorkoutPlanDetails({
+    required this.trainerSlots,
     required this.plan,
   });
 
   factory GetUserWorkoutPlanDetails.fromJson(Map<String, dynamic> json) =>
       GetUserWorkoutPlanDetails(
-        plan: Plan.fromJson(json["plan"]),
+        trainerSlots: List<TrainerSlot>.from(
+            json["trainerSlots"].map((x) => TrainerSlot.fromJson(x))),
+        plan: json["plan"] == null ? null : Plan.fromJson(json["plan"]),
       );
 
   Map<String, dynamic> toJson() => {
-        "plan": plan.toJson(),
+        "trainerSlots": List<dynamic>.from(trainerSlots.map((x) => x.toJson())),
+        "plan": plan?.toJson(),
       };
 }
 
@@ -34,22 +41,12 @@ class Plan {
   String title;
   String shortDescription;
   String longDescription;
-  String duration;
-  int price;
-  bool status;
-  String? image;
-  List<Time> times;
 
   Plan({
     required this.id,
     required this.title,
     required this.shortDescription,
     required this.longDescription,
-    required this.duration,
-    required this.price,
-    required this.status,
-    this.image,
-    required this.times,
   });
 
   factory Plan.fromJson(Map<String, dynamic> json) => Plan(
@@ -57,11 +54,6 @@ class Plan {
         title: json["title"],
         shortDescription: json["shortDescription"],
         longDescription: json["longDescription"],
-        duration: json["duration"],
-        price: json["price"],
-        status: json["status"],
-        image: json["image"] ?? "",
-        times: List<Time>.from(json["Times"].map((x) => Time.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
@@ -69,35 +61,30 @@ class Plan {
         "title": title,
         "shortDescription": shortDescription,
         "longDescription": longDescription,
-        "duration": duration,
-        "price": price,
-        "status": status,
-        "image": image,
-        "Times": List<dynamic>.from(times.map((x) => x.toJson())),
       };
 }
 
-class Time {
+class TrainerSlot {
   int id;
   String day;
   List<Slot> slots;
 
-  Time({
+  TrainerSlot({
     required this.id,
     required this.day,
     required this.slots,
   });
 
-  factory Time.fromJson(Map<String, dynamic> json) => Time(
+  factory TrainerSlot.fromJson(Map<String, dynamic> json) => TrainerSlot(
         id: json["id"],
         day: json["day"],
-        slots: List<Slot>.from(json["Slots"].map((x) => Slot.fromJson(x))),
+        slots: List<Slot>.from(json["slots"].map((x) => Slot.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
         "id": id,
         "day": day,
-        "Slots": List<dynamic>.from(slots.map((x) => x.toJson())),
+        "slots": List<dynamic>.from(slots.map((x) => x.toJson())),
       };
 }
 
@@ -105,19 +92,45 @@ class Slot {
   int id;
   String start;
   String end;
-  String? trainerLink;
+  dynamic trainerLink;
+  ClientUser? trainer;
+  String? type;
+  String? level;
+  String? description;
+  int? joinedUserUID;
+  bool? isTrainerJoined;
 
-  Slot({
-    required this.id,
-    required this.start,
-    required this.end,
-     this.trainerLink,
-  });
+  Slot(
+      {required this.id,
+      required this.start,
+      required this.end,
+      required this.trainerLink,
+      required this.trainer,
+      this.type,
+      this.joinedUserUID,
+      this.isTrainerJoined,
+      this.level,
+      this.description});
 
   factory Slot.fromJson(Map<String, dynamic> json) => Slot(
         id: json["id"],
-        start: json["start"],
-        end: json["end"], trainerLink: json["trainerLink"],
+        start: json["start"] == "Start Time"
+            ? "Start Time"
+            : DateFormat('hh:mm a').format(
+                DateTime.fromMillisecondsSinceEpoch(int.parse(json["start"]))),
+        end: json["end"] == "End Time"
+            ? "End Time"
+            : DateFormat('hh:mm a').format(
+                DateTime.fromMillisecondsSinceEpoch(int.parse(json["end"]))),
+        trainerLink: json["trainerLink"],
+        joinedUserUID: json["joinedUserUID"],
+        isTrainerJoined: json["isTrainerJoined"],
+        type: json["type"],
+        level: json["level"],
+        description: json["description"],
+        trainer: json["trainer"] == null
+            ? null
+            : ClientUser.fromJson(json["trainer"]),
       );
 
   Map<String, dynamic> toJson() => {
@@ -125,5 +138,11 @@ class Slot {
         "start": start,
         "end": end,
         "trainerLink": trainerLink,
+        "description": description,
+        "type": type,
+        "level": level,
+        "joinedUserUID": joinedUserUID,
+        "isTrainerJoined": isTrainerJoined,
+        "trainer": trainer?.toJson(),
       };
 }

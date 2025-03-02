@@ -16,7 +16,7 @@ import '../../../widgets/custom_textfield.dart';
 class EditUser extends StatelessWidget {
   EditUser({Key? key, required this.user}) : super(key: key);
 
-  final UserElement user;
+  final User user;
   final AuthController authController = Get.find();
   final HomeController homeController = Get.find();
 
@@ -171,41 +171,40 @@ class EditUser extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (user.assigned != null)
-                      if (user.assigned!.user != null)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Dietitian name",
-                              style: TextStyle(
-                                  fontSize: 18.sp, fontWeight: FontWeight.w700),
-                            ),
-                            Text(
-                              "${user.assigned!.user!.firstName} ${user!.assigned!.user!.lastName}",
-                              style: TextStyle(
-                                  fontSize: 18.sp, fontWeight: FontWeight.w400),
-                            ),
-                          ],
-                        ),
-                    if (user.assigned != null) ...{
-                      if (user.assigned!.trainer != null)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Trainer name",
-                              style: TextStyle(
-                                  fontSize: 18.sp, fontWeight: FontWeight.w700),
-                            ),
-                            Text(
-                              "${user.assigned!.trainer!.firstName} ${user!.assigned!.trainer!.lastName}",
-                              style: TextStyle(
-                                  fontSize: 18.sp, fontWeight: FontWeight.w400),
-                            ),
-                          ],
-                        ),
-                    }
+                    // if (user.plans != null)
+                    //     Row(
+                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //       children: [
+                    //         Text(
+                    //           "Dietitian name",
+                    //           style: TextStyle(
+                    //               fontSize: 18.sp, fontWeight: FontWeight.w700),
+                    //         ),
+                    //         Text(
+                    //           "${user.assigned!.user!.firstName} ${user!.assigned!.user!.lastName}",
+                    //           style: TextStyle(
+                    //               fontSize: 18.sp, fontWeight: FontWeight.w400),
+                    //         ),
+                    //       ],
+                    //     ),
+                    // if (user.assigned != null) ...{
+                    //   if (user.assigned!.trainer != null)
+                    //     Row(
+                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //       children: [
+                    //         Text(
+                    //           "Trainer name",
+                    //           style: TextStyle(
+                    //               fontSize: 18.sp, fontWeight: FontWeight.w700),
+                    //         ),
+                    //         Text(
+                    //           "${user.assigned!.trainer!.firstName} ${user!.assigned!.trainer!.lastName}",
+                    //           style: TextStyle(
+                    //               fontSize: 18.sp, fontWeight: FontWeight.w400),
+                    //         ),
+                    //       ],
+                    //     ),
+                    // }
                   ],
                 )
             ],
@@ -228,7 +227,7 @@ class EditUser extends StatelessWidget {
                         user.user.id,
                         user.user.freeze.value,
                         homeController.dateExtendController.text.split(" ")[0],
-                        user.plans!.planId.toString());
+                        user.plans!.id.toString());
                   }
                 }),
           ],

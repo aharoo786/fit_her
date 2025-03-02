@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -15,7 +15,7 @@
 		BE1CD53C2C4440E900D33C74 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = BE1CD5302C4440E900D33C74 /* GeneratedPluginRegistrant.m */; };
 		BE1CD53F2C4440E900D33C74 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE1CD5342C4440E900D33C74 /* LaunchScreen.storyboard */; };
 		BE1CD5402C4440E900D33C74 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE1CD5362C4440E900D33C74 /* Main.storyboard */; };
-		BE1CD5422C44414700D33C74 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BE1CD5412C44414700D33C74 /* GoogleService-Info.plist */; };
+		BEA913FF2D6625200056DE88 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BEA913FE2D6625200056DE88 /* GoogleService-Info.plist */; };
 		EC2956C6212AF11490E02B25 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7EA6C6DEB72496F002A0A9D /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -67,7 +67,7 @@
 		BE1CD5352C4440E900D33C74 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		BE1CD5372C4440E900D33C74 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		BE1CD5382C4440E900D33C74 /* Runner.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
-		BE1CD5412C44414700D33C74 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "../../../../Downloads/GoogleService-Info.plist"; sourceTree = "<group>"; };
+		BEA913FE2D6625200056DE88 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		CBE2332EB4EC2B4912F13DF3 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -144,7 +144,7 @@
 		BE1CD5392C4440E900D33C74 /* Runner */ = {
 			isa = PBXGroup;
 			children = (
-				BE1CD5412C44414700D33C74 /* GoogleService-Info.plist */,
+				BEA913FE2D6625200056DE88 /* GoogleService-Info.plist */,
 				BE1CD52D2C4440E900D33C74 /* AppDelegate.swift */,
 				BE1CD52E2C4440E900D33C74 /* Assets.xcassets */,
 				BE1CD52F2C4440E900D33C74 /* GeneratedPluginRegistrant.h */,
@@ -236,7 +236,7 @@
 				};
 			};
 			buildConfigurationList = 97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */;
-			compatibilityVersion = "Xcode 15.3";
+			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -268,9 +268,9 @@
 			files = (
 				BE1CD5402C4440E900D33C74 /* Main.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
+				BEA913FF2D6625200056DE88 /* GoogleService-Info.plist in Resources */,
 				BE1CD53B2C4440E900D33C74 /* Assets.xcassets in Resources */,
 				BE1CD53F2C4440E900D33C74 /* LaunchScreen.storyboard in Resources */,
-				BE1CD5422C44414700D33C74 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -496,10 +496,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9BDW3F8A65;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NUMBER = 15;
+				FLUTTER_BUILD_NAME = 14.0.0;
+				FLUTTER_BUILD_NUMBER = 1;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Fit Her";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				INFOPLIST_KEY_CFBundleDisplayName = FitHer;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -688,10 +689,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9BDW3F8A65;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NUMBER = 15;
+				FLUTTER_BUILD_NAME = 14.0.0;
+				FLUTTER_BUILD_NUMBER = 1;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Fit Her";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				INFOPLIST_KEY_CFBundleDisplayName = FitHer;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -721,10 +723,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9BDW3F8A65;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NUMBER = 15;
+				FLUTTER_BUILD_NAME = 14.0.0;
+				FLUTTER_BUILD_NUMBER = 1;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Fit Her";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				INFOPLIST_KEY_CFBundleDisplayName = FitHer;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 
+import '../../data/models/get_user_plan/get_user_plan.dart';
+
 class OurPlansScreen extends StatelessWidget {
   OurPlansScreen({super.key});
   HomeController homeController = Get.find();
@@ -34,18 +36,37 @@ class OurPlansScreen extends StatelessWidget {
                     .allPlanModel?.plans.length, // Number of items in the grid
                 itemBuilder: (context, index) {
                   var plan = homeController.allPlanModel?.plans[index];
+                  if (plan!.countries!.isNotEmpty) {
+                    if (plan.countries!.first.duration!.isNotEmpty) {
+                      plan!.selectedDurationId.value =
+                          plan.countries!.first.duration!.first.id!;
+                    }
+                  }
 
                   return GestureDetector(
                     onTap: () {
+                      DurationPlan? durationPlan;
+                      if (plan!.countries!.isNotEmpty) {
+                        if (plan.countries!.first.duration!.isNotEmpty) {
+                          durationPlan = plan.countries?.first!.duration!
+                              .firstWhere((test) =>
+                                  test.id == plan.selectedDurationId.value);
+                        }
+                      }
+
                       Get.to(() => DietDetails(
                             isPlan: true,
-                            title: plan!.title,
+                            title: plan.title,
                             description: plan.shortDescription,
                             longDescription: plan.longDescription,
-                            price: plan.price.toString(),
-                            duration: plan.duration,
-                            planCategory: plan.categoryId,
                             planId: plan.id.toString(),
+                            price: durationPlan == null
+                                ? ""
+                                : durationPlan.priceAmount ?? "",
+                            duration: durationPlan == null
+                                ? ""
+                                : durationPlan.days ?? "",
+                            durationId: plan.selectedDurationId.value,
                           ));
                     },
                     child: Container(
@@ -81,7 +102,7 @@ class OurPlansScreen extends StatelessWidget {
                               ),
                               Padding(
                                 padding:
-                                    EdgeInsets.only(left: 14.w, right: 20.w),
+                                    EdgeInsets.only(left: 10.w, right: 10.w),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -104,6 +125,78 @@ class OurPlansScreen extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 2,
                                     ),
+                                    Container(
+                                      width: double.infinity,
+                                      height: 30,
+                                      alignment: Alignment.center,
+                                      child:
+                                          DropdownButtonFormField<DurationPlan>(
+                                        itemHeight: null,
+                                        // padding: const EdgeInsets.only(left: 20, bottom: 10),
+                                        iconSize: 20,
+                                        style: TextStyle(
+                                          color: MyColors.textColor,
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        decoration: InputDecoration(
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 5.w),
+                                          border: InputBorder.none,
+                                        ),
+                                        value: plan.selectedDurationId.value ==
+                                                0
+                                            ? plan.countries![0].duration![0]
+                                            : plan.countries![0].duration!
+                                                .firstWhere(
+                                                (value) =>
+                                                    value.id ==
+                                                    plan.selectedDurationId
+                                                        .value,
+                                                orElse: () => plan.countries![0]
+                                                        .duration![
+                                                    0], // Safety check
+                                              ),
+                                        onChanged: (DurationPlan? newValue) {
+                                          if (newValue != null) {
+                                            plan.selectedDurationId.value =
+                                                newValue.id!;
+                                          }
+                                        },
+                                        items: plan.countries![0].duration!
+                                            .map((DurationPlan cat) {
+                                          return DropdownMenuItem<DurationPlan>(
+                                            value: cat,
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  '${plan.countries![0].currency} ${cat.priceAmount}',
+                                                  style: textTheme.titleLarge!
+                                                      .copyWith(
+                                                    fontSize: 10.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                  maxLines: 1,
+                                                ),
+                                                const SizedBox(
+                                                    width:
+                                                        5), // Spacing between texts
+                                                Text(
+                                                  'per ${cat.days}',
+                                                  style: textTheme.titleLarge!
+                                                      .copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+
                                     // Row(
                                     //   children: List.generate(5, (index) {
                                     //     return Icon(
