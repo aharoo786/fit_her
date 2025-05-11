@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 13.0.0+14
+version: 13.0.0+22
 
 environment:
   sdk: '>=3.0.5 <4.0.0'
@@ -77,7 +77,7 @@ dev_dependencies:
   googleapis_auth: ^1.6.0
   agora_rtc_engine: ^6.5.0
   agora_token_service: ^0.1.2
-  file_picker: ^8.0.7
+  file_picker: ^9.0.2
   wakelock_plus: ^1.1.4
   webview_flutter: ^4.5.0
   flutter_dotenv: ^5.1.0
@@ -93,7 +93,7 @@ dev_dependencies:
 #  easy_web_view: ^2.1.0
   country_picker: ^2.0.26
   flutter_timezone: ^3.0.1
-  super_context_menu: ^0.8.24
+#  super_context_menu: ^0.8.24
   #  agora_chat_sdk: ^1.1.1
   #  screen_recorder: ^0.2.0
 #  firebase_storage: ^11.5.2

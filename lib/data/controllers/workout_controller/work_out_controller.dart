@@ -1,3 +1,6 @@
+import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import 'package:fitness_zone_2/UI/free_trail/free_trail_question.dart';
+import 'package:fitness_zone_2/UI/free_trail/free_trial_slots.dart';
 import 'package:fitness_zone_2/data/models/get_user_plan/get_workout_user_plan_details.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +15,7 @@ import 'package:fitness_zone_2/data/models/add_package/add_package_model.dart'
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../Repos/home_repo/home_repo.dart';
 import '../../models/api_response/api_response_model.dart';
+import '../../models/free_trial_user_details.dart';
 import '../../models/get_user_plan/get_user_plan.dart';
 import '../auth_controller/auth_controller.dart';
 
@@ -28,8 +32,12 @@ class WorkOutController extends GetxController implements GetxService {
   var workOutOfUserLoad = false.obs;
   var workOutPlanDetailsLoad = false.obs;
   var getAllTimesSlotsLoad = false.obs;
+  var getFreeTrialUserDetailsLoad = false.obs;
   var trainerHomeLoad = false.obs;
 
+  var freeTrialSlots = [].obs;
+
+  List<FreeTrialUser> freeTrialUser = [];
   List<addPackage.Time> addPackageTimeTable = [];
 
   ///models
@@ -37,7 +45,7 @@ class WorkOutController extends GetxController implements GetxService {
   GetUserWorkoutPlanDetails? getUserWorkoutPlanDetailsPlan;
   GetUserWorkoutPlanDetails? getTrainerHome;
 
-  getWorkoutAllPlansFunc() {
+  getWorkoutAllPlansFunc({bool isFree = false}) {
     workOutOfUserLoad.value = false;
     connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -57,8 +65,11 @@ class WorkOutController extends GetxController implements GetxService {
                 ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               workoutPlans = model.data;
-
               workOutOfUserLoad.value = true;
+              if (isFree && (workoutPlans?.plans.isNotEmpty ?? false)) {
+                Get.to(() => FreeTrialSlots());
+                getDietPlanDetailsFunc(workoutPlans!.plans.first.id.toString());
+              }
             }
           }
         });
@@ -107,7 +118,7 @@ class WorkOutController extends GetxController implements GetxService {
         homeRepo
             .getTrainerHome(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          userId: sharedPreferences.getString(Constants.userId) ?? "0",
+          userId: sharedPreferences.getString(Constants.userId) ?? "",
         )
             .then((response) async {
           // Get.back();
@@ -237,6 +248,35 @@ class WorkOutController extends GetxController implements GetxService {
     });
   }
 
+  getFreeTrialUserDetails() {
+    getFreeTrialUserDetailsLoad.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        homeRepo
+            .getAllFreeTrialUsers(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          id: sharedPreferences.getString(Constants.userId) ?? "",
+        )
+            .then((response) async {
+          if (response.body["status"] == "0") {
+            CustomToast.failToast(msg: response.body["message"]);
+          } else if (response.body["status"] != "0") {
+            ApiResponse<GetFreeTrialUserDetails> model = ApiResponse.fromJson(
+                response.body, GetFreeTrialUserDetails.fromJson);
+
+            if (response.body["status"] == "1") {
+              freeTrialUser = model.data?.user ?? [];
+
+              getFreeTrialUserDetailsLoad.value = true;
+            }
+          }
+        });
+      }
+    });
+  }
+
   updateClassDetails(int id, TextEditingController type,
       TextEditingController level, TextEditingController description) {
     connectionService.checkConnection().then((value) async {
@@ -268,6 +308,52 @@ class WorkOutController extends GetxController implements GetxService {
                 type.clear();
                 level.clear();
                 description.clear();
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  updateFreeTrialData(List<Map<String, dynamic>> answers) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+
+        await homeRepo.addFreeTrialUserData(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          map: {
+            "mainGoal": answers[0]["other"]
+                ? answers[0]["otherText"]
+                : answers[0]["answersList"].join(","),
+            "specificIssues": answers[1]["other"]
+                ? answers[1]["otherText"]
+                : answers[1]["answersList"].join(","),
+            "prefrences": answers[2]["other"]
+                ? answers[2]["otherText"]
+                : answers[2]["answersList"].join(","),
+            "freeTrialUser":
+                sharedPreferences.getString(Constants.userId) ?? "",
+            "slots": freeTrialSlots.value
+          },
+        ).then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
+              if (model.status == "1") {
+                CustomToast.successToast(msg: model.message);
+                Get.offAll(() => BottomBarScreen());
               }
             }
           } else {

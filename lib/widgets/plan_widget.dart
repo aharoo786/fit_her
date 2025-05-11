@@ -25,7 +25,7 @@ class PlanWidget extends StatelessWidget {
       elevation: 5,
       child: Container(
         // width: 300,
-        padding: EdgeInsets.symmetric(horizontal: 30),
+        padding: EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: MyColors.primaryGradient1),
@@ -36,20 +36,20 @@ class PlanWidget extends StatelessWidget {
             const SizedBox(
               height: 20,
             ),
-            Text('${plan.title}',
+            Text(plan.title,
                 textAlign: TextAlign.center,
-                style: textTheme.titleLarge!.copyWith(
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(
-              height: 5,
-            ),
+                style: textTheme.titleLarge!
+                    .copyWith(fontWeight: FontWeight.w600)),
+            // const SizedBox(
+            //   height: 5,
+            // ),
             DropdownButtonFormField<DurationPlan>(
               itemHeight: null,
               padding: const EdgeInsets.only(left: 10, bottom: 10),
-              iconSize: 40,
+              iconSize: 30,
               style: TextStyle(
                 color: MyColors.textColor,
-                fontSize: 16.sp,
+                fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
               ),
               borderRadius: BorderRadius.circular(12),
@@ -78,7 +78,7 @@ class PlanWidget extends StatelessWidget {
                       Text(
                         '${plan.countries?.first.currency} ${cat.priceAmount}',
                         style: textTheme.titleLarge!.copyWith(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -95,7 +95,7 @@ class PlanWidget extends StatelessWidget {
                 );
               }).toList(),
             ),
-            SizedBox(height: 10.h),
+            //SizedBox(height: 10.h),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -107,7 +107,7 @@ class PlanWidget extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 8.h),
             CustomButton(
               height: 34,
               width: 190.w,
@@ -119,6 +119,11 @@ class PlanWidget extends StatelessWidget {
                 Get.to(() => SelectPaymentMode(
                       planId: plan.id.toString(),
                       durationId: plan.selectedDurationId.value,
+                      price: plan.countries![0].duration
+                              ?.firstWhere(
+                                  (v) => v.id == plan.selectedDurationId.value)
+                              .priceAmount ??
+                          "N/A",
                     ));
               },
               // color: Myc.white,
@@ -132,7 +137,7 @@ class PlanWidget extends StatelessWidget {
 
   arrowContainer(TextTheme textTheme, {String? text}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [

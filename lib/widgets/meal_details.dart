@@ -256,6 +256,7 @@ class DietDetails extends StatelessWidget {
                 // Get.find<HomeController>().makePayment();
                 Get.to(() => SelectPaymentMode(
                       planId: planId,
+                      price:price,
                       durationId: durationId??0,
                     ));
               },

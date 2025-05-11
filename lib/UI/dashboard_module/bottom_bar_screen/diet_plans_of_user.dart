@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_bottom_bar.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
+import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -41,13 +42,14 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
                         .getDietAllPlans!.userPlans[index].dietPlanOfUser;
                     return GestureDetector(
                       onTap: () {
-                        Get.to(() => DietBottomBarScreen(
-                              userPlanId: dietController
-                                  .getDietAllPlans!.userPlans[index].id,
-                            ));
-                        dietController.getDietPlanDetailsFunc(dietController
-                            .getDietAllPlans!.userPlans[index].id
-                            .toString());
+                         CustomToast.successToast(msg: "Stay Awaited! Coming soon");
+                        // Get.to(() => DietBottomBarScreen(
+                        //       userPlanId: dietController
+                        //           .getDietAllPlans!.userPlans[index].id,
+                        //     ));
+                        // dietController.getDietPlanDetailsFunc(dietController
+                        //     .getDietAllPlans!.userPlans[index].id
+                        //     .toString());
                       },
                       child: Container(
                         // height: 200,

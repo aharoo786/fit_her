@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/work_out_bottom_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../UI/dashboard_module/call_screen/call_screen.dart';
 import '../data/controllers/home_controller/home_controller.dart';
 import '../firebase_options.dart';
 import '../values/constants.dart';
@@ -152,6 +155,10 @@ class NotificationServices {
     }
   }
 
+  Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+    addNotification(message);
+  }
+
   addNotification(RemoteMessage message) {
     AuthController authController = Get.find();
 
@@ -160,31 +167,30 @@ class NotificationServices {
       Get.find<AuthController>().showDot.value = true;
     }
 
-    // Retrieve the existing list from SharedPreferences
     var list = sharedPreferences.getString(Constants.notificationList);
-
-    // Create a new list if none exists
     List<NotificationMessage> notificationMessages = [];
 
-    // If the list already exists in SharedPreferences
     if (list != null) {
-      // Decode the existing list
       var list2 = jsonDecode(list);
-
-      // Convert each item back to NotificationMessage and add to notificationMessages list
       notificationMessages = List<NotificationMessage>.from(
-          list2.map((item) => NotificationMessage.fromJson(item)));
+        list2.map((item) => NotificationMessage.fromJson(item)),
+      );
     }
 
-    // Add the new message
-    notificationMessages.add(NotificationMessage.fromRemoteMessage(message));
-    authController.sharedPrefNotifier.value = notificationMessages;
+    var newMessage = NotificationMessage.fromRemoteMessage(message);
 
-    // Encode the list back to JSON and save it
-    sharedPreferences.setString(Constants.notificationList,
-        jsonEncode(notificationMessages.map((msg) => msg.toJson()).toList()));
+    bool alreadyExists =
+        notificationMessages.any((msg) => msg.id == newMessage.id);
 
-    // Update the notifier with the new list
+    if (!alreadyExists) {
+      notificationMessages.add(newMessage);
+      authController.sharedPrefNotifier.value = notificationMessages;
+      print('NotificationServices.addNotification $notificationMessages');
+      sharedPreferences.setString(
+        Constants.notificationList,
+        jsonEncode(notificationMessages.map((msg) => msg.toJson()).toList()),
+      );
+    }
   }
 
   static String? deviceToken;
@@ -261,12 +267,20 @@ class NotificationServices {
     FirebaseMessaging.onMessageOpenedApp.listen((event) {
       print("onMessageOpenedApp");
       handleMessage(event);
+      addNotification(event);
     });
   }
 
   ///On Tap Go To Screen
   ///You can Handle onTap of notification here
-  void handleMessage(RemoteMessage message) {}
+  void handleMessage(RemoteMessage message) {
+    if (message.notification?.title == "Trainer has Joined") {
+      if (selectedPlan != "") {
+        Get.find<WorkOutController>().getDietPlanDetailsFunc(selectedPlan);
+        Get.to(() => WorkOutBottomScreen(planId: selectedPlan));
+      }
+    }
+  }
 
   ///initializing new https firebase setting to get token
   initializeNewHttpsSettingS() async {
@@ -290,8 +304,9 @@ class NotificationServices {
 class NotificationMessage {
   final String title;
   final String body;
+  final String? id; // message.messageId
 
-  NotificationMessage({required this.title, required this.body});
+  NotificationMessage({required this.title, required this.body, this.id});
 
   // Convert to JSON
   Map<String, dynamic> toJson() {
@@ -306,6 +321,7 @@ class NotificationMessage {
     return NotificationMessage(
       title: json['title'] ?? '',
       body: json['body'] ?? '',
+      id: json['id'] ?? '',
     );
   }
 
@@ -314,6 +330,7 @@ class NotificationMessage {
     return NotificationMessage(
       title: message.notification?.title ?? '',
       body: message.notification?.body ?? '',
+      id: message.messageId?.hashCode.toString() ?? '',
     );
   }
 }

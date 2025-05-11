@@ -112,9 +112,8 @@ class ProfileScreen extends StatelessWidget {
                                       )),
                                   TextButton(
                                       onPressed: () async {
-                                     homeController.sharedPreferences.clear();
-                                      await init();
-                                       Get.offAll(() => ChooseAnyOne());
+                                        Get.find<AuthController>().logout();
+
 
                                       },
                                       child: Text(

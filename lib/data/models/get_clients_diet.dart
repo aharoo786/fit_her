@@ -6,11 +6,12 @@ import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 
-DietClients dietClientsFromJson(String str) => DietClients.fromJson(json.decode(str));
+DietClients dietClientsFromJson(String str) =>
+    DietClients.fromJson(json.decode(str));
 
 String dietClientsToJson(DietClients data) => json.encode(data.toJson());
 
-class DietClients  extends Serializable{
+class DietClients extends Serializable {
   List<Cliet> cliets;
 
   DietClients({
@@ -18,12 +19,12 @@ class DietClients  extends Serializable{
   });
 
   factory DietClients.fromJson(Map<String, dynamic> json) => DietClients(
-    cliets: List<Cliet>.from(json["cliets"].map((x) => Cliet.fromJson(x))),
-  );
+        cliets: List<Cliet>.from(json["cliets"].map((x) => Cliet.fromJson(x))),
+      );
 
   Map<String, dynamic> toJson() => {
-    "cliets": List<dynamic>.from(cliets.map((x) => x.toJson())),
-  };
+        "cliets": List<dynamic>.from(cliets.map((x) => x.toJson())),
+      };
 }
 
 class Cliet {
@@ -40,18 +41,18 @@ class Cliet {
   });
 
   factory Cliet.fromJson(Map<String, dynamic> json) => Cliet(
-    id: json["id"],
-    buyingDate: DateTime.parse(json["buyingDate"]??DateTime.now()),
-    expireDate: DateTime.parse(json["expireDate"]??DateTime.now()),
-    user:json["User"]==null?null: ClientUser.fromJson(json["User"]),
-  );
+        id: json["id"],
+        buyingDate: DateTime.parse(json["buyingDate"] ?? DateTime.now()),
+        expireDate: DateTime.parse(json["expireDate"] ?? DateTime.now()),
+        user: json["User"] == null ? null : ClientUser.fromJson(json["User"]),
+      );
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "buyingDate": buyingDate.toIso8601String(),
-    "expireDate": expireDate.toIso8601String(),
-    "User": user?.toJson(),
-  };
+        "id": id,
+        "buyingDate": buyingDate.toIso8601String(),
+        "expireDate": expireDate.toIso8601String(),
+        "User": user?.toJson(),
+      };
 }
 
 class ClientUser {
@@ -60,28 +61,37 @@ class ClientUser {
   String lastName;
   String email;
   String experience;
+  String? phone;
+  ClientUser? supporter;
 
-  ClientUser({
-    required this.id,
-    required this.firstName,
-    required this.lastName,
-    required this.email,
-    required this.experience,
-  });
+  ClientUser(
+      {required this.id,
+      required this.firstName,
+      required this.lastName,
+      required this.email,
+      required this.phone,
+      required this.experience,
+      required this.supporter});
 
   factory ClientUser.fromJson(Map<String, dynamic> json) => ClientUser(
-    id: json["id"],
-    firstName: json["firstName"],
-    lastName: json["lastName"],
-    email: json["email"],
-    experience: json["experience"]??"N/A",
-  );
+        id: json["id"],
+        firstName: json["firstName"],
+        lastName: json["lastName"],
+        phone: json["phone"],
+        email: json["email"],
+        experience: json["experience"] ?? "N/A",
+        supporter: json["supporter"] == null
+            ? null
+            : ClientUser.fromJson(json["supporter"]),
+      );
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "firstName": firstName,
-    "lastName": lastName,
-    "email": email,
-    "experience": experience,
-  };
+        "id": id,
+        "firstName": firstName,
+        "phone": phone,
+        "lastName": lastName,
+        "email": email,
+        "experience": experience,
+        "supporter": supporter
+      };
 }

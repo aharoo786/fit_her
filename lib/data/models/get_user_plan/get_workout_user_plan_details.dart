@@ -98,6 +98,7 @@ class Slot {
   String? level;
   String? description;
   int? joinedUserUID;
+  String? token;
   bool? isTrainerJoined;
 
   Slot(
@@ -108,6 +109,7 @@ class Slot {
       required this.trainer,
       this.type,
       this.joinedUserUID,
+      this.token,
       this.isTrainerJoined,
       this.level,
       this.description});
@@ -127,6 +129,7 @@ class Slot {
         isTrainerJoined: json["isTrainerJoined"],
         type: json["type"],
         level: json["level"],
+        token: json["token"],
         description: json["description"],
         trainer: json["trainer"] == null
             ? null
@@ -141,6 +144,7 @@ class Slot {
         "description": description,
         "type": type,
         "level": level,
+        "token": token,
         "joinedUserUID": joinedUserUID,
         "isTrainerJoined": isTrainerJoined,
         "trainer": trainer?.toJson(),

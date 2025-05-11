@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../values/constants.dart';
 
-class ApiProvider {
+class ApiProvider  extends GetxService{
   final String baseUrl = Constants.baseUrl;
 
   Future<Response> postData(String url,

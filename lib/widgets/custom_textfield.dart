@@ -14,7 +14,7 @@ class CustomTextField extends StatelessWidget {
   final Color? background;
   final String text;
   final int length;
-  final int? verticalPadding;
+  final double? verticalPadding;
   final TextInputType keyboardType;
   final TextInputFormatter inputFormatters;
   bool? Readonly = false;
@@ -59,7 +59,7 @@ class CustomTextField extends StatelessWidget {
     this.icon,
     this.color,
     this.suffixtext,
-    this.moreThanOneLine=false,
+    this.moreThanOneLine = false,
     required this.length,
     required this.keyboardType,
     required this.inputFormatters,
@@ -67,7 +67,8 @@ class CustomTextField extends StatelessWidget {
     this.textColor,
     this.cursorColor,
     this.onFieldSubmitted,
-    this.verticalPadding,  this.authFocus=false,
+    this.verticalPadding,
+    this.authFocus = false,
   }) : super(key: key);
 
   @override
@@ -92,12 +93,12 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(
             roundCorner ?? 8,
           ),
-          border: Border.all(color:bordercolor?? Colors.black)),
+          border: Border.all(color: bordercolor ?? Colors.black)),
       child: TextFormField(
         // obscuringCharacter: '.',
         maxLength: length,
         cursorHeight: 30,
-        maxLines: moreThanOneLine ?null:  maxlines ?? 1,
+        maxLines: moreThanOneLine ? null : maxlines ?? 1,
         focusNode: focusNode,
         validator: (value) {
           if (value == "" || value!.isEmpty) {
@@ -121,11 +122,10 @@ class CustomTextField extends StatelessWidget {
         readOnly: Readonly == true ? true : false,
         obscureText: isObscure ?? false,
         onFieldSubmitted: onFieldSubmitted,
-        autofocus:authFocus ,
+        autofocus: authFocus,
         decoration: InputDecoration(
-
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          contentPadding: EdgeInsets.symmetric(
+              horizontal: 16, vertical: verticalPadding ?? 15),
           border: InputBorder.none,
           errorText: errorText,
           counterText: "",

@@ -226,14 +226,22 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
                     var heightInMeters = (double.parse(answers[3]) * 0.3048) *
                         (double.parse(answers[3]) * 0.3048);
                     var bmi = answers[2] / heightInMeters;
-                    Get.find<HomeController>().addUser(
+                    AuthController authController = Get.find();
+                     Get.find<HomeController>().addUserDetails(
                         status: false,
                         age: answers[1].toString(),
                         weight: answers[2].toString(),
                         height: answers[3].toString(),
                         bmiResult: bmi.toStringAsFixed(2));
 
+                    ///updating edit screen data
 
+                    authController.editBmi.text = bmi.toStringAsFixed(2) ?? "";
+                    authController.editAge.text = answers[1].toString() ?? "";
+                    authController.editWeight.text =
+                        answers[2].toString() ?? "";
+                    authController.editHeight.text =
+                        answers[3].toString() ?? "";
                   }
                 }),
             SizedBox(

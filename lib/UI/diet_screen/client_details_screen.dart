@@ -76,7 +76,7 @@ class ClientDetailsScreen extends StatelessWidget {
                                           link: slotDiet?.dietitionLink,
                                           slotId: slotDiet!.id,
                                           isDiet: true,
-                                          userId: clientUser.id,
+                                          userId: clientUser.id, token: "",
                                         ));
                                   },
                                   style: ElevatedButton.styleFrom(

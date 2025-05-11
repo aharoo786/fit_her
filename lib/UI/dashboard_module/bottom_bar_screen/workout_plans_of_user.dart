@@ -43,7 +43,9 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
                     var plan = workOutController.workoutPlans!.plans[index];
                     return GestureDetector(
                       onTap: () {
-                        Get.to(() => WorkOutBottomScreen());
+                        Get.to(() => WorkOutBottomScreen(
+                              planId: plan.id.toString(),
+                            ));
                         selectedPlan = plan.id.toString();
                         workOutController
                             .getDietPlanDetailsFunc(plan.id.toString());
@@ -56,7 +58,7 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                  offset: Offset(0, 2),
+                                  offset: const Offset(0, 2),
                                   blurRadius: 4,
                                   color: Colors.black.withOpacity(0.1))
                             ]),

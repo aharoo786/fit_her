@@ -38,7 +38,6 @@ class _ChatRoomState extends State<GroupChatRoom>
     final size = MediaQuery.of(context).size;
 
     return GetBuilder<CallController>(
-        id: "groupChat",
         builder: (call) {
           return GestureDetector(
               onTap: () {},

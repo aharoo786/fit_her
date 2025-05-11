@@ -39,8 +39,8 @@ class Constants {
   static String weeklyReports = "weeklyReports";
 
   ///base url
-  //  static String baseUrl = "http://192.168.1.19:8104";
-  static String baseUrl = "https://backend.thefither.com";
+   static String baseUrl = "http://192.168.1.23:8000";
+  // static String baseUrl = "https://backend.thefither.com";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =
@@ -99,8 +99,10 @@ class Constants {
   static String postAddPlan = "/admin/add_plan";
   static String postUpdatePlan = "/admin/update_plan";
   static String addNewUser = "/admin/addUser";
+  static String addUserDetails = "/admin/addUserDetails";
   static String payment = "/admin/payment";
   static String getAllTimesWithSlots = "/admin/getAllTimesWithSlots";
+  static String getAllFreeTrialUsers = "/admin/getFreeTrialUserById";
   static String changeFreeTrialStatus = "/admin/changeFreeTrialStatus";
   static String assignWorkoutAndTrainerPlan = "/admin/assign_workout_diet_plan";
   static String addDietionPlan = "/admin/dietition_add_plan";
@@ -129,6 +131,7 @@ class Constants {
   static String logout = "/users/logout";
   static String deleteUser = "/users/delete_user";
   static String updateSlotTrainer = "/admin/update_slot_trainer";
+  static String addFreeTrailUser = "/admin/createFreeTrialUser";
 
   ///  Country ///
   static String country = "/country";

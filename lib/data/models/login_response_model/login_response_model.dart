@@ -21,6 +21,10 @@ class LoginModel extends Serializable {
   bool status;
   String accessToken;
   String userType;
+  String? age;
+  String? height;
+  String? weight;
+  String? bmiResult;
 
   LoginModel({
     required this.id,
@@ -32,6 +36,10 @@ class LoginModel extends Serializable {
     required this.userType,
     required this.adminId,
     required this.status,
+    this.height,
+    this.age,
+    this.weight,
+    this.bmiResult,
   });
 
   factory LoginModel.fromJson(Map<String, dynamic> json) => LoginModel(
@@ -44,6 +52,10 @@ class LoginModel extends Serializable {
         status: json["status"],
         userType: json["userType"],
         adminId: json["adminId"],
+        age: json["age"],
+        weight: json["weight"],
+        height: json["height"],
+        bmiResult: json["bmiResult"],
       );
 
   @override

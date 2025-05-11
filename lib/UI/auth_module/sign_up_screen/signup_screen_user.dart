@@ -278,9 +278,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                   } else if (!homeController.emailController.text.isEmail) {
                     CustomToast.failToast(msg: "Please provide valid email");
                   } else {
-                    Get.to(() => SignUpScreenQuestions());
-
-                    // homeController.addUser(status: false);
+                    homeController.addUser(status: false);
                   }
                 }),
           ],

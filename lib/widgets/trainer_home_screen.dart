@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../UI/dashboard_module/session_screen/session_screen.dart';
+import '../data/controllers/call_controller/chat_controller.dart';
 import '../data/controllers/home_controller/home_controller.dart';
 import '../data/models/add_package/add_package_model.dart';
 import '../values/my_imgs.dart';
@@ -21,6 +22,7 @@ class TrainerHomeScreen extends StatefulWidget {
 
 class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
   WorkOutController workOutController = Get.find();
+  final CallController callController = Get.put(CallController());
 
   final List days = [
     "Monday",
@@ -145,15 +147,20 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       GestureDetector(
-                                        onTap: () => Get.to(() => SessionScreen(
-                                              slotId: slot.id,
-                                              isDiet: false,
-                                              planId: workOutController
-                                                  .getTrainerHome?.plan?.id
-                                                  .toString(),
-                                              userId: 0,
-                                              link: slot.trainerLink,
-                                            )),
+                                        onTap: () {
+                                          Get.to(() => SessionScreen(
+                                                slotId: slot.id,
+                                                isDiet: false,
+                                                planId: workOutController
+                                                    .getTrainerHome?.plan?.id
+                                                    .toString(),
+                                                userId: 0,
+                                                link: slot.trainerLink,
+                                                token: slot.token ?? "",
+                                              ));
+                                          workOutController
+                                              .getFreeTrialUserDetails();
+                                        },
                                         // Get.to(() => PasteLink(
                                         //       slotId: slot.id,
                                         //     )),

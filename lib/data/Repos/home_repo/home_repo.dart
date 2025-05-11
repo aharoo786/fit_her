@@ -178,8 +178,8 @@ class HomeRepo extends GetxService {
   }
 
   Future<Response> getUserHome(
-      {required String accessToken, required String userId}) async {
-    return await apiProvider.getData("${Constants.getUserHome}/$userId",
+      {required String accessToken, required String userId,required String code}) async {
+    return await apiProvider.getData("${Constants.getUserHome}/$userId/$code",
         headers: {"accessToken": accessToken});
   }
 
@@ -236,6 +236,12 @@ class HomeRepo extends GetxService {
         body: map, headers: {"accessToken": accessToken});
   }
 
+  Future<Response> addUserDetails(
+      {required String accessToken, required Map<String, dynamic> map}) async {
+    return await apiProvider.postData(Constants.addUserDetails,
+        body: map, headers: {"accessToken": accessToken});
+  }
+
   Future<Response> getPaymentLink(
       {required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.postData(Constants.payment,
@@ -245,6 +251,11 @@ class HomeRepo extends GetxService {
   Future<Response> getAllTimesWithSlotsTrainer(
       {required String accessToken}) async {
     return await apiProvider.getData(Constants.getAllTimesWithSlots,
+        headers: {"accessToken": accessToken});
+  }
+  Future<Response> getAllFreeTrialUsers(
+      {required String accessToken,required String id}) async {
+    return await apiProvider.getData("${Constants.getAllFreeTrialUsers}/$id",
         headers: {"accessToken": accessToken});
   }
 
@@ -285,6 +296,12 @@ class HomeRepo extends GetxService {
   Future<Response> addClassDetails(
       {required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.postData(Constants.updateSlotTrainer,
+        body: map, headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> addFreeTrialUserData(
+      {required String accessToken, required Map<String, dynamic> map}) async {
+    return await apiProvider.postData(Constants.addFreeTrailUser,
         body: map, headers: {"accessToken": accessToken});
   }
 
@@ -332,14 +349,13 @@ class HomeRepo extends GetxService {
         body: map,
         headers: {"accessToken": accessToken});
   }
+
   Future<Response> updateTrainerJoin(
-      {required String accessToken,
-        required Map<String, dynamic> map}) async {
-    return await apiProvider.postData(
-         Constants.updateTrainerJoin,
-        body: map,
-        headers: {"accessToken": accessToken});
+      {required String accessToken, required Map<String, dynamic> map}) async {
+    return await apiProvider.postData(Constants.updateTrainerJoin,
+        body: map, headers: {"accessToken": accessToken});
   }
+
   Future<Response> addTeamMemberRepo(
       {required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.postData(Constants.addTeamMember,

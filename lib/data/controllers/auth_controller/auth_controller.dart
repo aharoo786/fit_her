@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:fitness_zone_2/UI/auth_module/choose_any_one/choose_any_one.dart';
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/managePassword/forgot_password/otp_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
+import 'package:fitness_zone_2/UI/auth_module/welcom_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
@@ -11,8 +13,11 @@ import 'package:fitness_zone_2/data/models/get_all_dietitian_users/get_all_dieti
 import 'package:fitness_zone_2/data/models/home_model/home_model.dart';
 import 'package:fitness_zone_2/data/models/login_response_model/login_response_model.dart';
 import 'package:get/get.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../helper/get_di.dart';
 import '../../../helper/notification_services.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
@@ -63,6 +68,10 @@ class AuthController extends GetxController implements GetxService {
   TextEditingController editFirstName = TextEditingController();
   TextEditingController editLastName = TextEditingController();
   TextEditingController editEmail = TextEditingController();
+  TextEditingController editAge = TextEditingController();
+  TextEditingController editWeight = TextEditingController();
+  TextEditingController editHeight = TextEditingController();
+  TextEditingController editBmi = TextEditingController();
 
   ///countryCode
   var countryCode = Constants.countryCode;
@@ -158,6 +167,7 @@ class AuthController extends GetxController implements GetxService {
   @override
   onInit() {
     initializeFireBase();
+    initNotifications();
     super.onInit();
   }
 
@@ -184,7 +194,7 @@ class AuthController extends GetxController implements GetxService {
         }
         await authRepo
             .loginUserRepo(
-          email: email ?? loginUserPhone.text,
+          email: email ?? loginUserPhone.text.removeAllWhitespace,
           password: password ?? loginUserPassword.text,
           deviceToken: sharedPreferences.getString(Constants.deviceToken) ?? "",
           userType: loginAsA.value,
@@ -234,7 +244,20 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  updateUserDetails() async {
+  initNotifications() {
+    var list = sharedPreferences.getString(Constants.notificationList);
+    List<NotificationMessage> notificationMessages = [];
+
+    if (list != null) {
+      var list2 = jsonDecode(list);
+      notificationMessages = List<NotificationMessage>.from(
+        list2.map((item) => NotificationMessage.fromJson(item)),
+      );
+    }
+    sharedPrefNotifier.value = notificationMessages;
+  }
+
+  updateUserDetails({bool updateFields = true}) async {
     Map<String, dynamic> userMap;
     await FirebaseFirestore.instance
         .collection("users")
@@ -256,9 +279,16 @@ class AuthController extends GetxController implements GetxService {
     // String roomId = (logInUser!.id.toString().hashCode +
     //         logInUser!.adminId.toString().hashCode)
     //     .toString();
-    editFirstName.text = logInUser!.firstName;
-    editLastName.text = logInUser!.lastName;
-    editEmail.text = logInUser!.email;
+    editFirstName.text = logInUser?.firstName ?? "";
+    editLastName.text = logInUser?.lastName ?? "";
+    editEmail.text = logInUser?.email ?? "";
+
+    if (updateFields) {
+      editBmi.text = logInUser?.bmiResult ?? "";
+      editAge.text = logInUser?.age ?? "";
+      editWeight.text = logInUser?.weight ?? "";
+      editHeight.text = logInUser?.height ?? "";
+    }
     Get.find<HomeController>().getUserHomeFunc();
     Get.offAll(() => BottomBarScreen());
   }
@@ -393,8 +423,8 @@ class AuthController extends GetxController implements GetxService {
     }
   }
 
-  logout() {
-    var token = sharedPreferences.getString(Constants.accessToken);
+  logout() async {
+    var token = sharedPreferences.getString(Constants.deviceToken);
     if (token != null) {
       connectionService.checkConnection().then((value) async {
         if (!value) {
@@ -402,16 +432,20 @@ class AuthController extends GetxController implements GetxService {
         } else {
           Get.dialog(const Center(child: CircularProgressIndicator()),
               barrierDismissible: false);
-          await authRepo.logout(accessToken: token).then((response) async {
+          await authRepo
+              .logoutUserRepo(deviceToken: token)
+              .then((response) async {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {
                 CustomToast.failToast(msg: response.body["message"]);
               } else if (response.body["status"] != "0") {
                 if (response.body["status"] == "1") {
+                  CustomToast.successToast(msg: response.body["message"]);
                   sharedPreferences.clear();
-
-                  Get.offAll(() => const WalkThroughScreen());
+                  Get.offAll(() => ChooseAnyOne());
+                  await init();
+                  loginAsA.value = Constants.user;
                 }
               }
             } else {
@@ -421,7 +455,11 @@ class AuthController extends GetxController implements GetxService {
         }
       });
     } else {
-      CustomToast.failToast(msg: "You are not Logged in.");
+      CustomToast.failToast(msg: "Successfully Logout");
+      sharedPreferences.clear();
+      await init();
+      loginAsA.value = Constants.user;
+      Get.offAll(() => ChooseAnyOne());
     }
   }
 

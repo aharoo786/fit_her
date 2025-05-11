@@ -15,9 +15,10 @@ import '../../values/my_imgs.dart';
 import '../../widgets/toasts.dart';
 
 class SelectPaymentMode extends StatelessWidget {
-  SelectPaymentMode({super.key,required this.planId,required this.durationId});
+  SelectPaymentMode({super.key,required this.planId,required this.durationId,required this.price});
   HomeController homeController = Get.find();
   String planId;
+  String price;
   int durationId;
 
 
@@ -115,7 +116,7 @@ class SelectPaymentMode extends StatelessWidget {
             SizedBox(
               width: 190,
               child: Text(
-                "You can upload the slip here.",
+                "Click here to upload the slip",
                 style: textTheme.titleLarge!.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
@@ -131,7 +132,7 @@ class SelectPaymentMode extends StatelessWidget {
                     CustomToast.failToast(msg: "Please select image");
                   } else {
                     homeController.addPlanBuyImage(
-                        planId,durationId);
+                        planId,durationId,price);
                   }
                 }),
             SizedBox(

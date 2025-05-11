@@ -231,7 +231,7 @@ class BmiResult extends StatelessWidget {
                                         AuthController authController =
                                             Get.find();
 
-                                        authController.updateUserDetails();
+                                        authController.updateUserDetails(updateFields: false);
                                         homeController.getUserHomeFunc();
                                       },
                                       height: 40,
@@ -309,7 +309,7 @@ class BmiResult extends StatelessWidget {
               } else {
                 HelpingWidgets().showCustomDialog(context, () {
                   AuthController authController = Get.find();
-                  authController.updateUserDetails();
+                  authController.updateUserDetails(updateFields: false);
                 },
                     "Try FitHer for FREE! 🎉",
                     "Unlock live workout sessions, and expert consultations. Start your 1-day free trial now and experience the change!",

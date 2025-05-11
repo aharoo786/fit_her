@@ -1,3 +1,4 @@
+import 'package:fitness_zone_2/UI/free_trail/free_trail_question.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -139,6 +140,7 @@ class HelpingWidgets {
           text: "Start Free Trial",
           onPressed: () {
             Get.find<HomeController>().addFreeTrial();
+            //  Get.to(()=>FreeTrialPersonalizationScreen());
           },
           color: Colors.white,
           textColor: MyColors.primaryGradient1,

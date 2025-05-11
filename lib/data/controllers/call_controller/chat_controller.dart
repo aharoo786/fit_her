@@ -9,6 +9,7 @@ import '../../../widgets/toasts.dart';
 import '../../GetServices/CheckConnectionService.dart';
 import '../../models/login_response_model/login_response_model.dart';
 import '../auth_controller/auth_controller.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
 class CallController extends GetxController {
   var showNewMessageIcon = false.obs;
@@ -16,6 +17,8 @@ class CallController extends GetxController {
   var messages = <Map<String, dynamic>>[].obs;
   var participantList = [].obs;
   var participantListFree = [].obs;
+  var isMuteAll = false.obs;
+  RtcEngine? engine;
 
   /// call screen variabls
   var muteAudio = true.obs;
@@ -24,33 +27,25 @@ class CallController extends GetxController {
   var muteAudioAll = false.obs;
   CheckConnectionService connectionService = CheckConnectionService();
   LoginModel loginModel = Get.find<AuthController>().logInUser!;
-  UserHomeData userHomeData = Get.find<HomeController>().userHomeData!;
+  bool get isTrainer =>
+      Get.find<AuthController>().loginAsA.value == Constants.trainer;
+
+  UserHomeData? userHomeData;
 
   void connectToServer(bool isTrainer) {
-    // socket = IO.io(
-    //     "http://backend.thefither.com:9014",
-    //     IO.OptionBuilder()
-    //     //.setTransports(["websocket", "polling"])
-    //         .disableAutoConnect() // disable auto-connection
-    //         .build());
-    socket = IO.io("https://backend.thefither.com:8001", <String, dynamic>{
-      // socket = IO.io('http://stage.trimworldwide.com:9015', <String, dynamic>{
+    socket = IO.io('https://backend.thefither.com', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
-      'extraHeaders': {
-        'protocols': ['TLSv1.2', 'TLSv1.3']
-      },
-      'forceNew': true, // Force a new connection
       'reconnection': true, // Enable reconnection
+      'reconnectionAttempts': 5, // Number of reconnection attempts
+      'reconnectionDelay': 2000, // Delay before attempting to reconnect
     });
     socket?.connect().onConnectError((c) {
       print('CallController.connectToServer $c');
     });
-    socket?.connect().onConnect((c) {
-      print('CallController.connectToServer');
-    });
 
     socket?.on("receiveMessage", (data) {
+      print('CallController.connectToServer message');
       messages.add({
         "username": data["username"],
         "message": data["message"],
@@ -60,17 +55,17 @@ class CallController extends GetxController {
       if (data["sendBy"] != loginModel.id) {
         showNewMessageIcon.value = true;
       }
-      update(["groupChat"]);
+      update();
     });
-
     socket?.on("userJoinChannel", (data) {
       ///For Trainer
       ///
-      print('CallController.connectToServer  ${data}');
+      print('CallController.connectToServerhhjkjhkjhkjjklkjj  ${data}');
 
       if (data["isTrainer"]) {
         trainerJoinedUID.value = data["userUID"];
-        print('CallController.connectToServer  ${trainerJoinedUID.value}');
+        print(
+            'CallController.connectToServerjkkjhjkjkjkjkk  ${trainerJoinedUID.value}');
       }
 
       ///for Free Trial Users
@@ -94,15 +89,30 @@ class CallController extends GetxController {
           "isMute": false
         });
       }
-      update(["groupChat"]);
     });
     socket?.on("leaveRoom", (data) {
       if (!isTrainer) {
         Get.back(result: true);
+        onDisconnectFunction();
       }
       print('CallController.connectToServer i am logging out}');
     });
-
+    socket?.on("muteAllUsers", (data) {
+      isMuteAll.value = data;
+      if (!isTrainer) {
+        engine?.muteLocalAudioStream(data);
+      }
+    });
+    socket?.on("muteSpecificUser", (data) {
+      if (data["id"] == loginModel.id) {
+        isMuteAll.value = data["mute"];
+        engine?.muteLocalAudioStream(data["mute"]);
+      }
+    });
+    socket?.onDisconnect((_) {
+      socket?.emit('disconnected', [loginModel.id]);
+    });
+    update();
     // socket?.on("userJoined", (data) {
     //   messages.add({"username": "System", "message": data, "time": ""});
     //
@@ -115,8 +125,20 @@ class CallController extends GetxController {
     // });
   }
 
+  muteAllUsers(String room, bool mute) {
+    socket?.emit("muteAllUsers", [room, mute]);
+  }
+
+  muteSpecificUser(String room, bool mute, int id) {
+    socket?.emit("muteSpecificUser", [room, mute, id]);
+  }
+
+  onDisconnectFunction() {
+    socket?.emit('disconnected', [loginModel.id]);
+  }
+
   joinRoom(String room, int uid, int id, bool isTrainer) {
-    var plan = userHomeData.userAllPlans
+    var plan = userHomeData?.userAllPlans
         .firstWhereOrNull((value) => value.planId == id);
     String planName = "";
     String days = "";
@@ -194,12 +216,12 @@ class CallController extends GetxController {
     super.onClose();
   }
 
-  bool get isTrainer =>
-      Get.find<AuthController>().loginAsA.value == Constants.trainer;
-
   @override
   void onInit() {
     connectToServer(isTrainer);
+    if (!isTrainer) {
+      userHomeData = Get.find<HomeController>().userHomeData!;
+    }
     super.onInit();
   }
 }

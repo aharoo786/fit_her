@@ -33,6 +33,7 @@ class Plan extends Serializable {
   String longDescription;
   int? catId;
   int? subId;
+  int? priceId;
   var selectedDurationId = 0.obs;
   List<CountryUser>? countries;
 
@@ -44,6 +45,7 @@ class Plan extends Serializable {
     this.catId,
     this.subId,
     this.countries,
+    this.priceId,
   });
 
   factory Plan.fromRawJson(String str) => Plan.fromJson(json.decode(str));
@@ -55,6 +57,7 @@ class Plan extends Serializable {
         title: json["title"] ?? 0,
         catId: json["catId"] ?? 0,
         subId: json["subId"] ?? 0,
+        priceId: json["priceId"] ?? 0,
         shortDescription: json["shortDescription"] ?? "N/A",
         longDescription: json["longDescription"] ?? "N/A",
         countries: json["countries"] == null
@@ -68,6 +71,7 @@ class Plan extends Serializable {
         "title": title,
         "catId": catId,
         "subId": subId,
+        "priceId": priceId,
         "shortDescription": shortDescription,
         "longDescription": longDescription,
         "countries": countries == null
@@ -97,7 +101,7 @@ class CountryUser {
   factory CountryUser.fromJson(Map<String, dynamic> json) => CountryUser(
         name: json["name"],
         id: json["id"],
-        currency: json["currency"]??"Rs.",
+        currency: json["currency"] ?? "Rs.",
         duration: json["duration"] == null
             ? []
             : List<DurationPlan>.from(

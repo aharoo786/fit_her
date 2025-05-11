@@ -71,7 +71,7 @@ class Login extends StatelessWidget {
                     ),
                     CustomTextField(
                       controller: authController.loginUserPhone,
-                      keyboardType: TextInputType.text,
+                      keyboardType: TextInputType.emailAddress,
                       text: "Email".tr,
                       length: 30,
                       inputFormatters:
@@ -177,7 +177,7 @@ class Login extends StatelessWidget {
                         authController.loginUserPassword.text.isEmpty) {
                       CustomToast.failToast(
                           msg: "Please provide all information");
-                    } else if (!authController.loginUserPhone.text.isEmail) {
+                    } else if (!authController.loginUserPhone.text.removeAllWhitespace.isEmail) {
                       CustomToast.failToast(msg: "Please provide valid email");
                     } else {
                       authController

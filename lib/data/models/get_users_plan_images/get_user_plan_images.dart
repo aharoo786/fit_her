@@ -32,7 +32,7 @@ class GetAllPlansImages extends Serializable {
 
 class Datum {
   int id;
-  String image;
+  String? image;
   ClientUser? user;
   Plan? plan;
   DurationModel priceDuration;

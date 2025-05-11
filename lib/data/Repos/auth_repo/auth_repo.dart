@@ -30,6 +30,16 @@ class AuthRepo extends GetxService {
     return await apiProvider.postData(Constants.loginPath, body: body);
   }
 
+  Future<Response> logoutUserRepo({
+    required String deviceToken,
+  }) async {
+    var body = {
+      "deviceToken": deviceToken,
+    };
+
+    return await apiProvider.postData(Constants.logout, body: body);
+  }
+
   Future<Response> loginGuestRepo({
     required String email,
     required String name,

@@ -1,6 +1,5 @@
 import 'dart:io';
-import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
-import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
+import 'package:fitness_zone_2/helper/notification_services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fitness_zone_2/values/styles.dart';
@@ -10,10 +9,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '/helper/get_di.dart' as di;
 import 'UI/auth_module/height_slider_screen.dart';
 import 'UI/auth_module/splash.dart';
+import 'UI/free_trail/free_trail_question.dart';
 import 'animation.dart';
 import 'firebase_options.dart';
 
@@ -27,7 +28,8 @@ class MyHttpOverrides extends HttpOverrides {
           (X509Certificate cert, String host, int port) => true;
   }
 }
-String selectedPlan="";
+
+String selectedPlan = "";
 Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
 
@@ -48,8 +50,14 @@ Future<void> main() async {
   );
 
   await di.init();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   runApp(MyApp());
+}
+
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  NotificationServices noti = Get.find();
+  noti.addNotification(message);
 }
 
 class MyApp extends StatefulWidget {

@@ -232,6 +232,7 @@ class MyImgs {
   static const String ourJourney5 = "assets/images/ourJourney3.png";
   static const String ourJourney6 = "assets/images/ourJourney4.png";
   static const String girlH = "assets/images/girlH.png";
+  static const String avatarUser = "assets/images/avatarUser.jpeg";
   // static const String facebook = "assets/images/shareimage.png";
   // static const String shareImage = "assets/images/shareimage.png";
 

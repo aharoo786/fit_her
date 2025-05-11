@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:fitness_zone_2/UI/chat/group_chat_room.dart';
 import 'package:fitness_zone_2/data/controllers/call_controller/chat_controller.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -47,16 +46,20 @@ class CallScreen extends StatefulWidget {
 
 class _CallScreenState extends State<CallScreen> {
   final AuthController authController = Get.find();
-  final CallController callController = Get.put(CallController());
+  final CallController callController = Get.find();
   final HomeController homeController = Get.find();
   RtcEngine? _engine;
   int? _remoteUid;
   bool _localUserJoined = false;
   bool isTrainer = false;
+
+  String get roomId => widget.channelName.hashCode.toString();
+
   @override
   void initState() {
     super.initState();
     callController.participantList.value = [];
+    callController.participantListFree.value = [];
     initAgora();
     isTrainer = authController.loginAsA.value == Constants.trainer;
 
@@ -64,7 +67,15 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> muteAllExceptOne(int uid) async {
-    await _engine?.muteAllRemoteAudioStreams(true);
+    // await _engine?.muteAllRemoteAudioStreams(true);
+    // for (var user in callController.participantListFree.value) {
+    //   print('_CallScreenState.muteAllExceptOne{$user}');
+    //   await _engine?.muteRemoteAudioStream(uid: user["userUID"], mute: true);
+    // }
+    // for (var user in callController.participantList.value) {
+    //   await _engine?.muteRemoteAudioStream(uid: user["userUID"], mute: true);
+    // }
+    callController.muteAllUsers(roomId, true);
     callController.muteAudioAll.value = true; // Mute all first
     await _engine?.muteRemoteAudioStream(
         uid: widget.trainerUID ?? 0, mute: false); // Unmute only one user
@@ -89,8 +100,8 @@ class _CallScreenState extends State<CallScreen> {
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) async {
           if (isTrainer) {
-            await homeController.updateTrainerJoin(
-                connection.localUid ?? 0, widget.slotId ?? 0);
+            await homeController.updateTrainerJoin(connection.localUid ?? 0,
+                widget.slotId ?? 0, widget.channelName.hashCode.toString());
           }
           if (widget.plan != null || isTrainer) {
             callController.joinRoom(widget.channelName.hashCode.toString(),
@@ -119,7 +130,7 @@ class _CallScreenState extends State<CallScreen> {
           print('_CallScreenState.initAgora ${remoteUid}');
           print('_CallScreenState.initAgora ${widget.trainerUID}');
           if (authController.loginAsA.value == Constants.user) {
-            if (widget.trainerUID == remoteUid) {
+            if (remoteUid == widget.trainerUID) {
               _engine!.setRemoteVideoStreamType(
                   uid: remoteUid, streamType: VideoStreamType.videoStreamHigh);
               setState(() => _remoteUid = remoteUid);
@@ -137,15 +148,17 @@ class _CallScreenState extends State<CallScreen> {
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
-          setState(() {
-            callController.participantList
-                .removeWhere((e) => e["userUID"] == remoteUid);
-            callController.participantListFree
-                .removeWhere((e) => e["userUID"] == remoteUid);
-            if (authController.loginAsA.value == Constants.user) {
-              _remoteUid = null;
-            }
-          });
+          if (isTrainer) {
+            setState(() {
+              callController.participantList
+                  .removeWhere((e) => e["userUID"] == remoteUid);
+              callController.participantListFree
+                  .removeWhere((e) => e["userUID"] == remoteUid);
+              // if (authController.loginAsA.value == Constants.user) {
+              //   _remoteUid = null;
+              // }
+            });
+          }
         },
       ),
     );
@@ -162,12 +175,13 @@ class _CallScreenState extends State<CallScreen> {
     await _engine!.joinChannel(
       token: widget.token,
       channelId: widget.channelName,
-      uid: 0,
+      uid: Get.find<AuthController>().logInUser!.id,
       options: const ChannelMediaOptions(
         channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         clientRoleType: ClientRoleType.clientRoleBroadcaster,
       ),
     );
+    callController.engine = _engine;
 
     //   freeUser();
   }
@@ -242,7 +256,7 @@ class _CallScreenState extends State<CallScreen> {
             final participant = participantList[index];
             return Container(
               width: 200,
-              height: 200,
+              height: 300,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(10.0),
@@ -332,9 +346,15 @@ class _CallScreenState extends State<CallScreen> {
                 : Icons.mic,
             onTap: () async {
               //  if (!freeUser()) {
-              callController.muteAudio.value = !callController.muteAudio.value;
-              _engine!.muteLocalAudioStream(callController.muteAudio.value);
-              callController.update();
+              if (callController.isMuteAll.value && !isTrainer) {
+                CustomToast.failToast(
+                    msg: "Please request trainer to un mute you");
+              } else {
+                callController.muteAudio.value =
+                    !callController.muteAudio.value;
+                _engine!.muteLocalAudioStream(callController.muteAudio.value);
+                callController.update();
+              }
               //  }
             },
           ),
@@ -343,10 +363,18 @@ class _CallScreenState extends State<CallScreen> {
                 ? Icons.videocam_off
                 : Icons.videocam,
             onTap: () {
+              print(
+                  '_CallScreenState._buildBottomBar ${callController.isMuteAll.value}');
               //  if (!freeUser()) {
+              // if (callController.isMuteAll.value && !isTrainer) {
+              //   CustomToast.failToast(
+              //       msg: "Please request trainer to un mute you");
+              // } else {
               callController.muteVideo.value = !callController.muteVideo.value;
               _engine!.muteLocalVideoStream(callController.muteVideo.value);
               callController.update();
+              // }
+
               //   }
             },
           ),
@@ -390,7 +418,9 @@ class _CallScreenState extends State<CallScreen> {
                       muteAllExceptOne(0);
                       callController.muteAudioAll.value = true;
                     } else {
-                      await _engine?.muteAllRemoteAudioStreams(false);
+                      callController.muteAllUsers(roomId, false);
+
+                      // await _engine?.muteAllRemoteAudioStreams(false);
                       callController.muteAudioAll.value = false;
                     }
                     callController.update(); // Update UI
@@ -426,13 +456,18 @@ class _CallScreenState extends State<CallScreen> {
       onCancel: () => Get.back(result: false),
       onConfirm: () async {
         if (isTrainer) {
-          await homeController.updateTrainerJoin(0, widget.slotId ?? 0,
-              isTrainerJoined: false);
+          await homeController.updateTrainerJoin(
+              0,
+              widget.slotId ?? 0,
+              isTrainerJoined: false,
+              widget.channelName.hashCode.toString());
           callController
               .onTrainerLogout(widget.channelName.hashCode.toString());
           Get.back();
           Get.back();
         } else {
+          callController.onDisconnectFunction();
+
           Get.back();
           await _dispose();
           var s = homeController.sharedPreferences;
@@ -472,11 +507,19 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   checkUserMicOnOff(int uid, bool mute) async {
-    await _engine?.muteRemoteAudioStream(uid: uid, mute: mute);
+    callController.muteSpecificUser(roomId, mute, uid);
+    // await _engine?.muteRemoteAudioStream(uid: uid, mute: mute);
     var index =
         callController.participantList.indexWhere((v) => v["userUID"] == uid);
+
     if (index != -1) {
       callController.participantList[index]["isMute"] = mute;
+    } else {
+      var indexFree = callController.participantListFree
+          .indexWhere((v) => v["userUID"] == uid);
+      if (indexFree != -1) {
+        callController.participantListFree[indexFree]["isMute"] = mute;
+      }
     }
     callController.update();
   }

@@ -65,9 +65,13 @@ class UserHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return GetBuilder<HomeController>(builder: (cont) {
-      return SingleChildScrollView(
-          controller: userHomeScreenScrollController,
-          child: Stack(
+      return RefreshIndicator(
+        onRefresh: () {
+          homeController.getUserHomeFunc();
+          return Future.value();
+        },
+        child: ListView(controller: userHomeScreenScrollController, children: [
+          Stack(
             children: [
               Column(
                 children: [
@@ -87,177 +91,274 @@ class UserHomeScreen extends StatelessWidget {
                         borderRadius: BorderRadius.only(
                             bottomLeft: Radius.circular(25),
                             bottomRight: Radius.circular(25))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
                       children: [
-                        Column(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    Get.to(() => ProfileScreenUser());
-                                  },
-                                  child: Container(
-                                      height: 60.h,
-                                      width: 60.h,
-                                      padding: EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: MyColors.primaryGradient1,
-                                      ),
-                                      child: Image.asset(
-                                        MyImgs.logo,
-                                        height: 40,
-                                      )),
-                                ),
-                                SizedBox(
-                                  width: 8.w,
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Hey!",
-                                      style: textTheme.titleLarge!.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                    Text(
-                                      "${authController.logInUser!.firstName} ${authController.logInUser!.lastName}",
-                                      style: textTheme.titleLarge!.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            SizedBox(
-                              height: 10.h,
-                            ),
-                            GetBuilder<HomeController>(builder: (co) {
-                              return Text(
-                                homeController.userHomeData == null
-                                    ? "No Plan"
-                                    : homeController
-                                            .userHomeData!.userAllPlans.isEmpty
-                                        ? "No Plan"
-                                        : homeController.userHomeData!
-                                            .userAllPlans[0].title,
-                                style: textTheme.titleLarge!.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontWeight: FontWeight.w500),
-                              );
-                            }),
-                            Text(
-                              "${authController.logInUser!.status ? "" : "Not "}Subscribed",
-                              style: textTheme.headlineSmall!.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Get.to(() => ViewDetails());
-                              },
-                              child: Row(
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    "View Details   ",
-                                    style: textTheme.titleLarge!.copyWith(
-                                        color: Colors.white.withOpacity(0.8),
-                                        fontWeight: FontWeight.w500),
+                                  Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          Get.to(() => ProfileScreenUser());
+                                        },
+                                        child: Container(
+                                          height: 60.h,
+                                          width: 60.h,
+                                          padding: EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: MyColors.primaryGradient1,
+                                              image: DecorationImage(
+                                                  image: AssetImage(
+                                                      MyImgs.avatarUser))),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 8.w,
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Hey!",
+                                            style: textTheme.titleLarge!
+                                                .copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                          ),
+                                          Text(
+                                            "${authController.logInUser!.firstName} ${authController.logInUser!.lastName}",
+                                            style: textTheme.titleLarge!
+                                                .copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Colors.white.withOpacity(0.8),
-                                    size: 10,
-                                  )
-                                ],
-                              ),
-                            ),
-                            SizedBox(
-                              height: 10.h,
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(top: 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                // mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (authController.logInUser!.status)
-                                    GestureDetector(
-                                      onTap: () {
-                                        Get.to(() => InvoiceScreen());
-                                      },
-                                      child: Icon(
-                                        Icons.inventory_2_outlined,
-                                        color: Colors.white,
-                                        size: 30,
-                                      ),
-                                    ),
                                   SizedBox(
-                                    width: 10,
+                                    height: 10.h,
+                                  ),
+                                  GetBuilder<HomeController>(builder: (co) {
+                                    return Text(
+                                      homeController.userHomeData == null
+                                          ? "No Plan"
+                                          : homeController.userHomeData!
+                                                  .userAllPlans.isEmpty
+                                              ? "No Plan"
+                                              : homeController.userHomeData!
+                                                  .userAllPlans[0].title,
+                                      style: textTheme.titleLarge!.copyWith(
+                                          color: Colors.white.withOpacity(0.8),
+                                          fontWeight: FontWeight.w500),
+                                      maxLines: 1,
+                                    );
+                                  }),
+                                  Text(
+                                    "${authController.logInUser!.status ? "" : "Not "}Subscribed",
+                                    style: textTheme.headlineSmall!.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600),
                                   ),
                                   GestureDetector(
                                     onTap: () {
-                                      Get.to(() => NotificationScreen());
+                                      Get.to(() => ViewDetails());
                                     },
-                                    child: Icon(
-                                      Icons.notifications_none,
-                                      color: Colors.white,
-                                      size: 30,
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          "View Details   ",
+                                          style: textTheme.titleLarge!.copyWith(
+                                              color:
+                                                  Colors.white.withOpacity(0.8),
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          color: Colors.white.withOpacity(0.8),
+                                          size: 10,
+                                        )
+                                      ],
                                     ),
                                   ),
-
-                                  //Image.asset(MyImgs.graph, height: 109.h, width: 143.w)
+                                  SizedBox(
+                                    height: 10.h,
+                                  ),
                                 ],
                               ),
-                              SizedBox(height: 30),
-                              MaterialButton(
-                                color: MyColors.primaryGradient3,
-                                textColor: Colors.white,
-                                onPressed: () {
-                                  homeController.getPlansUser();
-                                  Get.to(() => OurPlansScreen());
-                                },
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Our Plans",
-                                      style: textTheme.titleLarge!.copyWith(
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(top: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    // mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (authController.logInUser!.status)
+                                        GestureDetector(
+                                          onTap: () {
+                                            Get.to(() => InvoiceScreen());
+                                          },
+                                          child: Icon(
+                                            Icons.inventory_2_outlined,
+                                            color: Colors.white,
+                                            size: 30,
+                                          ),
+                                        ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Get.to(() => NotificationScreen());
+                                        },
+                                        child: Icon(
+                                          Icons.notifications_none,
                                           color: Colors.white,
-                                          fontWeight: FontWeight.w600),
-                                    ),
+                                          size: 30,
+                                        ),
+                                      ),
 
-                                    SizedBox(width: 5.w), // Add some spacing
-                                    Icon(
-                                      Icons.arrow_downward,
-                                      size: 15.w,
-                                      weight: 20,
-                                      grade: 20,
+                                      //Image.asset(MyImgs.graph, height: 109.h, width: 143.w)
+                                    ],
+                                  ),
+                                  SizedBox(height: 30),
+                                  MaterialButton(
+                                    color: MyColors.primaryGradient3,
+                                    textColor: Colors.white,
+                                    onPressed: () {
+                                      homeController.getPlansUser();
+                                      Get.to(() => OurPlansScreen());
+                                    },
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
                                     ),
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                        )
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          "Our Plans",
+                                          style: textTheme.titleLarge!.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+
+                                        SizedBox(
+                                            width: 5.w), // Add some spacing
+                                        Icon(
+                                          Icons.arrow_downward,
+                                          size: 15.w,
+                                          weight: 20,
+                                          grade: 20,
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                        // Container(
+                        //   padding: EdgeInsets.symmetric(horizontal: 20,vertical: 8),
+                        //   decoration: BoxDecoration(
+                        //       borderRadius: BorderRadius.circular(15),
+                        //       border: Border.all(
+                        //         color: MyColors.green,
+                        //       ),
+                        //       color: Colors.white),
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       Row(
+                        //         mainAxisAlignment:
+                        //             MainAxisAlignment.spaceBetween,
+                        //         children: [
+                        //           Text(
+                        //             "Zumba Class",
+                        //             style: textTheme.titleLarge!
+                        //                 .copyWith(fontWeight: FontWeight.w500),
+                        //           ),
+                        //           Text(
+                        //             "2 hours left",
+                        //             style: textTheme.titleLarge!.copyWith(
+                        //                 fontWeight: FontWeight.w500,
+                        //                 color: MyColors.grey72),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       Text(
+                        //         "with Dr. Iram Altaf",
+                        //         style: textTheme.titleLarge!.copyWith(
+                        //             fontWeight: FontWeight.w500,
+                        //             color: MyColors.grey72),
+                        //       ),
+                        //       SizedBox(height: 5,),
+                        //       Row(
+                        //         children: [
+                        //           Row(
+                        //             mainAxisAlignment:
+                        //                 MainAxisAlignment.spaceBetween,
+                        //             children: [
+                        //               Icon(
+                        //                 Icons.access_time_rounded,
+                        //                 size: 12,
+                        //               ),
+                        //               SizedBox(
+                        //                 width: 6,
+                        //               ),
+                        //               Text(
+                        //                 "02:00 PM",
+                        //                 style: textTheme.titleLarge!.copyWith(
+                        //                     fontWeight: FontWeight.w500,
+                        //                     color: MyColors.grey72),
+                        //               ),
+                        //             ],
+                        //           ),
+                        //           SizedBox(
+                        //             width: 20,
+                        //           ),
+                        //           Row(
+                        //             mainAxisAlignment:
+                        //                 MainAxisAlignment.spaceBetween,
+                        //             children: [
+                        //               Icon(
+                        //                 Icons.calendar_today_outlined,
+                        //                 size: 12,
+                        //               ),
+                        //               SizedBox(
+                        //                 width: 6,
+                        //               ),
+                        //               Text(
+                        //                 "Feb 23, 2025",
+                        //                 style: textTheme.titleLarge!.copyWith(
+                        //                     fontWeight: FontWeight.w500,
+                        //                     color: MyColors.grey72),
+                        //               ),
+                        //             ],
+                        //           ),
+                        //         ],
+                        //       )
+                        //     ],
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
+
                   SizedBox(
                     height: authController.logInUser!.status ? 185 : 0,
                   ),
@@ -668,7 +769,9 @@ class UserHomeScreen extends StatelessWidget {
                     )
                   : const SizedBox.shrink()
             ],
-          ));
+          )
+        ]),
+      );
     });
   }
 

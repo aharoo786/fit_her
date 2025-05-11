@@ -53,6 +53,8 @@ class UserAllPlan {
   String shortDescription;
   String longDescription;
   int categoryId;
+  String price;
+  String currency;
   DateTime? buyingDate;
   DateTime? expireDate;
   PriceData? priceData;
@@ -67,11 +69,15 @@ class UserAllPlan {
     required this.categoryId,
     required this.buyingDate,
     required this.expireDate,
+    required this.price,
+    required this.currency,
     this.priceData,
   });
 
   factory UserAllPlan.fromJson(Map<String, dynamic> json) => UserAllPlan(
         spendDays: json["spendDays"],
+        price: json["price"].toString(),
+    currency: json["currency"].toString(),
         planId: json["planId"],
         remainingDays: json["remainingDays"],
         title: json["title"] ?? "",

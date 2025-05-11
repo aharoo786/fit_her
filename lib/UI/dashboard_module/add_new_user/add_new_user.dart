@@ -335,7 +335,7 @@ class AddNewUser extends StatelessWidget {
                                                                   TextOverflow
                                                                       .ellipsis,
                                                             ),
-                                                    
+
                                                             // Text(
                                                             //   "Duration: ${plan.countries![0].duration![0].days}",
                                                             //   style: textTheme
@@ -438,7 +438,9 @@ class AddNewUser extends StatelessWidget {
                                                       }).toList(),
                                                     ),
                                                   ),
-                                                  SizedBox(height: 5,)
+                                                  SizedBox(
+                                                    height: 5,
+                                                  )
                                                 ],
                                               ),
                                             ),
@@ -503,7 +505,14 @@ class AddNewUser extends StatelessWidget {
                     } else if (!homeController.emailController.text.isEmail) {
                       CustomToast.failToast(msg: "Please provide valid email");
                     } else {
-                      homeController.addUser();
+                      var plan = homeController.allPlanModel!
+                          .plans[homeController.selectedPlanIndex.value];
+                      var price = plan.countries![0].duration
+                              ?.firstWhere(
+                                  (v) => v.id == plan.selectedDurationId.value)
+                              .priceAmount ??
+                          "N/A";
+                      homeController.addUser(price: price);
                     }
                   }
                 }),

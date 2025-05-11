@@ -65,6 +65,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
               ];
 
     if (authController.sharedPreferences.getBool("isFirstTime") == null) {
+
       WidgetsBinding.instance.addPostFrameCallback((value) {
         HelpingWidgets().showCustomDialog(context, () {
           authController.sharedPreferences.setBool("isFirstTime", false);
