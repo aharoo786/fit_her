@@ -1,4 +1,3 @@
-import 'package:fitness_zone_2/helper/permissions.dart';
 import 'package:get/get.dart';
 
 import '../../../values/constants.dart';
@@ -6,6 +5,7 @@ import '../../api_provider/api_provider.dart';
 
 class HomeRepo extends GetxService {
   ApiProvider apiProvider;
+
   HomeRepo({
     required this.apiProvider,
   });
@@ -36,6 +36,29 @@ class HomeRepo extends GetxService {
   Future<Response> getAppointments(
       {required String accessToken, required String userId}) async {
     return await apiProvider.getData("${Constants.getAppointments}/$userId",
+        headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> getRescheduleAppointments({
+    required String accessToken,
+    required bool reschedule,
+  }) async {
+    return await apiProvider.getData(
+        "${Constants.rescheduleAppointments}/$reschedule",
+        headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> getConsultationStatus({
+    required String accessToken,
+  }) async {
+    return await apiProvider.getData(Constants.getConsultationStatus,
+        headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> getReschedulePdfStatus({
+    required String accessToken,
+  }) async {
+    return await apiProvider.getData(Constants.getSchedulePdfStatus,
         headers: {"accessToken": accessToken});
   }
 
@@ -83,9 +106,12 @@ class HomeRepo extends GetxService {
   }
 
   Future<Response> getUserPlanDetailsWorkout(
-      {required String accessToken, required String planId}) async {
+      {required String accessToken,
+      required String planId,
+      required bool showSlots,
+      required String userId}) async {
     return await apiProvider.getData(
-        "${Constants.getUserWorkoutPlanDetails}/$planId",
+        "${Constants.getUserWorkoutPlanDetails}/$planId/$userId/$showSlots",
         headers: {"accessToken": accessToken});
   }
 
@@ -178,7 +204,9 @@ class HomeRepo extends GetxService {
   }
 
   Future<Response> getUserHome(
-      {required String accessToken, required String userId,required String code}) async {
+      {required String accessToken,
+      required String userId,
+      required String code}) async {
     return await apiProvider.getData("${Constants.getUserHome}/$userId/$code",
         headers: {"accessToken": accessToken});
   }
@@ -253,9 +281,13 @@ class HomeRepo extends GetxService {
     return await apiProvider.getData(Constants.getAllTimesWithSlots,
         headers: {"accessToken": accessToken});
   }
+
   Future<Response> getAllFreeTrialUsers(
-      {required String accessToken,required String id}) async {
-    return await apiProvider.getData("${Constants.getAllFreeTrialUsers}/$id",
+      {required String accessToken,
+      required String id,
+      required String slotId}) async {
+    return await apiProvider.getData(
+        "${Constants.getAllFreeTrialUsers}/$id/$slotId",
         headers: {"accessToken": accessToken});
   }
 
@@ -356,6 +388,12 @@ class HomeRepo extends GetxService {
         body: map, headers: {"accessToken": accessToken});
   }
 
+  Future<Response> updateSlotStatus(
+      {required String accessToken, required Map<String, dynamic> map}) async {
+    return await apiProvider.postData(Constants.updateSlotStatus,
+        body: map, headers: {"accessToken": accessToken});
+  }
+
   Future<Response> addTeamMemberRepo(
       {required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.postData(Constants.addTeamMember,
@@ -416,6 +454,22 @@ class HomeRepo extends GetxService {
         body: map, headers: {"accessToken": accessToken});
   }
 
+  Future<Response> updateAppointment(
+      {required String accessToken,
+      required Map<String, dynamic> map,
+      required String id}) async {
+    return await apiProvider.putData("/appointment/$id", body: map, headers: {
+      "accessToken": accessToken,
+    });
+  }
+
+  Future<Response> deleteAppointment(
+      {required String accessToken, required String id}) async {
+    return await apiProvider.deleteData("/appointment/$id", headers: {
+      "accessToken": accessToken,
+    });
+  }
+
   Future<Response> updateUserProfile(
       {required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.setFormData(
@@ -441,11 +495,19 @@ class HomeRepo extends GetxService {
 
   Future<Response> addProgressImages(
       {required String accessToken, required Map<String, dynamic> map}) async {
-    print("map $map");
     return await apiProvider.setFormData(
         url: Constants.addProgressImages,
         formData: map,
         isProgress: true,
+        headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> addCalorieImage(
+      {required String accessToken, required Map<String, dynamic> map}) async {
+    print("map $map");
+    return await apiProvider.setFormData(
+        url: Constants.addCalorieImage,
+        formData: map,
         headers: {"accessToken": accessToken});
   }
 
@@ -454,31 +516,31 @@ class HomeRepo extends GetxService {
     return await apiProvider.postData(Constants.stripePayment,
         body: body, headers: {"accessToken": accessToken});
   }
-  // Future<Response> submitOrSkipFeedback({required String accessToken, required Map<String, dynamic> map}) async {
-  //   return await apiProvider.postData(Constants.skipOrSubmit,
-  //       body: map, headers: {"accessToken": accessToken});
-  // }
-  // Future<Response> cancelAppoinment({required String accessToken, required Map<String, String> map}) async {
-  //   return await apiProvider.postData(Constants.removeAppointment,
-  //       body: map, headers: {"accessToken": accessToken});
-  // }
-  //
-  //
-  //
-  // Future<Response> getSubCategories(
-  //     {required String accessToken, required Map<String, String> map}) async {
-  //   return await apiProvider.postData(Constants.getSubCategories,
-  //       body: map, headers: {"accessToken": accessToken});
-  // }
-  // Future<Response> getAllAppointmentsByDate(
-  //     {required String accessToken, required Map<String, String> map}) async {
-  //   return await apiProvider.postData(Constants.getAllAppointmentsByDate,
-  //       body: map, headers: {"accessToken": accessToken});
-  // }
-  //
-  // Future<Response> get(
-  //     {required String accessToken, required Map<String, String> map}) async {
-  //   return await apiProvider.postData(Constants.getCatByKeyword,
-  //       body: map, headers: {"accessToken": accessToken});
-  // }
+// Future<Response> submitOrSkipFeedback({required String accessToken, required Map<String, dynamic> map}) async {
+//   return await apiProvider.postData(Constants.skipOrSubmit,
+//       body: map, headers: {"accessToken": accessToken});
+// }
+// Future<Response> cancelAppoinment({required String accessToken, required Map<String, String> map}) async {
+//   return await apiProvider.postData(Constants.removeAppointment,
+//       body: map, headers: {"accessToken": accessToken});
+// }
+//
+//
+//
+// Future<Response> getSubCategories(
+//     {required String accessToken, required Map<String, String> map}) async {
+//   return await apiProvider.postData(Constants.getSubCategories,
+//       body: map, headers: {"accessToken": accessToken});
+// }
+// Future<Response> getAllAppointmentsByDate(
+//     {required String accessToken, required Map<String, String> map}) async {
+//   return await apiProvider.postData(Constants.getAllAppointmentsByDate,
+//       body: map, headers: {"accessToken": accessToken});
+// }
+//
+// Future<Response> get(
+//     {required String accessToken, required Map<String, String> map}) async {
+//   return await apiProvider.postData(Constants.getCatByKeyword,
+//       body: map, headers: {"accessToken": accessToken});
+// }
 }

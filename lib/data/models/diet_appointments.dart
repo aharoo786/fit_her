@@ -36,6 +36,7 @@ class Appointment {
   int userId;
   int dietitionId;
   int timeSlotId;
+  String message;
   ClientUser? clientUser;
   SlotDiet? slotDiet;
 
@@ -47,6 +48,7 @@ class Appointment {
     required this.dietitionId,
     required this.timeSlotId,
     required this.clientUser,
+    required this.message,
     required this.slotDiet,
   });
 
@@ -55,6 +57,7 @@ class Appointment {
     date: DateTime.parse(json["date"]),
     status: json["status"],
     userId: json["userId"]??0,
+    message: json["message"]??"N/A",
     dietitionId: json["dietitionId"],
     timeSlotId: json["timeSlotId"],
     clientUser:json["ClientUser"]==null?null: ClientUser.fromJson(json["ClientUser"]),
@@ -65,6 +68,7 @@ class Appointment {
     "id": id,
     "date": date.toIso8601String(),
     "status": status,
+    "message": message,
     "userId": userId,
     "dietitionId": dietitionId,
     "timeSlotId": timeSlotId,
@@ -76,13 +80,13 @@ class Appointment {
 
 
 class SlotDiet {
-  int id;
-  String start;
-  String end;
+  int? id;
+  String? start;
+  String? end;
   dynamic dietitionLink;
   dynamic isAvailble;
-  int dietitionId;
-  int timeDietitionId;
+  int? dietitionId;
+  int? timeDietitionId;
 
   SlotDiet({
     required this.id,
@@ -98,12 +102,20 @@ class SlotDiet {
     id: json["id"],
     start: json["start"] == "Start Time"
         ? "Start Time"
-        : DateFormat('hh:mm a')
-        .format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["start"]))),
+        : (json["start"].toString().contains("AM") ||
+        json["start"].toString().contains("PM"))
+        ? json["start"]
+        : DateFormat('hh:mm a').format(
+        DateTime.fromMillisecondsSinceEpoch(
+            int.parse(json["start"]))),
     end: json["end"] == "End Time"
         ? "End Time"
-        : DateFormat('hh:mm a')
-        .format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["end"]))),
+        : (json["end"].toString().contains("AM") ||
+        json["end"].toString().contains("PM"))
+        ? json["end"]
+        : DateFormat('hh:mm a').format(
+        DateTime.fromMillisecondsSinceEpoch(
+            int.parse(json["end"]))),
     dietitionLink: json["dietitionLink"],
     isAvailble: json["isAvailble"],
     dietitionId: json["dietitionId"],
@@ -119,4 +131,6 @@ class SlotDiet {
     "dietitionId": dietitionId,
     "TimeDietitionId": timeDietitionId,
   };
+  get time => "${this.start} - ${this.end}";
+
 }

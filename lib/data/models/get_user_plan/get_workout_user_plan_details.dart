@@ -99,6 +99,7 @@ class Slot {
   String? description;
   int? joinedUserUID;
   String? token;
+  String? status;
   bool? isTrainerJoined;
 
   Slot(
@@ -110,6 +111,7 @@ class Slot {
       this.type,
       this.joinedUserUID,
       this.token,
+      this.status,
       this.isTrainerJoined,
       this.level,
       this.description});
@@ -118,17 +120,26 @@ class Slot {
         id: json["id"],
         start: json["start"] == "Start Time"
             ? "Start Time"
-            : DateFormat('hh:mm a').format(
-                DateTime.fromMillisecondsSinceEpoch(int.parse(json["start"]))),
+            : (json["start"].toString().contains("AM") ||
+                    json["start"].toString().contains("PM"))
+                ? json["start"]
+                : DateFormat('hh:mm a').format(
+                    DateTime.fromMillisecondsSinceEpoch(
+                        int.parse(json["start"]))),
         end: json["end"] == "End Time"
             ? "End Time"
-            : DateFormat('hh:mm a').format(
-                DateTime.fromMillisecondsSinceEpoch(int.parse(json["end"]))),
+            : (json["end"].toString().contains("AM") ||
+                    json["end"].toString().contains("PM"))
+                ? json["end"]
+                : DateFormat('hh:mm a').format(
+                    DateTime.fromMillisecondsSinceEpoch(
+                        int.parse(json["end"]))),
         trainerLink: json["trainerLink"],
         joinedUserUID: json["joinedUserUID"],
         isTrainerJoined: json["isTrainerJoined"],
         type: json["type"],
         level: json["level"],
+        status: json["status"],
         token: json["token"],
         description: json["description"],
         trainer: json["trainer"] == null
@@ -140,6 +151,7 @@ class Slot {
         "id": id,
         "start": start,
         "end": end,
+        "status": status,
         "trainerLink": trainerLink,
         "description": description,
         "type": type,

@@ -41,7 +41,6 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print("i am here to update");
     var textTheme = Theme.of(context).textTheme;
     return SingleChildScrollView(
       child: Padding(
@@ -159,7 +158,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                                 token: slot.token ?? "",
                                               ));
                                           workOutController
-                                              .getFreeTrialUserDetails();
+                                              .getFreeTrialUserDetails(slot.id.toString());
                                         },
                                         // Get.to(() => PasteLink(
                                         //       slotId: slot.id,

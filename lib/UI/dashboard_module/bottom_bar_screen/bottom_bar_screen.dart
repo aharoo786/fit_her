@@ -17,6 +17,7 @@ import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
+import '../../../widgets/review_bottom_sheet.dart';
 import '../../chat/chat_home_screen.dart';
 import '../home_screen/home_screen.dart';
 import '../profile_screen/profile_screen.dart';
@@ -65,15 +66,24 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
               ];
 
     if (authController.sharedPreferences.getBool("isFirstTime") == null) {
-
       WidgetsBinding.instance.addPostFrameCallback((value) {
-        HelpingWidgets().showCustomDialog(context, () {
+        HelpingWidgets.showCustomDialog(context, () {
           authController.sharedPreferences.setBool("isFirstTime", false);
           Get.back();
         },
             "Welcome to FitHer!",
             "We’re thrilled to have you on this journey. Let’s kickstart it to a healthier, happier you.",
             MyImgs.welcomeEmoji);
+      });
+    }
+    if (authController.sharedPreferences.getBool(Constants.giveReview) !=
+            null ||
+        authController.sharedPreferences.getBool(Constants.giveReview) ==
+            true) {
+      WidgetsBinding.instance.addPostFrameCallback((value) {
+        authController.sharedPreferences.remove(Constants.giveReview);
+        Get.bottomSheet(
+            isScrollControlled: true, FeedbackBottomSheet("0", "0"));
       });
     }
   }

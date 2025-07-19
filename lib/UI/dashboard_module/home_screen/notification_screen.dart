@@ -1,9 +1,11 @@
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
+import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../values/constants.dart';
 import '../../../values/my_imgs.dart';
 
 class NotificationScreen extends StatelessWidget {
@@ -15,6 +17,19 @@ class NotificationScreen extends StatelessWidget {
     var textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: CustomButton(
+          text: "Remove All",
+          onPressed: () {
+            authController.sharedPreferences.remove(Constants.notificationList);
+            authController.sharedPrefNotifier.value=null;
+          },
+          color: Colors.red,
+          borderColor: Colors.red,
+        ),
+      ),
+
       appBar: HelpingWidgets().appBarWidget(() {
         Get.back();
       }, text: "Notifications"),
@@ -31,7 +46,10 @@ class NotificationScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       alignment: Alignment.centerRight,
                       color: Colors.red,
-                      child: Icon(Icons.delete,color: Colors.white,),
+                      child: Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -70,7 +88,7 @@ class NotificationScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-              separatorBuilder: (context, index) => SizedBox(
+              separatorBuilder: (context, index) => const SizedBox(
                     height: 0,
                   ),
               itemCount: value == null ? 0 : value.length);

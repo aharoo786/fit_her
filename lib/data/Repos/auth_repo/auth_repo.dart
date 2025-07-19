@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../../../values/constants.dart';
 import '../../api_provider/api_provider.dart';
 
@@ -20,14 +20,41 @@ class AuthRepo extends GetxService {
     required String deviceToken,
     required String userType,
   }) async {
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+
     var body = {
       "email": email,
       "password": password,
       "userType": userType,
       "deviceToken": deviceToken,
+      "timeZone": currentTimeZone,
     };
 
     return await apiProvider.postData(Constants.loginPath, body: body);
+  }
+
+  Future<Response> googleSignIn({
+    required String email,
+    required String deviceToken,
+    required String userType,
+  }) async {
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+
+    var body = {
+      "email": email,
+      "deviceToken": deviceToken,
+      "userType": userType,
+      "timeZone": currentTimeZone,
+    };
+
+    return await apiProvider.postData(Constants.socialLogin, body: body);
+  }
+
+  Future<Response> getSubUserBasedOnUserTypes(
+      {required String accessToken, required String userType}) async {
+    return await apiProvider.getData(
+        "${Constants.getUsersOnUserType}/$userType",
+        headers: {"accessToken": accessToken});
   }
 
   Future<Response> logoutUserRepo({

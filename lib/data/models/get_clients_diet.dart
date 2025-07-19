@@ -6,8 +6,7 @@ import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 
-DietClients dietClientsFromJson(String str) =>
-    DietClients.fromJson(json.decode(str));
+DietClients dietClientsFromJson(String str) => DietClients.fromJson(json.decode(str));
 
 String dietClientsToJson(DietClients data) => json.encode(data.toJson());
 
@@ -62,6 +61,7 @@ class ClientUser {
   String email;
   String experience;
   String? phone;
+  String? bmiResult;
   ClientUser? supporter;
 
   ClientUser(
@@ -71,27 +71,22 @@ class ClientUser {
       required this.email,
       required this.phone,
       required this.experience,
+      required this.bmiResult,
       required this.supporter});
 
   factory ClientUser.fromJson(Map<String, dynamic> json) => ClientUser(
         id: json["id"],
         firstName: json["firstName"],
         lastName: json["lastName"],
+        bmiResult: json["bmiResult"],
         phone: json["phone"],
         email: json["email"],
         experience: json["experience"] ?? "N/A",
-        supporter: json["supporter"] == null
-            ? null
-            : ClientUser.fromJson(json["supporter"]),
+        supporter: json["supporter"] == null ? null : ClientUser.fromJson(json["supporter"]),
       );
 
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "firstName": firstName,
-        "phone": phone,
-        "lastName": lastName,
-        "email": email,
-        "experience": experience,
-        "supporter": supporter
-      };
+  Map<String, dynamic> toJson() =>
+      {"id": id, "firstName": firstName, "phone": phone, "lastName": lastName, "email": email, "experience": experience, "supporter": supporter};
+
+  get fullName => "${this.firstName} ${this.lastName}";
 }

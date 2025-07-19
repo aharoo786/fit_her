@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:fitness_zone_2/helper/notification_services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fitness_zone_2/values/styles.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,20 +9,17 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '/helper/get_di.dart' as di;
-import 'UI/auth_module/height_slider_screen.dart';
 import 'UI/auth_module/splash.dart';
-import 'UI/free_trail/free_trail_question.dart';
-import 'animation.dart';
+import 'data/api_provider/app_link_handler.dart';
 import 'firebase_options.dart';
+import 'get_food_kcal_details.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
+    return super.createHttpClient(context)..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
   }
 }
 
@@ -37,17 +31,10 @@ Future<void> main() async {
 
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Stripe.merchantIdentifier = "merchant.abtechnologies.applepay";
-  if (!kIsWeb) {
-    await dotenv.load(fileName: ".env");
-    Stripe.publishableKey = dotenv.get("STRIPE_PUBLIC_KEY_TEST");
-    await Stripe.instance.applySettings();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
   }
-  SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
   await di.init();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -61,14 +48,23 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class MyApp extends StatefulWidget {
-  // @override;
-  MyApp();
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     // return GetBuilder<LocalizationController>(builder: (localizeController) {

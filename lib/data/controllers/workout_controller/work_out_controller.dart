@@ -12,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
 import 'package:fitness_zone_2/data/models/add_package/add_package_model.dart'
     as addPackage;
+
+import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../Repos/home_repo/home_repo.dart';
 import '../../models/api_response/api_response_model.dart';
@@ -28,6 +30,8 @@ class WorkOutController extends GetxController implements GetxService {
 
   CheckConnectionService connectionService = CheckConnectionService();
 
+
+
   ///Rx Variables
   var workOutOfUserLoad = false.obs;
   var workOutPlanDetailsLoad = false.obs;
@@ -36,6 +40,7 @@ class WorkOutController extends GetxController implements GetxService {
   var trainerHomeLoad = false.obs;
 
   var freeTrialSlots = [].obs;
+  var freeTrailSlotIndex = 0;
 
   List<FreeTrialUser> freeTrialUser = [];
   List<addPackage.Time> addPackageTimeTable = [];
@@ -68,7 +73,8 @@ class WorkOutController extends GetxController implements GetxService {
               workOutOfUserLoad.value = true;
               if (isFree && (workoutPlans?.plans.isNotEmpty ?? false)) {
                 Get.to(() => FreeTrialSlots());
-                getDietPlanDetailsFunc(workoutPlans!.plans.first.id.toString());
+                getDietPlanDetailsFunc(workoutPlans!.plans.first.id.toString(),
+                    showSlots: true);
               }
             }
           }
@@ -77,16 +83,18 @@ class WorkOutController extends GetxController implements GetxService {
     });
   }
 
-  getDietPlanDetailsFunc(String id) {
+  getDietPlanDetailsFunc(String id, {bool showSlots = false}) {
     workOutPlanDetailsLoad.value = false;
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
       } else {
-        homeRepo
+        await homeRepo
             .getUserPlanDetailsWorkout(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           planId: id,
+          userId: sharedPreferences.getString(Constants.userId) ?? "",
+          showSlots: showSlots,
         )
             .then((response) async {
           // Get.back();
@@ -98,6 +106,20 @@ class WorkOutController extends GetxController implements GetxService {
             if (model.status == "1") {
               getUserWorkoutPlanDetailsPlan = model.data;
 
+              ///filtering slots for two days
+              if (showSlots) {
+                var today = DateFormat('EEEE').format(DateTime.now());
+                var tomorrow = DateFormat('EEEE')
+                    .format(DateTime.now().add(const Duration(days: 1)));
+
+                List<TrainerSlot> filter = getUserWorkoutPlanDetailsPlan
+                        ?.trainerSlots
+                        .where((t) => t.day == today || t.day == tomorrow)
+                        .toList() ??
+                    [];
+
+                getUserWorkoutPlanDetailsPlan?.trainerSlots = filter;
+              }
               workOutPlanDetailsLoad.value = true;
             }
           }
@@ -248,7 +270,7 @@ class WorkOutController extends GetxController implements GetxService {
     });
   }
 
-  getFreeTrialUserDetails() {
+  getFreeTrialUserDetails(String slotId) {
     getFreeTrialUserDetailsLoad.value = false;
     connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -258,6 +280,7 @@ class WorkOutController extends GetxController implements GetxService {
             .getAllFreeTrialUsers(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           id: sharedPreferences.getString(Constants.userId) ?? "",
+          slotId: slotId,
         )
             .then((response) async {
           if (response.body["status"] == "0") {
@@ -267,6 +290,8 @@ class WorkOutController extends GetxController implements GetxService {
                 response.body, GetFreeTrialUserDetails.fromJson);
 
             if (response.body["status"] == "1") {
+              print(
+                  'WorkOutController.getFreeTrialUserDetails ${model.data?.user}');
               freeTrialUser = model.data?.user ?? [];
 
               getFreeTrialUserDetailsLoad.value = true;
@@ -341,7 +366,7 @@ class WorkOutController extends GetxController implements GetxService {
                 : answers[2]["answersList"].join(","),
             "freeTrialUser":
                 sharedPreferences.getString(Constants.userId) ?? "",
-            "slots": freeTrialSlots.value
+            "slots": freeTrialSlots
           },
         ).then((response) async {
           Get.back();

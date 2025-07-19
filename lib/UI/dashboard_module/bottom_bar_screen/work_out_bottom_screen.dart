@@ -1,4 +1,3 @@
-import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
@@ -9,14 +8,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
-import '../../../data/controllers/call_controller/chat_controller.dart';
 import '../../../data/models/get_user_plan/get_workout_user_plan_details.dart';
 import '../../../helper/custom_print.dart';
+import '../../../values/constants.dart';
 import '../../../values/my_imgs.dart';
 import '../../../widgets/review_bottom_sheet.dart';
 import '../../../widgets/toasts.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../call_screen/call_screen.dart';
 import 'package:intl/intl.dart';
 
 class WorkOutBottomScreen extends StatelessWidget {
@@ -34,7 +32,9 @@ class WorkOutBottomScreen extends StatelessWidget {
 
     return Scaffold(
         resizeToAvoidBottomInset: false,
-        appBar: HelpingWidgets().appBarWidget(null, text: "Workout Schedule"),
+        appBar: HelpingWidgets().appBarWidget(() {
+          Get.back();
+        }, text: "Workout Schedule"),
         body: Obx(
           () => !workOutController.workOutPlanDetailsLoad.value
               ? CircularProgress()
@@ -109,198 +109,13 @@ class WorkOutBottomScreen extends StatelessWidget {
                                   var slot = time.slots[index];
                                   return GestureDetector(
                                     onTap: () async {
-                                      showModalBottomSheet(
-                                        context: context,
-                                        shape: const RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(20),
-                                          ),
-                                        ),
-                                        isScrollControlled: true,
-                                        builder: (BuildContext context) {
-                                          return Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.keyboard_arrow_down,
-                                                size: 32,
-                                              ),
-                                              const SizedBox(height: 16),
-                                              const Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceEvenly,
-                                                children: [
-                                                  Column(
-                                                    children: [
-                                                      Icon(Icons.access_time,
-                                                          color: Colors.green,
-                                                          size: 32),
-                                                      SizedBox(height: 8),
-                                                      Text(
-                                                        '50 Min',
-                                                        style: TextStyle(
-                                                          fontSize: 24,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                      Text('Time'),
-                                                    ],
-                                                  ),
-                                                  Column(
-                                                    children: [
-                                                      Icon(
-                                                          Icons
-                                                              .local_fire_department,
-                                                          color: Colors.green,
-                                                          size: 32),
-                                                      SizedBox(height: 8),
-                                                      Text(
-                                                        '254',
-                                                        style: TextStyle(
-                                                          fontSize: 24,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                      Text('Calories'),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 16),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 20),
-                                                child: Text(
-                                                  slot.description ?? "",
-                                                  style: textTheme.bodySmall,
-                                                  maxLines: 4,
-                                                ),
-                                              ),
-                                              const Divider(),
-                                              ListTile(
-                                                leading: const Icon(
-                                                    Icons.access_time_sharp),
-                                                title: Text(
-                                                  '${slot.start}-${slot.end}',
-                                                  style: textTheme.bodySmall,
-                                                ),
-                                                visualDensity:
-                                                    VisualDensity(vertical: -4),
-                                              ),
-                                              ListTile(
-                                                leading:
-                                                    Icon(Icons.fitness_center),
-                                                title: Text(
-                                                    slot.level ??
-                                                        'High Intensity Workout Session',
-                                                    style: textTheme.bodySmall),
-                                                visualDensity:
-                                                    VisualDensity(vertical: -4),
-                                              ),
-                                              ListTile(
-                                                leading: const CircleAvatar(
-                                                  backgroundImage: AssetImage(
-                                                      MyImgs.profilePicture),
-                                                  maxRadius: 10,
-                                                ),
-                                                title: Text(
-                                                    'with ${slot.trainer?.firstName} ${slot.trainer?.lastName}',
-                                                    style: textTheme.bodySmall),
-                                                visualDensity:
-                                                    VisualDensity(vertical: -4),
-                                              ),
-                                              const SizedBox(height: 16),
-                                              ElevatedButton.icon(
-                                                onPressed: () async {
-                                                  print(
-                                                      'WorkOutBottomScreen.build ${slot.toJson()}');
-                                                  try {
-                                                    if (homeController
-                                                            .userHomeData
-                                                            ?.userData
-                                                            .freeze
-                                                            .value ==
-                                                        true) {
-                                                      return showError(
-                                                          "Your account is frozen, please unfreeze first.");
-                                                    }
-
-                                                    if (homeController
-                                                            .userHomeData!
-                                                            .userAllPlans
-                                                            .first
-                                                            .remainingDays <=
-                                                        0) {
-                                                      return showError(
-                                                          "Please renew your plan.");
-                                                    }
-                                                    print(
-                                                        'WorkOutBottomScreen.build ${slot.trainerLink!}');
-
-                                                    // if (isValidUrl(
-                                                    //     slot.trainerLink!)) {
-                                                    //   await launchUrl(Uri.parse(
-                                                    //       slot.trainerLink!));
-                                                    // } else {
-                                                    if (!isSessionValid(slot)) {
-                                                      return; // Check session validity
-                                                    }
-                                                    if (slot.trainerLink ==
-                                                            null ||
-                                                        slot.trainerLink!
-                                                            .isEmpty) {
-                                                      return showError(
-                                                          "Trainer has not added a link yet.");
-                                                    }
-
-                                                    await launchUrl(Uri.parse(
-                                                        slot.trainerLink!));
-                                                    // await requestPermissions();
-                                                    //
-                                                    // Get.back(); // Close modal
-                                                    // var isReview =
-                                                    //     await navigateToCallScreen(
-                                                    //         slot);
-                                                    // if (isReview != null) {
-                                                    //   showFeedbackBottomSheet(
-                                                    //       context, slot);
-                                                    // }
-                                                    //    }
-                                                  } catch (e) {
-                                                    print("Error: $e");
-                                                    showError(
-                                                        "Trainer has not added a link yet.");
-                                                  }
-                                                },
-                                                icon: const Icon(
-                                                    Icons.video_call),
-                                                label:
-                                                    const Text('Join Session'),
-                                                style: ElevatedButton.styleFrom(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      vertical: 12,
-                                                      horizontal: 24),
-                                                  backgroundColor: Colors.green,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            30.0),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 16),
-                                            ],
-                                          );
-                                        },
-                                      );
+                                      HelpingWidgets.showWorkoutBottomSheet(
+                                          context: context,
+                                          slot: slot,
+                                          homeController: homeController);
                                     },
                                     child: Container(
-                                      height: 90.h,
+                                      height: 90,
                                       width: double.maxFinite,
                                       padding: EdgeInsets.symmetric(
                                           horizontal: 13.w, vertical: 6.h),
@@ -373,7 +188,14 @@ class WorkOutBottomScreen extends StatelessWidget {
                                               ),
                                             ],
                                           ),
-                                          SvgPicture.asset(MyImgs.progressbar)
+                                          Text(
+                                            slot.status ??"",
+                                            style: textTheme.bodySmall!
+                                                .copyWith(
+                                                fontWeight:
+                                                FontWeight.w500),
+                                          ),
+                                          // SvgPicture.asset(MyImgs.progressbar)
                                         ],
                                       ),
                                     ),
@@ -418,17 +240,6 @@ class WorkOutBottomScreen extends StatelessWidget {
   Future<void> requestPermissions() async {
     await handleCameraAndMic(Permission.camera);
     await handleCameraAndMic(Permission.microphone);
-  }
-
-  Future<bool?> navigateToCallScreen(Slot slot) async {
-    return await Get.to(() => CallScreen(
-          plan: workOutController.getUserWorkoutPlanDetailsPlan?.plan,
-          channelName: slot.trainerLink ?? "",
-          token: slot.token ?? "",
-          userId: Get.find<AuthController>().logInUser?.id.toString() ?? "",
-          title: slot.level ?? 'High Intensity Workout Session',
-          trainerUID: slot.trainer?.id,
-        ));
   }
 
   void showFeedbackBottomSheet(BuildContext context, Slot slot) {

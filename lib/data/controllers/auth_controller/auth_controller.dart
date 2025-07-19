@@ -1,19 +1,17 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:fitness_zone_2/UI/auth_module/choose_any_one/choose_any_one.dart';
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
-import 'package:fitness_zone_2/UI/auth_module/managePassword/forgot_password/otp_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
+import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
-import 'package:fitness_zone_2/UI/auth_module/welcom_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_users/get_all_dietitian_users.dart';
-import 'package:fitness_zone_2/data/models/home_model/home_model.dart';
 import 'package:fitness_zone_2/data/models/login_response_model/login_response_model.dart';
 import 'package:get/get.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,14 +24,11 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../Repos/auth_repo/auth_repo.dart';
 import '../../models/api_response/api_response_model.dart';
-import '../../models/get_user_plan/get_user_plan.dart';
-import '../../models/user_model/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '/helper/get_di.dart' as di;
+import 'package:firebase_auth/firebase_auth.dart' as fAuth;
+import 'package:google_sign_in/google_sign_in.dart';
 
-import '../diet_contoller/diet_controller.dart';
-import '../progress_controller/progress_controller.dart';
-import '../workout_controller/work_out_controller.dart';
+import '../../models/get_all_users/get_all_users_based_on_type.dart';
 
 class AuthController extends GetxController implements GetxService {
   SharedPreferences sharedPreferences;
@@ -41,11 +36,7 @@ class AuthController extends GetxController implements GetxService {
   NotificationServices notificationServices;
   ChatApiProvider chatApiProvider;
   CheckConnectionService connectionService = CheckConnectionService();
-  AuthController(
-      {required this.sharedPreferences,
-      required this.authRepo,
-      required this.notificationServices,
-      required this.chatApiProvider});
+  AuthController({required this.sharedPreferences, required this.authRepo, required this.notificationServices, required this.chatApiProvider});
 
   ///Generating unique id
   var uuid = const Uuid();
@@ -75,14 +66,7 @@ class AuthController extends GetxController implements GetxService {
 
   ///countryCode
   var countryCode = Constants.countryCode;
-  List<String> addTeamMember = [
-    "Dietition",
-    "Trainer",
-    "Gynecologist",
-    "Psychiatrist",
-    "Customer_Support_Representative",
-    "Admin"
-  ];
+  List<String> addTeamMember = ["Dietition", "Trainer", "Gynecologist", "Psychiatrist", "Customer_Support_Representative", "Admin"];
 
   ///Sign in User
   TextEditingController loginUserPhone = TextEditingController();
@@ -93,9 +77,11 @@ class AuthController extends GetxController implements GetxService {
 
   String daysDurationValue = "";
   String monthDurationValue = "";
+  var selectCustomerSupport = 0.obs;
 
   bool daysSelected = false;
   bool monthSelected = false;
+  var getUsersBasedOnUserTypeLoad = false.obs;
 
   ///User Model
   LoginModel? logInUser;
@@ -121,6 +107,7 @@ class AuthController extends GetxController implements GetxService {
 
   ///get All users
   GetDietitianUsers getDietitianUsers = GetDietitianUsers(result: []);
+  GetUsersBasedOnUserType? getUsersBasedOnUserTypeModel;
 
   var memerDesig = "Trainer";
 
@@ -138,22 +125,10 @@ class AuthController extends GetxController implements GetxService {
 
   ///Listerner
   ///
-  ValueNotifier<List<dynamic>?> sharedPrefNotifier =
-      ValueNotifier<List<dynamic>?>(null);
+  ValueNotifier<List<dynamic>?> sharedPrefNotifier = ValueNotifier<List<dynamic>?>(null);
 
-  initializeFireBase() {
-    notificationServices.requestNotificationPermission();
-    notificationServices.forgroundMessage();
-    notificationServices.firebaseInit();
-    notificationServices.setupInteractMessage();
-    notificationServices.isTokenRefresh();
-    notificationServices.initializeNewHttpsSettingS();
-    // notificationServices.getAccessToken();
-    notificationServices.getApns();
-    notificationServices.getDeviceToken();
-
-    //print('device token ${localStorageMethods.getDvToken()}');
-  }
+  final fAuth.FirebaseAuth _auth = fAuth.FirebaseAuth.instance;
+  final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
 
   ///Clear sign up Controllers
   clearSignUpController() {
@@ -166,7 +141,6 @@ class AuthController extends GetxController implements GetxService {
 
   @override
   onInit() {
-    initializeFireBase();
     initNotifications();
     super.onInit();
   }
@@ -187,8 +161,7 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         if (userType != null) {
           loginAsA.value = userType;
         }
@@ -209,8 +182,7 @@ class AuthController extends GetxController implements GetxService {
                 Get.offAll(() => const WalkThroughScreen());
               }
             } else if (response.body["status"] != "0") {
-              ApiResponse<LoginModel> model =
-                  ApiResponse.fromJson(response.body, LoginModel.fromJson);
+              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
               debugPrint(model.data!.accessToken.toString());
               if (model.status == "1") {
                 logInUser = model.data;
@@ -244,6 +216,167 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
+  signInUsingGoogle(String userEmail, String name, String signedFrom) {
+    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        Get.back();
+
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        authRepo
+            .googleSignIn(
+          email: userEmail,
+          deviceToken: sharedPreferences.getString(Constants.deviceToken) ?? "",
+          userType: loginAsA.value,
+        )
+            .then((response) async {
+          Get.log("login api response :${response.body}");
+          Get.back();
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              if (response.body["status"] == "1") {
+                ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
+                debugPrint(model.data!.accessToken.toString());
+                logInUser = model.data;
+
+                addLocalStorage(logInUser!, signedFrom);
+
+                if (loginAsA.value == Constants.user) {
+                  if (!logInUser!.status) {
+                    Get.find<HomeController>().getPlansUser();
+                  } else {
+                    Get.find<HomeController>().getUserHomeFunc();
+                  }
+                }
+
+                loginUserPhone.clear();
+                loginUserPassword.clear();
+                updateUserDetails();
+              } else if (response.body["status"] == "2") {
+                print('AuthController.signInUsingGoogle}');
+                emailNameController.text = userEmail;
+                firstNameController.text = name.split(" ").first;
+                lastNameController.text = name.split(" ").last;
+
+                Get.to(() => SignUpNewUser(
+                      isSocial: true,
+                    ));
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  getUsersBasedOnUserType(String userType, {bool addNull = false}) {
+    getUsersBasedOnUserTypeLoad.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        authRepo
+            .getSubUserBasedOnUserTypes(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          userType: userType,
+        )
+            .then((response) async {
+          // Get.back();
+          if (response.body["status"] == "0") {
+            CustomToast.failToast(msg: response.body["message"]);
+          } else if (response.body["status"] != "0") {
+            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(response.body, GetUsersBasedOnUserType.fromJson);
+            if (model.status == "1") {
+              getUsersBasedOnUserTypeModel = model.data!;
+              if (addNull) {
+                getUsersBasedOnUserTypeModel?.users.insert(0, UserTypeData(id: 0, firstName: "Select", lastName: "..", email: "", phone: ""));
+              } else {
+                if (getUsersBasedOnUserTypeModel!.users.isNotEmpty) {
+                  selectCustomerSupport.value = getUsersBasedOnUserTypeModel!.users[0].id;
+                }
+              }
+              getUsersBasedOnUserTypeLoad.value = true;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> showEmailsDialog({bool isFromResortScreen = false}) async {
+    // Get.dialog(Center(child: CircularProgressIndicator()),
+    //     barrierDismissible: false);
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        // Get.back();
+
+        CustomToast.noInternetToast();
+      } else {
+        try {
+          final GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
+          if (googleSignInAccount != null) {
+            final GoogleSignInAuthentication googleSignInAuthentication = await googleSignInAccount.authentication;
+            final fAuth.AuthCredential credential = fAuth.GoogleAuthProvider.credential(
+              accessToken: googleSignInAuthentication.accessToken,
+              idToken: googleSignInAuthentication.idToken,
+            );
+
+            final fAuth.UserCredential authResult = await _auth.signInWithCredential(credential);
+            final fAuth.User? user = authResult.user;
+            if (user != null) {
+              signInUsingGoogle(
+                user.email ?? "",
+                user.displayName ?? "",
+                "google",
+              );
+            }
+          }
+        } catch (error) {
+          //Get.back();
+          print("Error during Google Sign-In: $error");
+        }
+      }
+    });
+  }
+
+  void handleappleLogin() async {
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        final appleAuthProvider = fAuth.AppleAuthProvider();
+        appleAuthProvider.addScope("email");
+
+        var authCredentials = await _auth.signInWithProvider(appleAuthProvider);
+        final fAuth.User? user = authCredentials.user;
+        print("User :   $user");
+        if (user != null) {
+          if (Platform.isIOS) {
+            if (user.email == null) {
+              if (user.providerData.isNotEmpty) {
+                signInUsingGoogle(user.providerData[0].email ?? "", user.displayName ?? "", "apple");
+              } else {
+                signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
+              }
+            } else {
+              signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
+            }
+          } else {
+            signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
+          }
+        } else {
+          CustomToast.failToast(msg: "Something went wrong");
+        }
+      }
+    });
+  }
+
   initNotifications() {
     var list = sharedPreferences.getString(Constants.notificationList);
     List<NotificationMessage> notificationMessages = [];
@@ -259,10 +392,7 @@ class AuthController extends GetxController implements GetxService {
 
   updateUserDetails({bool updateFields = true}) async {
     Map<String, dynamic> userMap;
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(logInUser!.id.toString())
-        .set({
+    await FirebaseFirestore.instance.collection("users").doc(logInUser!.id.toString()).set({
       "id": logInUser!.id.toString(),
       "name": logInUser!.firstName,
       "time": Timestamp.now(),
@@ -274,7 +404,7 @@ class AuthController extends GetxController implements GetxService {
     // var userMap1 = await FirebaseFirestore.instance
     //     .collection("users")
     //     .doc(logInUser!.adminId.toString())
-    //     .get();
+    //     .get();§§§
     // userMap = userMap1.data()!;
     // String roomId = (logInUser!.id.toString().hashCode +
     //         logInUser!.adminId.toString().hashCode)
@@ -299,8 +429,7 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await authRepo
             .loginGuestRepo(
           email: emailNameController.text,
@@ -330,14 +459,15 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  forgotPassword(String email) {
-    connectionService.checkConnection().then((value) async {
+  Future<String?> forgotPassword(String email) async {
+    String? otp;
+    await connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
+        otp = null;
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await authRepo
             .forgotPasswordRepo(
           email: email,
@@ -348,20 +478,20 @@ class AuthController extends GetxController implements GetxService {
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
+              otp = null;
             } else if (response.body["status"] != "0") {
               if (response.body["status"] == "1") {
-                Get.off(() => OtpScreen(
-                      email: response.body["data"]["email"],
-                      otp: response.body["data"]["otp"],
-                    ));
+                otp = response.body["data"]["otp"];
               }
             }
           } else {
             CustomToast.failToast(msg: response.body["message"]);
+            otp = null;
           }
         });
       }
     });
+    return otp;
   }
 
   resetPassword(String email, String password) {
@@ -370,8 +500,7 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await authRepo
             .resetPasswordRepo(
           email: email,
@@ -385,8 +514,8 @@ class AuthController extends GetxController implements GetxService {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
               if (response.body["status"] == "1") {
-                Get.off(() => Login());
-                Get.back();
+                Get.offAll(() => Login());
+                CustomToast.successToast(msg: response.body["message"]);
               }
             }
           } else {
@@ -411,14 +540,12 @@ class AuthController extends GetxController implements GetxService {
         var list2 = jsonDecode(list);
 
         // Convert each item back to NotificationMessage and add to notificationMessages list
-        notificationMessages = List<NotificationMessage>.from(
-            list2.map((item) => NotificationMessage.fromJson(item)));
+        notificationMessages = List<NotificationMessage>.from(list2.map((item) => NotificationMessage.fromJson(item)));
       }
 
       sharedPrefNotifier.value?.removeAt(index);
       notificationMessages.removeAt(index);
-      sharedPreferences.setString(
-          Constants.notificationList, jsonEncode(notificationMessages));
+      sharedPreferences.setString(Constants.notificationList, jsonEncode(notificationMessages));
       sharedPrefNotifier.notifyListeners();
     }
   }
@@ -430,11 +557,8 @@ class AuthController extends GetxController implements GetxService {
         if (!value) {
           CustomToast.noInternetToast();
         } else {
-          Get.dialog(const Center(child: CircularProgressIndicator()),
-              barrierDismissible: false);
-          await authRepo
-              .logoutUserRepo(deviceToken: token)
-              .then((response) async {
+          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+          await authRepo.logoutUserRepo(deviceToken: token).then((response) async {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {
@@ -444,7 +568,11 @@ class AuthController extends GetxController implements GetxService {
                   CustomToast.successToast(msg: response.body["message"]);
                   sharedPreferences.clear();
                   Get.offAll(() => ChooseAnyOne());
+                  NotificationServices().getDeviceToken();
                   await init();
+                  if (await googleSignIn.isSignedIn()) {
+                    googleSignIn.signOut();
+                  }
                   loginAsA.value = Constants.user;
                 }
               }
@@ -463,19 +591,15 @@ class AuthController extends GetxController implements GetxService {
     }
   }
 
-  deleteUser() {
+  deleteUser({String? id}) {
     var token = sharedPreferences.getString(Constants.accessToken);
     if (token != null) {
       connectionService.checkConnection().then((value) async {
         if (!value) {
           CustomToast.noInternetToast();
         } else {
-          Get.dialog(const Center(child: CircularProgressIndicator()),
-              barrierDismissible: false);
-          await authRepo
-              .deleteUser(
-                  id: sharedPreferences.getString(Constants.userId) ?? "")
-              .then((response) {
+          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+          await authRepo.deleteUser(id: id ?? sharedPreferences.getString(Constants.userId) ?? "").then((response) {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {

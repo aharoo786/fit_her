@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/UI/auth_module/welcom_screen.dart';
+import 'package:fitness_zone_2/helper/notification_services.dart';
 import 'package:fitness_zone_2/values/values.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../data/api_provider/app_link_handler.dart';
 import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../values/constants.dart';
 import '../../values/my_colors.dart';
 import '../../values/my_imgs.dart';
-import 'login/login.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -24,7 +24,8 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-
+    NotificationServices().requestNotificationPermission();
+    NotificationServices().firebaseInit(Get.context!);
     WidgetsFlutterBinding.ensureInitialized();
 
     WidgetsBinding.instance.addObserver(this);
@@ -35,6 +36,9 @@ class _SplashScreenState extends State<SplashScreen>
           share.getString(Constants.password) == null ||
           share.getString(Constants.loginAsa) == null) {
         Get.offAll(() => WelcomeScreen());
+        Future.delayed((Duration(seconds: 1)), () {
+          AppLinkHandler().init(Get.context!);
+        });
       } else {
         Get.find<AuthController>().login(
             userType: share.getString(Constants.loginAsa),

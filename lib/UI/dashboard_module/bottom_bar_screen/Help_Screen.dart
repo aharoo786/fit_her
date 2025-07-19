@@ -32,8 +32,7 @@ class HelpScreen extends StatelessWidget {
                 if (authController.logInUser != null) {
                   var userDetail = authController.logInUser!.adminId.toString();
 
-                  var userMap = await homeController
-                      .getspecificUserFromFireStore(userDetail);
+                  var userMap = await homeController.getspecificUserFromFireStore(userDetail);
                   var roomId = await homeController.makeRoomId(userDetail);
 
                   Get.to(() => ChatRoom(
@@ -54,15 +53,14 @@ class HelpScreen extends StatelessWidget {
                 color: Colors.green,
                 size: 30,
               ),
-              title: Text('Chat with Customer Support'),
+              title: homeController.userHomeData?.customSupporter == null
+                  ? const Text('Chat with Customer Support')
+                  : Text('Chat with (${homeController.userHomeData?.customSupporter?.fullName})'),
               onTap: () async {
                 if (homeController.userHomeData?.customSupporter != null) {
-                  var userDetail = homeController
-                      .userHomeData!.customSupporter!.id
-                      .toString();
+                  var userDetail = homeController.userHomeData!.customSupporter!.id.toString();
 
-                  var userMap = await homeController
-                      .getspecificUserFromFireStore(userDetail);
+                  var userMap = await homeController.getspecificUserFromFireStore(userDetail);
                   var roomId = await homeController.makeRoomId(userDetail);
 
                   Get.to(() => ChatRoom(

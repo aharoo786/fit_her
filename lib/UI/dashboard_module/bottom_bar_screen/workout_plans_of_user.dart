@@ -34,7 +34,7 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
       appBar: HelpingWidgets().appBarWidget(null, text: "Your Plans"),
       body: Obx(() => workOutController.workOutOfUserLoad.value
           ? workOutController.workoutPlans!.plans.isEmpty
-              ? HelpingWidgets().getOurPlans(textTheme)
+              ? HelpingWidgets().getOurPlans(context, textTheme)
               : ListView.separated(
                   padding:
                       EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),

@@ -6,6 +6,8 @@ import 'package:custom_rating_bar/custom_rating_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../values/constants.dart';
+
 class FeedbackBottomSheet extends StatelessWidget {
   String planId;
   String trainerOrDiet;
@@ -99,12 +101,14 @@ class FeedbackBottomSheet extends StatelessWidget {
               maxlines: 4,
               controller: comment,
               keyboardType: TextInputType.text,
-              inputFormatters:
-                  FilteringTextInputFormatter.singleLineFormatter),
+              inputFormatters: FilteringTextInputFormatter.singleLineFormatter),
           const SizedBox(height: 16),
           CustomButton(
               text: "Send Feedback",
               onPressed: () {
+                Get.find<RatingController>().sharedPreferences.remove(Constants.giveReview);
+
+
                 Get.find<RatingController>().addClassReview(
                     planId, comment.text, rating, trainerOrDiet);
               }),

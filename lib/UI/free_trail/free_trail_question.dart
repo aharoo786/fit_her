@@ -77,16 +77,17 @@ class _FreeTrialPersonalizationScreenState
     answers = List.filled(pagesData.length, null);
   }
 
-  void saveCurrentAnswer() {
+  bool saveCurrentAnswer() {
     if (answersList.isEmpty) {
       CustomToast.failToast(msg: "Please provide information");
-      return;
+      return false;
     }
     answers[_currentPage] = {
       "answersList": [...answersList],
       "other": showOther,
       "otherText": otherController.text
     };
+    return true;
   }
 
   void loadPreviousAnswer(int index) {
@@ -98,7 +99,7 @@ class _FreeTrialPersonalizationScreenState
 
   void goToPreviousPage() {
     if (_currentPage > 0) {
-      saveCurrentAnswer();
+      // saveCurrentAnswer();
       _currentPage--;
       loadPreviousAnswer(_currentPage);
       _pageController.previousPage(
@@ -110,8 +111,10 @@ class _FreeTrialPersonalizationScreenState
   }
 
   void goToNextPage() {
-
-    saveCurrentAnswer();
+    bool value = saveCurrentAnswer();
+    if (!value) {
+      return;
+    }
     if (_currentPage < pagesData.length - 1) {
       _currentPage++;
       loadPreviousAnswer(_currentPage);
@@ -119,8 +122,8 @@ class _FreeTrialPersonalizationScreenState
           duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() {});
     } else {
-      print("Final Answers: $answers");
-      Get.find<WorkOutController>().updateFreeTrialData(answers.whereType<Map<String, dynamic>>().toList());
+      Get.find<WorkOutController>().updateFreeTrialData(
+          answers.whereType<Map<String, dynamic>>().toList());
     }
   }
 

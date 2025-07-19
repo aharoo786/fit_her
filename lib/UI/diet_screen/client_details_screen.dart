@@ -1,21 +1,31 @@
 import 'package:fitness_zone_2/UI/diet_screen/add_user_diet.dart';
+import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/data/models/diet_appointments.dart';
 import 'package:fitness_zone_2/data/models/get_clients_diet.dart';
+import 'package:fitness_zone_2/widgets/custom_button.dart';
+import 'package:fitness_zone_2/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../../values/my_colors.dart';
 import '../../values/my_imgs.dart';
 import '../../widgets/app_bar_widget.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:get/get.dart';
-
 import '../dashboard_module/session_screen/session_screen.dart';
 
 class ClientDetailsScreen extends StatelessWidget {
-  ClientDetailsScreen({super.key, required this.clientUser, this.slotDiet, this.planId});
+  ClientDetailsScreen(
+      {super.key,
+      required this.clientUser,
+      this.slotDiet,
+      this.planId,
+      this.appointmentId});
+
   final ClientUser clientUser;
   final SlotDiet? slotDiet;
   final int? planId;
+  final int? appointmentId;
   final List<_ChartData> chartData = [
     _ChartData('M', 100),
     _ChartData('T', 80),
@@ -25,12 +35,15 @@ class ClientDetailsScreen extends StatelessWidget {
     _ChartData('S', 100),
     _ChartData('S', 60),
   ];
+
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: MyColors.primaryGradient2,
       appBar: HelpingWidgets().appBarWidget(
-        null,
+        () {
+          Get.back();
+        },
         backGroundColor: MyColors.buttonColor,
       ),
       body: SizedBox(
@@ -49,7 +62,6 @@ class ClientDetailsScreen extends StatelessWidget {
                           topLeft: Radius.circular(25)),
                       color: Colors.white,
                     ),
-                    padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
                         SizedBox(height: 80),
@@ -70,14 +82,75 @@ class ClientDetailsScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               if (slotDiet != null)
+                                Row(
+                                  children: [
+                                    CustomIconButton(
+                                      onTap: () {
+                                        Get.to(() => SessionScreen(
+                                              link: slotDiet?.dietitionLink,
+                                              slotId: slotDiet?.id ?? 0,
+                                              isDiet: true,
+                                              userId: clientUser.id,
+                                              token: "",
+                                            ));
+                                        Get.find<WorkOutController>()
+                                            .getFreeTrialUserDetails(
+                                                slotDiet!.id.toString());
+                                      },
+                                      iconData: Icons.phone,
+                                      text: "Appointment",
+                                    ),
+                                    const SizedBox(
+                                      width: 5,
+                                    ),
+                                    CustomIconButton(
+                                      onTap: () {
+                                        Get.find<DietController>()
+                                            .updateAppointmentStatus(
+                                                appointmentId ?? 0, "completed",
+                                                isFromAppointment: true);
+                                      },
+                                      iconData: Icons.done,
+                                      text: "Completed",
+                                    ),
+                                    const SizedBox(
+                                      width: 5,
+                                    ),
+                                    CustomIconButton(
+                                      onTap: () {
+                                        Get.find<DietController>()
+                                            .updateAppointmentStatus(
+                                                appointmentId ?? 0, "confirmed",
+                                                isFromAppointment: true);
+                                      },
+                                      iconData: Icons.done,
+                                      text: "Confirm",
+                                    ),
+                                    const SizedBox(
+                                      width: 5,
+                                    ),
+                                    CustomIconButton(
+                                      onTap: () {
+                                        Get.find<DietController>()
+                                            .updateAppointmentStatus(
+                                                appointmentId ?? 0, "canceled",
+                                                isFromAppointment: true);
+                                      },
+                                      iconData: Icons.clear,
+                                      text: "Cancel",
+                                      backGroundColor: Colors.red,
+                                    ),
+                                  ],
+                                ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              if (planId != null)
                                 ElevatedButton(
                                   onPressed: () {
-                                    Get.to(() => SessionScreen(
-                                          link: slotDiet?.dietitionLink,
-                                          slotId: slotDiet!.id,
-                                          isDiet: true,
-                                          userId: clientUser.id, token: "",
-                                        ));
+                                    Get.to(() => AddUserDiet(
+                                        userId: clientUser.id.toString(),
+                                        planId: planId.toString()));
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: MyColors.buttonColor,
@@ -85,47 +158,24 @@ class ClientDetailsScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 30, vertical: 10),
+                                        horizontal: 15, vertical: 10),
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.phone, color: Colors.white),
+                                      Icon(Icons.calendar_today,
+                                          color: Colors.white),
                                       SizedBox(width: 5),
-                                      Text('Appointment'),
+                                      Text('Diet Plan'),
                                     ],
                                   ),
                                 ),
-                              SizedBox(
-                                width: 10,
-                              ),
-                              if (planId != null)
-                              ElevatedButton(
-                                onPressed: () {
-                                  Get.to(()=>AddUserDiet(userId: clientUser.id.toString(), planId: planId.toString()));
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: MyColors.buttonColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 15, vertical: 10),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.calendar_today,
-                                        color: Colors.white),
-                                    SizedBox(width: 5),
-                                    Text('Diet Plan'),
-                                  ],
-                                ),
-                              ),
                             ]),
                         const SizedBox(
                           height: 10,
                         ),
                         Expanded(
                           child: ListView(
+                            padding: const EdgeInsets.all(16.0),
                             children: [
                               Card(
                                 shape: RoundedRectangleBorder(
@@ -179,8 +229,9 @@ class ClientDetailsScreen extends StatelessWidget {
                                     ],
                                   ),
 
-                                  trailing: const Icon(Icons
-                                      .arrow_drop_down_sharp), // Icon similar to the plus sign in the image
+                                  trailing:
+                                      const Icon(Icons.arrow_drop_down_sharp),
+                                  // Icon similar to the plus sign in the image
                                   children: const [
                                     Padding(
                                       padding: EdgeInsets.symmetric(
@@ -269,8 +320,8 @@ class ClientDetailsScreen extends StatelessWidget {
                                         topRight: Radius.circular(8),
                                       ),
                                       width: 0.2,
-                                      spacing:
-                                          0.0, // Reduces space between columns
+                                      spacing: 0.0,
+                                      // Reduces space between columns
 
                                       dataLabelSettings:
                                           DataLabelSettings(isVisible: false),
@@ -309,6 +360,7 @@ class ClientDetailsScreen extends StatelessWidget {
 
 class _ChartData {
   _ChartData(this.day, this.percentage);
+
   final String day;
   final double percentage;
 }

@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import 'package:fitness_zone_2/UI/in_app_webview.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
@@ -213,8 +214,16 @@ class BmiResult extends StatelessWidget {
                                     Expanded(
                                       child: CustomButton(
                                         text: "Start",
-                                        onPressed: () {
-                                          Get.off(() => QuestionnaireScreen());
+                                        onPressed: () async {
+                                          Get.to(() => const AppWebView(
+                                                url:
+                                                    "https://pcos.thefither.com/",
+                                                appName:
+                                                    "PCOS Risk Assessment Test",
+                                              ));
+                                          // await launchUrl(Uri.parse(
+                                          //     "https://pcos.thefither.com/"));
+                                          //  Get.off(() => QuestionnaireScreen());
                                         },
                                         height: 40,
                                         fontSize: 14,
@@ -231,7 +240,8 @@ class BmiResult extends StatelessWidget {
                                         AuthController authController =
                                             Get.find();
 
-                                        authController.updateUserDetails(updateFields: false);
+                                        authController.updateUserDetails(
+                                            updateFields: false);
                                         homeController.getUserHomeFunc();
                                       },
                                       height: 40,
@@ -307,12 +317,12 @@ class BmiResult extends StatelessWidget {
                           ),
                         ));
               } else {
-                HelpingWidgets().showCustomDialog(context, () {
+                HelpingWidgets.showCustomDialog(context, () {
                   AuthController authController = Get.find();
                   authController.updateUserDetails(updateFields: false);
                 },
-                    "Try FitHer for FREE! 🎉",
-                    "Unlock live workout sessions, and expert consultations. Start your 1-day free trial now and experience the change!",
+                    "Welcome 🎉",
+                    "Unlock live workout sessions, and expert consultations",
                     MyImgs.logo3);
               }
             }),

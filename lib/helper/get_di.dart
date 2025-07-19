@@ -18,8 +18,7 @@ Future init() async {
   Get.log("int di");
   final sharedPreferences = await SharedPreferences.getInstance();
   Get.lazyPut(() => sharedPreferences);
-  NotificationServices notificationServices =
-      NotificationServices(sharedPreferences: sharedPreferences);
+  NotificationServices notificationServices = NotificationServices();
   Get.lazyPut(() => ApiProvider());
   Get.lazyPut(() => ChatApiProvider(sharedPreferences));
 

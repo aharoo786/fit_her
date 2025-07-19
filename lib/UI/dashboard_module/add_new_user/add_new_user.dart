@@ -512,7 +512,13 @@ class AddNewUser extends StatelessWidget {
                                   (v) => v.id == plan.selectedDurationId.value)
                               .priceAmount ??
                           "N/A";
-                      homeController.addUser(price: price);
+                      Get.find<HomeController>().addUser(
+                          status: false,
+                          firstName: homeController.firstNameController.text,
+                          lastName: homeController.lastNameController.text,
+                          email: homeController.emailController.text,
+                          phone: homeController.phoneController.text,
+                          password: homeController.passwordController.text, customerSupportId: homeController.selectCustomerSupport.value);
                     }
                   }
                 }),

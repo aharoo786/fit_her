@@ -1,3 +1,4 @@
+import 'package:fitness_zone_2/UI/diet_screen/diet_module.dart';
 import 'package:fitness_zone_2/UI/plans_module/select_payment_mode.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
@@ -9,6 +10,7 @@ import 'package:get/get.dart';
 
 import '../data/models/get_user_plan/get_user_plan.dart';
 import '../values/my_colors.dart';
+import 'meal_details.dart';
 
 class PlanWidget extends StatelessWidget {
   const PlanWidget({super.key, required this.plan});
@@ -47,6 +49,16 @@ class PlanWidget extends StatelessWidget {
               itemHeight: null,
               padding: const EdgeInsets.only(left: 10, bottom: 10),
               iconSize: 30,
+              icon: Container(
+                height: 30,
+                width: 30,
+                decoration: BoxDecoration(color: MyColors.buttonColor,borderRadius: BorderRadius.circular(10)),
+                child: Icon(
+                  Icons.arrow_drop_down_outlined,
+                  color: Colors.white,
+                ),
+              ),
+              iconEnabledColor: MyColors.buttonColor,
               style: TextStyle(
                 color: MyColors.textColor,
                 fontSize: 14.sp,
@@ -116,15 +128,38 @@ class PlanWidget extends StatelessWidget {
               fontSize: 14.sp,
               textColor: Colors.white,
               onPressed: () {
-                Get.to(() => SelectPaymentMode(
+                DurationPlan? durationPlan;
+                if (plan!.countries!.isNotEmpty) {
+                  if (plan.countries!.first.duration!.isNotEmpty) {
+                    durationPlan = plan.countries?.first!.duration!.firstWhere(
+                        (test) => test.id == plan.selectedDurationId.value);
+                  }
+                }
+
+                Get.to(() => DietDetails(
+                      currency: plan.countries?.first.currency ?? "Rs.",
+                      isPlan: true,
+                      title: plan.title,
+                      description: plan.shortDescription,
+                      longDescription: plan.longDescription,
                       planId: plan.id.toString(),
+                      price: durationPlan == null
+                          ? ""
+                          : durationPlan.priceAmount ?? "",
+                      duration:
+                          durationPlan == null ? "" : durationPlan.days ?? "",
                       durationId: plan.selectedDurationId.value,
-                      price: plan.countries![0].duration
-                              ?.firstWhere(
-                                  (v) => v.id == plan.selectedDurationId.value)
-                              .priceAmount ??
-                          "N/A",
                     ));
+                // Get.to(()=>DietDetails());
+                // Get.to(() => SelectPaymentMode(
+                //       planId: plan.id.toString(),
+                //       durationId: plan.selectedDurationId.value,
+                //       price: plan.countries![0].duration
+                //               ?.firstWhere(
+                //                   (v) => v.id == plan.selectedDurationId.value)
+                //               .priceAmount ??
+                //           "N/A",
+                //     ));
               },
               // color: Myc.white,
             ),

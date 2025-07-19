@@ -3,6 +3,7 @@ import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen.dart
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
+import 'package:fitness_zone_2/widgets/social_login_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -53,18 +54,14 @@ class Login extends StatelessWidget {
                     ),
                     Text(
                       "Welcome to FitHer!",
-                      style: textTheme.headlineSmall!.copyWith(
-                          fontSize: 24.sp,
-                          color: MyColors.textColor3,
-                          fontWeight: FontWeight.w600),
+                      style: textTheme.headlineSmall!.copyWith(fontSize: 24.sp, color: MyColors.textColor3, fontWeight: FontWeight.w600),
                     ),
                     SizedBox(
                       height: Dimens.size5.h,
                     ),
                     Text(
                       "Welcome back, Sign in to your account",
-                      style: textTheme.bodyMedium!.copyWith(
-                          color: MyColors.black, fontWeight: FontWeight.w400),
+                      style: textTheme.bodyMedium!.copyWith(color: MyColors.black, fontWeight: FontWeight.w400),
                     ),
                     SizedBox(
                       height: Dimens.size32.h,
@@ -74,8 +71,7 @@ class Login extends StatelessWidget {
                       keyboardType: TextInputType.emailAddress,
                       text: "Email".tr,
                       length: 30,
-                      inputFormatters:
-                          FilteringTextInputFormatter.singleLineFormatter,
+                      inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
                     ),
                     SizedBox(
                       height: 16.h,
@@ -85,8 +81,7 @@ class Login extends StatelessWidget {
                       keyboardType: TextInputType.text,
                       text: "Password".tr,
                       length: 30,
-                      inputFormatters:
-                          FilteringTextInputFormatter.singleLineFormatter,
+                      inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
                     ),
                     SizedBox(
                       height: 16.h,
@@ -99,13 +94,9 @@ class Login extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: DropdownButtonFormField<String>(
-                              style: TextStyle(
-                                  color: MyColors.textColor,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600),
+                              style: TextStyle(color: MyColors.textColor, fontSize: 16.sp, fontWeight: FontWeight.w600),
                               decoration: InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16.w, vertical: 12.h),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                                 border: InputBorder.none,
                               ),
 
@@ -116,14 +107,12 @@ class Login extends StatelessWidget {
                                   authController.loginAsA.value = newValue;
                                 }
                               },
-                              items: authController.addTeamMember
-                                  .map((String cat) {
+                              items: authController.addTeamMember.map((String cat) {
                                 return DropdownMenuItem<String>(
                                   value: cat,
                                   child: Text(
                                     cat,
-                                    style: textTheme.bodySmall!
-                                        .copyWith(color: Colors.black),
+                                    style: textTheme.bodySmall!.copyWith(color: Colors.black),
                                   ),
                                 );
                               }).toList(),
@@ -134,7 +123,7 @@ class Login extends StatelessWidget {
                       height: 10.h,
                     ),
                     Row(
-                      crossAxisAlignment:CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         GestureDetector(
@@ -162,10 +151,14 @@ class Login extends StatelessWidget {
               SizedBox(
                 height: 10.h,
               ),
+              if(authController.loginAsA.value==Constants.user)
+              SocialLoginButtons(),
+              const SizedBox(
+                height: 10,
+              ),
               Text(
                 "By continuing, I agree to Fit Her Terms of Services and acknowledge the Privacy Policy.",
-                style: textTheme.bodySmall!.copyWith(
-                    color: MyColors.textColor3, fontWeight: FontWeight.w500),
+                style: textTheme.bodySmall!.copyWith(color: MyColors.textColor3, fontWeight: FontWeight.w500),
               ),
               SizedBox(
                 height: 10.h,
@@ -173,15 +166,12 @@ class Login extends StatelessWidget {
               CustomButton(
                   text: "Continue",
                   onPressed: () async {
-                    if (authController.loginUserPhone.text.isEmpty ||
-                        authController.loginUserPassword.text.isEmpty) {
-                      CustomToast.failToast(
-                          msg: "Please provide all information");
+                    if (authController.loginUserPhone.text.isEmpty || authController.loginUserPassword.text.isEmpty) {
+                      CustomToast.failToast(msg: "Please provide all information");
                     } else if (!authController.loginUserPhone.text.removeAllWhitespace.isEmail) {
                       CustomToast.failToast(msg: "Please provide valid email");
                     } else {
-                      authController
-                          .login();
+                      authController.login();
                     }
                     // Get.offAll(()=>BottomBarScreen());
                   }),
@@ -191,18 +181,14 @@ class Login extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Does not have an account? ",
-                      style: textTheme.titleLarge!
-                          .copyWith(fontWeight: FontWeight.w500)),
+                  Text("Does not have an account? ", style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w500)),
                   GestureDetector(
                     onTap: () {
                       Get.off(() => SignUpNewUser());
                     },
                     child: Text(
                       "Create Account",
-                      style: textTheme.titleLarge!.copyWith(
-                          color: MyColors.buttonColor,
-                          fontWeight: FontWeight.w500),
+                      style: textTheme.titleLarge!.copyWith(color: MyColors.buttonColor, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],

@@ -1,8 +1,9 @@
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/managePassword/forgot_password/resetPassword.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import 'package:pinput/pinput.dart';
 import 'package:get/get.dart';
 import '../../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../../values/dimens.dart';
@@ -25,7 +26,7 @@ class OtpScreen extends StatefulWidget {
 
 class _EmailVerificationState extends State<OtpScreen> {
   // final CountDownController timerController = CountDownController();
-
+  FocusNode focusNode = FocusNode();
   TextEditingController otpController = TextEditingController();
 
   @override
@@ -47,6 +48,21 @@ class _EmailVerificationState extends State<OtpScreen> {
     var theme = Theme.of(context);
     var textTheme = theme.textTheme;
     var mediaQuery = MediaQuery.of(context).size;
+    const focusedBorderColor = Color.fromRGBO(23, 171, 144, 1);
+
+    final defaultPinTheme = PinTheme(
+      width: 55,
+      height: 55,
+      textStyle: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(100),
+        color: Colors.transparent,
+        border: Border.all(color: Colors.black),
+      ),
+    );
     return WillPopScope(
       onWillPop: (() => onBack()),
       child: GestureDetector(
@@ -59,16 +75,13 @@ class _EmailVerificationState extends State<OtpScreen> {
                 SizedBox(
                   height: Dimens.size110.h,
                 ),
-                Image.asset(
-                  MyImgs.logo3,
-                  scale: 3,
-                ),
+
                 SizedBox(
                   height: 60,
                 ),
                 Center(
                   child: Text(
-                    "Verify OTP".tr,
+                    "Enter Verification Code".tr,
                     style: textTheme.headlineMedium!.copyWith(
                         //fontFamily: "TiemposHeadline-Regular",
                         color: MyColors.black,
@@ -113,21 +126,75 @@ class _EmailVerificationState extends State<OtpScreen> {
                 SizedBox(
                   height: Dimens.size50.h,
                 ),
-                CustomPinEntryField(
-                  //    decoration: InputDecoration(),
-                  keyboard: TextInputType.number,
-                  onSubmit: (otp) {
-                    otpController.text = otp;
-                    print(otpController.text);
+                // CustomPinEntryField(
+                //   //    decoration: InputDecoration(),
+                //   keyboard: TextInputType.number,
+                //   onSubmit: (otp) {
+                //     otpController.text = otp;
+                //   },
+                //
+                //   textStyle: TextStyle(
+                //       fontSize: 24.sp,
+                //       fontWeight: FontWeight.bold,
+                //       color: MyColors.primaryColor),
+                //   fields: 4,
+                //
+                //   fieldWidth: 42.w,
+                // ),
+                Pinput(
+                  // You can pass your own SmsRetriever implementation based on any package
+                  // in this example we are using the SmartAuth
+                  controller: otpController,
+                  focusNode: focusNode,
+                  defaultPinTheme: defaultPinTheme,
+                  length: 4,
+                  separatorBuilder: (index) => const SizedBox(width: 15),
+                  hapticFeedbackType: HapticFeedbackType.lightImpact,
+                  onCompleted: (pin) async {
+                    otpController.text = pin;
                   },
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (value) {
+                    debugPrint('onChanged: $value');
+                  },
+                  cursor: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 9),
+                        width: 1,
+                        height: 30,
+                        color: Colors.black,
+                      ),
+                    ],
+                  ),
 
-                  textStyle: TextStyle(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
-                      color: MyColors.primaryColor),
-                  fields: 4,
+                  focusedPinTheme: defaultPinTheme.copyWith(
+                    decoration: defaultPinTheme.decoration!.copyWith(
+                      borderRadius: BorderRadius.circular(100),
+                      color: Colors.transparent,
+                      border: Border.all(color: Colors.black),
+                    ),
+                  ),
 
-                  fieldWidth: 42.w,
+                  disabledPinTheme: defaultPinTheme.copyWith(
+                    decoration: defaultPinTheme.decoration!.copyWith(
+                      borderRadius: BorderRadius.circular(100),
+                      color: Colors.transparent,
+                      border: Border.all(color: Colors.black),
+                    ),
+                  ),
+
+                  submittedPinTheme: defaultPinTheme.copyWith(
+                    decoration: defaultPinTheme.decoration!.copyWith(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: Colors.black),
+                    ),
+                  ),
+                  errorPinTheme: defaultPinTheme.copyBorderWith(
+                    border: Border.all(color: Colors.black),
+                  ),
                 ),
                 SizedBox(
                   height: Dimens.size20.h,

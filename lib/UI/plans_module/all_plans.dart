@@ -60,6 +60,7 @@ class OurPlansScreen extends StatelessWidget {
                             description: plan.shortDescription,
                             longDescription: plan.longDescription,
                             planId: plan.id.toString(),
+                            currency: plan.countries?.first.currency ?? "Rs.",
                             price: durationPlan == null
                                 ? ""
                                 : durationPlan.priceAmount ?? "",
@@ -134,9 +135,21 @@ class OurPlansScreen extends StatelessWidget {
                                         itemHeight: null,
                                         // padding: const EdgeInsets.only(left: 20, bottom: 10),
                                         iconSize: 20,
+                                        icon: Container(
+                                          height: 20,
+                                          width: 20,
+                                          decoration: BoxDecoration(
+                                              color: MyColors.buttonColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(10)),
+                                          child: Icon(
+                                            Icons.arrow_drop_down_outlined,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                         style: TextStyle(
                                           color: MyColors.textColor,
-                                          fontSize: 16.sp,
+                                          fontSize: 12.sp,
                                           fontWeight: FontWeight.w600,
                                         ),
                                         decoration: InputDecoration(
@@ -175,18 +188,17 @@ class OurPlansScreen extends StatelessWidget {
                                                   '${plan.countries![0].currency} ${cat.priceAmount}',
                                                   style: textTheme.titleLarge!
                                                       .copyWith(
-                                                    fontSize: 10.sp,
+                                                    fontSize: 8.sp,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                   maxLines: 1,
                                                 ),
-                                                const SizedBox(
-                                                    width:
-                                                        5), // Spacing between texts
+                                                // Spacing between texts
                                                 Text(
-                                                  'per ${cat.days}',
+                                                  ' per ${cat.days}',
                                                   style: textTheme.titleLarge!
                                                       .copyWith(
+                                                    fontSize: 12,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),

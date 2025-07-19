@@ -5,6 +5,7 @@ import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -73,16 +74,16 @@ class AddTrainerSlots extends StatelessWidget {
                                                             data: ThemeData
                                                                     .light()
                                                                 .copyWith(
-                                                              primaryColor: Colors
-                                                                  .blue, // Change the primary color
+                                                              primaryColor:
+                                                                  Colors.blue,
                                                               dialogBackgroundColor:
                                                                   Colors
-                                                                      .white, // Change the dialog background color
+                                                                      .white,
                                                               textTheme:
                                                                   const TextTheme(
                                                                 bodyLarge: TextStyle(
                                                                     color: Colors
-                                                                        .black), // Change the text color
+                                                                        .black),
                                                               ),
                                                             ),
                                                             child: child!,
@@ -90,8 +91,19 @@ class AddTrainerSlots extends StatelessWidget {
                                                         },
                                                       );
                                                       if (time != null) {
-                                                        slot.start = time
-                                                            .format(context);
+                                                        final now =
+                                                            DateTime.now();
+                                                        final formatted =
+                                                            DateFormat.jm()
+                                                                .format(
+                                                          DateTime(
+                                                              now.year,
+                                                              now.month,
+                                                              now.day,
+                                                              time.hour,
+                                                              time.minute),
+                                                        );
+                                                        slot.start = time.format(context);
                                                         homeController.update();
                                                       }
                                                     },
@@ -148,16 +160,16 @@ class AddTrainerSlots extends StatelessWidget {
                                                             data: ThemeData
                                                                     .light()
                                                                 .copyWith(
-                                                              primaryColor: Colors
-                                                                  .blue, // Change the primary color
+                                                              primaryColor:
+                                                                  Colors.blue,
                                                               dialogBackgroundColor:
                                                                   Colors
-                                                                      .white, // Change the dialog background color
+                                                                      .white,
                                                               textTheme:
                                                                   const TextTheme(
                                                                 bodyLarge: TextStyle(
                                                                     color: Colors
-                                                                        .black), // Change the text color
+                                                                        .black),
                                                               ),
                                                             ),
                                                             child: child!,
@@ -165,8 +177,24 @@ class AddTrainerSlots extends StatelessWidget {
                                                         },
                                                       );
                                                       if (time != null) {
-                                                        slot.end = time
-                                                            .format(context);
+                                                        final now =
+                                                            DateTime.now();
+                                                        final formatted =
+                                                            DateFormat.jm()
+                                                                .format(
+                                                          DateTime(
+                                                              now.year,
+                                                              now.month,
+                                                              now.day,
+                                                              time.hour,
+                                                              time.minute),
+                                                        );
+
+                                                        print(
+                                                            'AddTrainerSlots.build  ${time}');
+                                                        slot.end = time.format(context);
+                                                        print(
+                                                            'AddTrainerSlots.build  ${time.format(context)}');
                                                         homeController.update();
                                                       }
                                                     },
@@ -259,9 +287,9 @@ class AddTrainerSlots extends StatelessWidget {
                                                                 .getUsersBasedOnUserTypeModel
                                                                 ?.users
                                                                 .firstWhere((value) =>
-                                                                    value.id
-                                                                        ==
-                                                                    (slot.trainerId )),
+                                                                    value.id ==
+                                                                    (slot
+                                                                        .trainerId)),
                                                         onChanged:
                                                             (UserTypeData?
                                                                 newValue) {

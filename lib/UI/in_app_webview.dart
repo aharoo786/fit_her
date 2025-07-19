@@ -90,10 +90,8 @@
 
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 
 class AppWebView extends StatefulWidget {
   final String url;
@@ -110,18 +108,11 @@ class AppWebView extends StatefulWidget {
 }
 
 class _AppWebViewState extends State<AppWebView> {
-  late WebViewController webViewController;
   late InAppWebViewController _controller;
   bool _isLoading = true;
 
   @override
   void initState() {
-    webViewController = WebViewController()
-      ..setUserAgent(
-          "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(_sanitizeUrl("")));
-
     super.initState();
   }
 
@@ -139,8 +130,7 @@ class _AppWebViewState extends State<AppWebView> {
       body: Stack(
         children: [
           InAppWebView(
-            initialUrlRequest:
-                URLRequest(url: WebUri(_sanitizeUrl(widget.url))),
+            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
             // initialUrlRequest: URLRequest(url: WebUri(widget.url)),
             initialSettings: InAppWebViewSettings(
                 javaScriptEnabled: true,
@@ -182,17 +172,6 @@ class _AppWebViewState extends State<AppWebView> {
                 Navigator.pop(context);
               }
             },
-            onPermissionRequest: (controller, origin) async {
-              await Permission.camera.request();
-              await Permission.microphone.request();
-              await Permission.audio.request();
-
-              return PermissionResponse(
-                resources: origin.resources,
-                action: PermissionResponseAction
-                    .GRANT, // Grant permission explicitly
-              );
-            },
 
             onProgressChanged: (controller, progress) {
               if (progress == 100) {
@@ -214,30 +193,5 @@ class _AppWebViewState extends State<AppWebView> {
         ],
       ),
     );
-  }
-
-  String _sanitizeUrl(String url) {
-    // print("coming url ${url}");
-    // // Check if URL starts with "http://" and replace it with "https://"
-    // if (url.trim().startsWith("http://")) {
-    //   return url.replaceFirst("http://", "https://");
-    // }
-    // // If the URL has no scheme, prepend "https://"
-    // if (!url.startsWith("https://")) {
-    //   return "https://$url";
-    // }
-    // // If the URL already starts with "https://", return it as-is
-    // print('_WebViewContentState._sanitizeUrl  $url');
-    // return "https://meet.google.com/jfb-zsui-orv?pli=1&authuser=0";
-    return "${url}?pli=1&authuser=0";
-  }
-}
-
-// Function to open URLs in external browser
-void _launchURL(String url) async {
-  if (await canLaunch(url)) {
-    await launch(url);
-  } else {
-    throw 'Could not launch $url';
   }
 }

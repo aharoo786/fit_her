@@ -1,23 +1,26 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:fitness_zone_2/data/models/nutrition_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'package:fitness_zone_2/data/models/diet_appointments.dart';
 import 'package:fitness_zone_2/data/models/dietitian_times.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/get_all_diet_plans_of_user.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../UI/diet_screen/calerie_info.dart';
 import '../../../helper/permissions.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
 import '../../GetServices/CheckConnectionService.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:get/get.dart';
-
 import '../../Repos/home_repo/home_repo.dart';
 import '../../models/api_response/api_response_model.dart';
 import '../../models/day_slots_of_diet.dart';
+import '../../models/diet_schedule_status.dart';
 import '../../models/get_all_dietitian_trainers/get_diet_plan_details.dart';
 import '../../models/get_clients_diet.dart';
 import '../auth_controller/auth_controller.dart';
@@ -35,13 +38,21 @@ class DietController extends GetxController implements GetxService {
   var dietOfUserLoad = false.obs;
   var clientDataLoad = false.obs;
   var appointmentLoad = false.obs;
+  var dietPlanStatusLoad = false.obs;
+  var consultationStatusLoad = false.obs;
   var timesLoad = false.obs;
   var slotsLoad = false.obs;
   var dietPlanDetailsLoad = false.obs;
   var bookAppointmentSlotId = 0.obs;
 
+  ///Calori xFile
+  XFile? calorieFile;
+
   ///File Variable
   File? addDietPdfFil;
+  List<Appointment> rescheduleAppointments = [];
+  List<Appointment> consultationStatus = [];
+  List<PdfDiet> pdfDietStatus = [];
 
   ///models
   GetDietAllPlans? getDietAllPlans;
@@ -131,6 +142,90 @@ class DietController extends GetxController implements GetxService {
               dietAppointmentsModel = model.data;
 
               appointmentLoad.value = true;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  getRescheduleAppointments({bool reschedule = false}) {
+    appointmentLoad.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        homeRepo
+            .getRescheduleAppointments(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          reschedule: reschedule,
+        )
+            .then((response) async {
+          // Get.back();
+          if (response.body["status"] == "0") {
+            CustomToast.failToast(msg: response.body["message"]);
+          } else if (response.body["status"] != "0") {
+            ApiResponse<DietAppointments> model =
+                ApiResponse.fromJson(response.body, DietAppointments.fromJson);
+            if (model.status == "1") {
+              rescheduleAppointments = model.data?.appointments ?? [];
+
+              appointmentLoad.value = true;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  getConsultationStatus() {
+    consultationStatusLoad.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        homeRepo
+            .getConsultationStatus(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        )
+            .then((response) async {
+          // Get.back();
+          if (response.body["status"] == "0") {
+            CustomToast.failToast(msg: response.body["message"]);
+          } else if (response.body["status"] != "0") {
+            ApiResponse<DietAppointments> model =
+                ApiResponse.fromJson(response.body, DietAppointments.fromJson);
+            if (model.status == "1") {
+              consultationStatus = model.data?.appointments ?? [];
+
+              consultationStatusLoad.value = true;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  getDietPlanScheduleStatus() {
+    dietPlanStatusLoad.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        homeRepo
+            .getReschedulePdfStatus(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        )
+            .then((response) async {
+          // Get.back();
+          if (response.body["status"] == "0") {
+            CustomToast.failToast(msg: response.body["message"]);
+          } else if (response.body["status"] != "0") {
+            ApiResponse<DietPlanScheduleStatus> model = ApiResponse.fromJson(
+                response.body, DietPlanScheduleStatus.fromJson);
+            if (model.status == "1") {
+              pdfDietStatus = model.data?.pdfDiets ?? [];
+              dietPlanStatusLoad.value = true;
             }
           }
         });
@@ -296,7 +391,7 @@ class DietController extends GetxController implements GetxService {
     });
   }
 
-  bookAppointment(int planId, int dietId) {
+  bookAppointment(int planId, int dietId, DateTime date) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
@@ -309,7 +404,7 @@ class DietController extends GetxController implements GetxService {
             accessToken:
                 sharedPreferences.getString(Constants.accessToken) ?? "",
             map: {
-              "date": DateTime.now().toIso8601String(),
+              "date": date.toIso8601String(),
               "userId": sharedPreferences.getString(Constants.userId) ?? "",
               "dietitionId": dietId,
               "timeSlotId": bookAppointmentSlotId.value,
@@ -324,7 +419,14 @@ class DietController extends GetxController implements GetxService {
             }
             if (model.status == "1") {
               CustomToast.successToast(msg: model.message);
-              getDietPlanDetailsFunc(planId.toString());
+              print('DietController.bookAppointment ${response.body}');
+              getDietPlanDetails?.isBooked = true;
+              getDietPlanDetails?.status =
+                  response.body["data"]["appointment"]['status'] ?? "pending";
+              getDietPlanDetails?.id =
+                  response.body["data"]["appointment"]["id"] ?? 0;
+              update(["dietBottomScreen"]);
+              //  getDietPlanDetailsFunc(planId.toString());
               //  Get.back();
             }
           } else {
@@ -333,6 +435,165 @@ class DietController extends GetxController implements GetxService {
         });
       }
     });
+  }
+
+  addCaloriesImage() {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+
+        await homeRepo.addCalorieImage(
+            accessToken:
+                sharedPreferences.getString(Constants.accessToken) ?? "",
+            map: {
+              "image": calorieFile?.path,
+            }).then((response) async {
+          // Get.back();
+          print('DietController.addCaloriesImage ${response.bodyString}');
+          print('DietController.addCaloriesImage ${response.statusCode}');
+          if (response.statusCode == 200) {
+            // Get.to(() => const NutritionScreen());
+            // if (model.status == "0") {
+            //   CustomToast.failToast(msg: model.message);
+            // }
+            // if (model.status == "1") {
+            //   CustomToast.successToast(msg: model.message);
+            // }
+            analyzeImageUrl(jsonDecode(response.bodyString!)["url"]);
+          } else {
+            CustomToast.failToast(msg: "Something wrong happened");
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> analyzeImageUrl(String imageUrl) async {
+    print('DietController.analyzeImageUrl ${imageUrl}');
+
+    final uri = Uri.https(
+      'api.spoonacular.com',
+      '/food/images/analyze',
+      {'apiKey': 'a2291fd5db7543429f91495c0654f28f', 'imageUrl': imageUrl},
+    );
+
+    try {
+      final resp = await http.get(uri);
+      if (resp.statusCode == 200) {
+        Get.back();
+
+        print('_SpoonacularFoodAnalyzerState._analyzeImageUrl ${resp.body}');
+        NutritionModel model = NutritionModel.fromJson(jsonDecode(resp.body));
+        Get.to(() => NutritionScreen(
+              nutritionModel: model,
+              url: imageUrl,
+            ));
+      } else {
+        Get.back();
+      }
+    } catch (e) {
+      Get.back();
+
+      print('DietController.analyzeImageUrlc ${e}');
+    } finally {}
+  }
+
+  updateAppointmentStatus(int id, String status,
+      {bool isFromAppointment = false,
+      bool reschedule = false,
+      bool isFromDietDetails = false}) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+        print('DietController.updateAppointmentStatus ${status}');
+        await homeRepo
+            .updateAppointment(
+                accessToken:
+                    sharedPreferences.getString(Constants.accessToken) ?? "",
+                map: {"status": status},
+                id: id.toString())
+            .then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
+            if (model.status == "0") {
+              CustomToast.failToast(msg: model.message);
+            }
+            if (model.status == "1") {
+              CustomToast.successToast(msg: model.message);
+
+              if (isFromAppointment) {
+                appointmentLoad.value = false;
+                var value = dietAppointmentsModel!.appointments
+                    .firstWhereOrNull((v) => v.id == id);
+                if (value != null) {
+                  value.status = status;
+                  Get.back();
+                }
+              }
+              if (isFromDietDetails) {
+                getDietPlanDetails?.status =
+                    response.body["data"]["appointment"]['status'] ?? "pending";
+                getDietPlanDetails?.id =
+                    response.body["data"]["appointment"]["id"] ?? 0;
+                update(["dietBottomScreen"]);
+                updateReschedule();
+              }
+              appointmentLoad.value = true;
+            }
+          } else {
+            CustomToast.failToast(msg: "Something wrong happened");
+          }
+        });
+      }
+    });
+  }
+
+  deletedAppointment(int id, int planId) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+        await homeRepo
+            .deleteAppointment(
+                accessToken:
+                    sharedPreferences.getString(Constants.accessToken) ?? "",
+                id: id.toString())
+            .then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
+            if (model.status == "0") {
+              CustomToast.failToast(msg: model.message);
+            }
+            if (model.status == "1") {
+              CustomToast.successToast(msg: model.message);
+              getDietPlanDetailsFunc(planId.toString());
+            }
+          } else {
+            CustomToast.failToast(msg: "Something wrong happened");
+          }
+        });
+      }
+    });
+  }
+
+  updateReschedule() {
+    getDietPlanDetails?.isBooked = false;
+    update(["dietBottomScreen"]);
   }
 
   addDaySlots(String dayId) {

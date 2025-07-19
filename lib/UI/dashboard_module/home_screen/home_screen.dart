@@ -1,9 +1,5 @@
-import 'package:fitness_zone_2/UI/chat/group_chat_room.dart';
-import 'package:fitness_zone_2/UI/diet_screen/add_user_diet.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/widgets/admin_home_screen.dart';
-import 'package:fitness_zone_2/widgets/all_plans_screen.dart';
-import 'package:fitness_zone_2/widgets/circular_progress.dart';
 import 'package:fitness_zone_2/widgets/customer_support_screen.dart';
 import 'package:fitness_zone_2/widgets/dietitian_home_screen.dart';
 import 'package:flutter/material.dart';
@@ -12,19 +8,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
-import '../../../values/my_imgs.dart';
 import '../../../widgets/trainer_home_screen.dart';
-import '../../../widgets/custom_textfield.dart';
-import '../../../widgets/toasts.dart';
 import '../../../widgets/user_home_screen.dart';
-import '../../chat/widgets/chat_room.dart';
-import '../paste_link/paste_link.dart';
-import '../session_screen/session_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({Key? key}) : super(key: key);
@@ -35,7 +24,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var textTheme = Theme.of(context).textTheme;
     return Scaffold(
         backgroundColor: Color(0xffF5EEEE),
         appBar: PreferredSize(

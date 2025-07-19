@@ -8,7 +8,10 @@ import 'package:fitness_zone_2/UI/plans_module/all_plans.dart';
 import 'package:fitness_zone_2/UI/plans_module/invoice_screen.dart';
 import 'package:fitness_zone_2/UI/plans_module/view_details.dart';
 import 'package:fitness_zone_2/UI/workout_module/workout_screen.dart';
+import 'package:fitness_zone_2/data/controllers/socket_controller.dart';
+import 'package:fitness_zone_2/data/models/upcoming_class_slot.dart';
 import 'package:fitness_zone_2/values/values.dart';
+import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:fitness_zone_2/widgets/gradient_border_container.dart';
@@ -16,6 +19,7 @@ import 'package:fitness_zone_2/widgets/plan_widget.dart';
 import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/widgets.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,8 +27,11 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:carousel_slider/carousel_options.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../UI/dashboard_module/bottom_bar_screen/workout_plans_of_user.dart';
+import '../UI/in_app_webview.dart';
 import '../data/controllers/auth_controller/auth_controller.dart';
 import '../data/controllers/home_controller/home_controller.dart';
+import '../data/models/get_user_plan/get_workout_user_plan_details.dart';
 import '../values/my_colors.dart';
 import '../values/my_imgs.dart';
 import 'package:get/get.dart';
@@ -38,6 +45,7 @@ class UserHomeScreen extends StatelessWidget {
 
   final AuthController authController = Get.find();
   final HomeController homeController = Get.find();
+  final SocketController socketController=Get.put(SocketController());
   ScrollController userHomeScreenScrollController = ScrollController();
   final List<Color> colors = [
     Colors.grey,
@@ -81,8 +89,12 @@ class UserHomeScreen extends StatelessWidget {
                         top: 30.h,
                         left: 20.w,
                         right: 20.w,
-                        bottom:
-                            authController.logInUser!.status ? 155.h : 25.h),
+                        bottom: authController.logInUser!.status &&
+                                !homeController.isFrozen
+                            ? homeController.upComingClassNotifier.value != null
+                                ? 140.h
+                                : 155.h
+                            : 25.h),
                     decoration: const BoxDecoration(
                         gradient: LinearGradient(
                             begin: Alignment.centerLeft,
@@ -165,7 +177,12 @@ class UserHomeScreen extends StatelessWidget {
                                     );
                                   }),
                                   Text(
-                                    "${authController.logInUser!.status ? "" : "Not "}Subscribed",
+                                    (homeController.userHomeData?.freeze
+                                                    .value ==
+                                                1 ??
+                                            false)
+                                        ? "Frozen"
+                                        : "${authController.logInUser!.status ? "" : "Not "}Subscribed",
                                     style: textTheme.headlineSmall!.copyWith(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600),
@@ -207,29 +224,44 @@ class UserHomeScreen extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     // mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      if (authController.logInUser!.status)
-                                        GestureDetector(
-                                          onTap: () {
-                                            Get.to(() => InvoiceScreen());
-                                          },
-                                          child: Icon(
-                                            Icons.inventory_2_outlined,
-                                            color: Colors.white,
-                                            size: 30,
-                                          ),
-                                        ),
+                                      if (homeController.userHomeData != null)
+                                        if (authController.logInUser!.status &&
+                                            homeController.userHomeData!
+                                                .userAllPlans.isNotEmpty)
+                                          if (homeController.userHomeData
+                                                  ?.userAllPlans.first.title !=
+                                              "Free Trial")
+                                            GestureDetector(
+                                              onTap: () {
+                                                Get.to(() => InvoiceScreen());
+                                              },
+                                              child: Icon(
+                                                Icons.inventory_2_outlined,
+                                                color: Colors.white,
+                                                size: 30,
+                                              ),
+                                            ),
                                       SizedBox(
                                         width: 10,
                                       ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Get.to(() => NotificationScreen());
-                                        },
-                                        child: Icon(
-                                          Icons.notifications_none,
-                                          color: Colors.white,
-                                          size: 30,
-                                        ),
+                                      Stack(
+                                        alignment: Alignment.topRight,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              homeController.showDotHome.value =
+                                                  false;
+                                              Get.to(
+                                                  () => NotificationScreen());
+                                            },
+                                            child: const Icon(
+                                              Icons.notifications_none,
+                                              color: Colors.white,
+                                              size: 30,
+                                            ),
+                                          ),
+                                          dotWidget()
+                                        ],
                                       ),
 
                                       //Image.asset(MyImgs.graph, height: 109.h, width: 143.w)
@@ -272,211 +304,263 @@ class UserHomeScreen extends StatelessWidget {
                             )
                           ],
                         ),
-                        // Container(
-                        //   padding: EdgeInsets.symmetric(horizontal: 20,vertical: 8),
-                        //   decoration: BoxDecoration(
-                        //       borderRadius: BorderRadius.circular(15),
-                        //       border: Border.all(
-                        //         color: MyColors.green,
-                        //       ),
-                        //       color: Colors.white),
-                        //   child: Column(
-                        //     crossAxisAlignment: CrossAxisAlignment.start,
-                        //     children: [
-                        //       Row(
-                        //         mainAxisAlignment:
-                        //             MainAxisAlignment.spaceBetween,
-                        //         children: [
-                        //           Text(
-                        //             "Zumba Class",
-                        //             style: textTheme.titleLarge!
-                        //                 .copyWith(fontWeight: FontWeight.w500),
-                        //           ),
-                        //           Text(
-                        //             "2 hours left",
-                        //             style: textTheme.titleLarge!.copyWith(
-                        //                 fontWeight: FontWeight.w500,
-                        //                 color: MyColors.grey72),
-                        //           ),
-                        //         ],
-                        //       ),
-                        //       Text(
-                        //         "with Dr. Iram Altaf",
-                        //         style: textTheme.titleLarge!.copyWith(
-                        //             fontWeight: FontWeight.w500,
-                        //             color: MyColors.grey72),
-                        //       ),
-                        //       SizedBox(height: 5,),
-                        //       Row(
-                        //         children: [
-                        //           Row(
-                        //             mainAxisAlignment:
-                        //                 MainAxisAlignment.spaceBetween,
-                        //             children: [
-                        //               Icon(
-                        //                 Icons.access_time_rounded,
-                        //                 size: 12,
-                        //               ),
-                        //               SizedBox(
-                        //                 width: 6,
-                        //               ),
-                        //               Text(
-                        //                 "02:00 PM",
-                        //                 style: textTheme.titleLarge!.copyWith(
-                        //                     fontWeight: FontWeight.w500,
-                        //                     color: MyColors.grey72),
-                        //               ),
-                        //             ],
-                        //           ),
-                        //           SizedBox(
-                        //             width: 20,
-                        //           ),
-                        //           Row(
-                        //             mainAxisAlignment:
-                        //                 MainAxisAlignment.spaceBetween,
-                        //             children: [
-                        //               Icon(
-                        //                 Icons.calendar_today_outlined,
-                        //                 size: 12,
-                        //               ),
-                        //               SizedBox(
-                        //                 width: 6,
-                        //               ),
-                        //               Text(
-                        //                 "Feb 23, 2025",
-                        //                 style: textTheme.titleLarge!.copyWith(
-                        //                     fontWeight: FontWeight.w500,
-                        //                     color: MyColors.grey72),
-                        //               ),
-                        //             ],
-                        //           ),
-                        //         ],
-                        //       )
-                        //     ],
-                        //   ),
-                        // ),
+                        ValueListenableBuilder<UpcomingClassSlot?>(
+                          valueListenable: homeController.upComingClassNotifier,
+                          builder: (context, value, child) {
+                            if (value == null) {
+                              return const SizedBox();
+                            }
+                            return GestureDetector(
+                              onTap: () {
+                                Slot? slot = value.upcomingSlot;
+                                slot?.trainer = value.trainer;
+                                if (slot != null) {
+                                  if (slot.status != "Cancelled") {
+                                    HelpingWidgets.showWorkoutBottomSheet(
+                                        context: context,
+                                        slot: slot,
+                                        homeController: homeController);
+                                  }
+                                } else {
+                                  CustomToast.failToast(
+                                      msg:
+                                          "Something went wrong.Please try again later");
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 8),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(
+                                      color: MyColors.green,
+                                    ),
+                                    color: Colors.white),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          value.upcomingSlot?.type ?? "",
+                                          style: textTheme.titleLarge!.copyWith(
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          value.upcomingSlot?.status ?? "",
+                                          style: textTheme.titleLarge!.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                              color: colorAccordingToStatus(
+                                                  value.upcomingSlot?.status ??
+                                                      "")),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      "with ${value.trainer?.firstName ?? ""} ${value.trainer?.lastName ?? ""}",
+                                      style: textTheme.titleLarge!.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 5,
+                                    ),
+                                    Row(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Icon(
+                                              Icons.access_time_rounded,
+                                              size: 12,
+                                            ),
+                                            SizedBox(
+                                              width: 6,
+                                            ),
+                                            Text(
+                                              "${value.upcomingSlot?.start ?? ""}",
+                                              style: textTheme.titleLarge!
+                                                  .copyWith(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(
+                                          width: 20,
+                                        ),
+                                        // Row(
+                                        //   mainAxisAlignment:
+                                        //       MainAxisAlignment.spaceBetween,
+                                        //   children: [
+                                        //     Icon(
+                                        //       Icons.calendar_today_outlined,
+                                        //       size: 12,
+                                        //     ),
+                                        //     SizedBox(
+                                        //       width: 6,
+                                        //     ),
+                                        //     Text(
+                                        //       "Feb 23, 2025",
+                                        //       style: textTheme.titleLarge!
+                                        //           .copyWith(
+                                        //               fontWeight: FontWeight.w500,
+                                        //               color: MyColors.grey72),
+                                        //     ),
+                                        //   ],
+                                        // ),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+
+                            // return Text(
+                            //   value != null ? 'Stored Value: $value' : 'No Value Stored',
+                            //   style: TextStyle(fontSize: 20),
+                            // );
+                          },
+                        ),
                       ],
                     ),
                   ),
 
                   SizedBox(
-                    height: authController.logInUser!.status ? 185 : 0,
+                    height: authController.logInUser!.status &&
+                            !homeController.isFrozen
+                        ? 185
+                        : 10,
                   ),
                   if (authController.logInUser!.status &&
-                      homeController.userHomeData?.userAllPlans.first.title !=
-                          "Free Trial")
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: CustomTextField(
-                              keyboardType: TextInputType.text,
-                              text: "Duration Freeze".tr,
-                              length: 30,
-                              controller: authController.dateExtendController,
-                              Readonly: true,
-                              bordercolor: MyColors.primaryGradient1,
-                              inputFormatters: FilteringTextInputFormatter
-                                  .singleLineFormatter,
-                              suffixIcon: GestureDetector(
-                                onTap: () async {
-                                  if (homeController.userHomeData!.userData
-                                      .usedFreezeOption.value) {
-                                    CustomToast.failToast(
-                                        msg:
-                                            "You have already used this option");
-                                    return;
-                                  }
+                      (homeController.userHomeData?.userAllPlans.isNotEmpty ??
+                          false))
+                    if (homeController.userHomeData?.userAllPlans.first.title !=
+                        "Free Trial")
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: CustomTextField(
+                                keyboardType: TextInputType.text,
+                                text: "Duration Freeze".tr,
+                                length: 30,
+                                controller: authController.dateExtendController,
+                                Readonly: true,
+                                bordercolor: MyColors.primaryGradient1,
+                                inputFormatters: FilteringTextInputFormatter
+                                    .singleLineFormatter,
+                                suffixIcon: GestureDetector(
+                                  onTap: () async {
+                                    if (homeController.userHomeData!.userData
+                                        .usedFreezeOption.value) {
+                                      CustomToast.failToast(
+                                          msg:
+                                              "You have already used this option");
+                                      return;
+                                    }
 
-                                  final DateTime? picked = await showDatePicker(
-                                      context: context,
-                                      builder: (BuildContext context,
-                                          Widget? child) {
-                                        return Theme(
-                                          data: ThemeData.light().copyWith(
-                                            primaryColor: MyColors
-                                                .buttonColor, // OK button background color
-                                            hintColor: MyColors
-                                                .buttonColor, // OK button text color
-                                            dialogBackgroundColor: Colors
-                                                .white, // Dialog background color
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                      initialDate: DateTime.now(),
-                                      firstDate: DateTime.now(),
-                                      lastDate: DateTime.now().add(Duration(
-                                          days: homeController.userHomeData!
-                                              .userAllPlans[0].remainingDays)));
-                                  if (picked != null) {
-                                    authController.dateExtendController.text =
-                                        "${picked.difference(DateTime.now()).inDays} days";
-                                  }
-                                },
-                                child: Image.asset(
-                                  MyImgs.calender2,
-                                  scale: 3,
+                                    final DateTime? picked =
+                                        await showDatePicker(
+                                            context: context,
+                                            builder: (BuildContext context,
+                                                Widget? child) {
+                                              return Theme(
+                                                data:
+                                                    ThemeData.light().copyWith(
+                                                  primaryColor: MyColors
+                                                      .buttonColor, // OK button background color
+                                                  hintColor: MyColors
+                                                      .buttonColor, // OK button text color
+                                                  dialogBackgroundColor: Colors
+                                                      .white, // Dialog background color
+                                                ),
+                                                child: child!,
+                                              );
+                                            },
+                                            initialDate: DateTime.now(),
+                                            firstDate: DateTime.now(),
+                                            lastDate: DateTime.now().add(
+                                                Duration(
+                                                    days: homeController
+                                                        .userHomeData!
+                                                        .userAllPlans[0]
+                                                        .remainingDays)));
+                                    if (picked != null) {
+                                      authController.dateExtendController.text =
+                                          "${picked.difference(DateTime.now()).inDays} days";
+                                    }
+                                  },
+                                  child: Image.asset(
+                                    MyImgs.calender2,
+                                    scale: 3,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          SizedBox(
-                            width: 10.w,
-                          ),
-                          Obx(
-                            () => homeController.userHomeLoad.value
-                                ? GestureDetector(
-                                    onTap: () {
-                                      if (homeController.userHomeData!.userData
-                                          .usedFreezeOption.value) {
-                                        CustomToast.failToast(
-                                            msg:
-                                                "You have already used this option");
-                                        return;
-                                      }
-                                      if (homeController.userHomeData!.userData
-                                          .freeze.value) {
-                                        homeController.freezeMyAccount(false);
-                                      } else {
-                                        if (authController.dateExtendController
-                                            .text.isEmpty) {
+                            SizedBox(
+                              width: 10.w,
+                            ),
+                            Obx(
+                              () => homeController.userHomeLoad.value
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        if (homeController.userHomeData!
+                                            .userData.usedFreezeOption.value) {
                                           CustomToast.failToast(
-                                              msg: "Please enter freeze days");
-                                        } else {
-                                          homeController.freezeMyAccount(true);
+                                              msg:
+                                                  "You have already used this option");
+                                          return;
                                         }
-                                      }
-                                    },
-                                    child: GetBuilder<HomeController>(
-                                      id: 'freezeButton', // Assigning an ID
-                                      builder: (cont) {
-                                        return Container(
-                                          alignment: Alignment.center,
-                                          width: 100.w,
-                                          height: 56.h,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            color: MyColors.buttonColor,
-                                          ),
-                                          child: Text(
-                                            cont.userHomeData!.userData.freeze
-                                                    .value
-                                                ? "Unfreeze"
-                                                : "Freeze",
-                                            style: textTheme.bodySmall,
-                                          ),
-                                        );
+                                        if (homeController.userHomeData!
+                                            .userData.freeze.value) {
+                                          homeController.freezeMyAccount(false);
+                                        } else {
+                                          if (authController
+                                              .dateExtendController
+                                              .text
+                                              .isEmpty) {
+                                            CustomToast.failToast(
+                                                msg:
+                                                    "Please enter freeze days");
+                                          } else {
+                                            homeController
+                                                .freezeMyAccount(true);
+                                          }
+                                        }
                                       },
-                                    ),
-                                  )
-                                : SizedBox(),
-                          ),
-                        ],
+                                      child: GetBuilder<HomeController>(
+                                        id: 'freezeButton', // Assigning an ID
+                                        builder: (cont) {
+                                          return Container(
+                                            alignment: Alignment.center,
+                                            width: 100.w,
+                                            height: 56.h,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: MyColors.buttonColor,
+                                            ),
+                                            child: Text(
+                                              cont.userHomeData!.userData.freeze
+                                                      .value
+                                                  ? "Unfreeze"
+                                                  : "Freeze",
+                                              style: textTheme.bodySmall,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : SizedBox(),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.25,
                     child: GridView.builder(
@@ -494,23 +578,33 @@ class UserHomeScreen extends StatelessWidget {
                         return GestureDetector(
                           onTap: () {
                             if (index == 0) {
-                              Get.to(() => WorkoutScreen(
-                                    isProduct: index == 6,
-                                  ));
-                              homeController
-                                  .getUsersBasedOnUserType(Constants.trainer);
+                              Get.to(() => WorkPlansOfUser());
+                              // Get.to(() => WorkoutScreen(
+                              //       isProduct: index == 6,
+                              //     ));
+                              // homeController
+                              //     .getUsersBasedOnUserType(Constants.trainer);
                             } else if (index == 1 || index == 2 || index == 3) {
-                              Get.to(() => DietScreen());
-                              homeController.getUsersBasedOnUserType(index == 3
-                                  ? Constants.GYNECOLOGIST
-                                  : index == 2
-                                      ? Constants.PSYCHIATRIST
-                                      : Constants.dietitian);
+                              CustomToast.successToast(
+                                  msg: "Coming soon! Stay tuned");
+                              // Get.to(() => DietScreen());
+                              // homeController.getUsersBasedOnUserType(index == 3
+                              //     ? Constants.GYNECOLOGIST
+                              //     : index == 2
+                              //         ? Constants.PSYCHIATRIST
+                              //         : Constants.dietitian);
                             } else if (index == 4) {
-                              Get.to(() => FreeTest());
+                              Get.to(() => const AppWebView(
+                                    url: "https://pcos.thefither.com/",
+                                    appName: "PCOS Risk Assessment Test",
+                                  ));
+
+                              // Get.to(() => FreeTest());
                             } else if (index == 5) {
-                              Get.to(() => HealthTipsScreen());
-                              homeController.getHealthTips();
+                              // Get.to(() => HealthTipsScreen());
+                              // homeController.getHealthTips();
+                              CustomToast.successToast(
+                                  msg: "Coming soon! Stay tuned");
                             } else if (index == 7) {
                               Get.to(() => OurJourneyScreen());
                             } else if (index == 6) {
@@ -628,144 +722,136 @@ class UserHomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              authController.logInUser!.status
-                  ? Positioned(
-                      top: 160,
-                      left: 19,
-                      right: 19,
-                      child: Stack(
-                        alignment: Alignment.topCenter,
-                        children: [
-                          Container(
-                            width: MediaQuery.of(context).size.width - 38,
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(
-                                    color: MyColors.primaryGradient1),
-                                borderRadius: BorderRadius.circular(25)),
-                            child: Obx(() => homeController.userHomeLoad.value
-                                ? Column(
-                                    children: [
-                                      SizedBox(
-                                        height: 110.h,
-                                      ),
-                                      Column(
-                                        mainAxisSize: MainAxisSize.min,
+              authController.logInUser!.status && !homeController.isFrozen
+                  ? ValueListenableBuilder(
+                      valueListenable: homeController.upComingClassNotifier,
+                      builder: (context, value, _) {
+                        return Positioned(
+                          top: value != null ? 280.h : 180.h,
+                          left: 19,
+                          right: 19,
+                          child: Stack(
+                            alignment: Alignment.topCenter,
+                            children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width - 38,
+                                decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(
+                                        color: MyColors.primaryGradient1),
+                                    borderRadius: BorderRadius.circular(25)),
+                                child: Obx(() => homeController
+                                        .userHomeLoad.value
+                                    ? Column(
                                         children: [
-                                          Text(
-                                            "Days Spent",
-                                            style: textTheme.bodyMedium!,
-                                          ),
-                                          Text(
-                                              homeController.userHomeData!
-                                                      .userAllPlans.isEmpty
-                                                  ? "N/a"
-                                                  : "${homeController.userHomeData!.userAllPlans[0].spendDays}/${homeController.userHomeData!.userAllPlans[0].remainingDays + homeController.userHomeData!.userAllPlans[0].spendDays}",
-                                              style: textTheme.headlineMedium!
-                                                  .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600)),
-                                        ],
-                                      ),
-                                      // SizedBox(
-                                      //   height: 30.h,
-                                      // ),
-                                      //
-                                      // SizedBox(
-                                      //   height: 30.h,
-                                      // )
-                                      SizedBox(
-                                        height: 150.h,
-                                      ),
-                                    ],
-                                  )
-                                : const Center(
-                                    child: CircularProgress(),
-                                  )),
-                          ),
-                          Obx(() => homeController.userHomeLoad.value
-                              ? homeController
-                                      .userHomeData!.userAllPlans.isNotEmpty
-                                  ? Positioned(
-                                      top: 20,
-                                      child: CircularPercentIndicator(
-                                        radius: 120.0,
-                                        lineWidth: 30.0,
-                                        // fillColor: Colors.red,
-                                        percent: homeController.getPlanValue(),
-
-                                        progressColor: homeController
-                                                    .userHomeData!
-                                                    .userAllPlans[0]
-                                                    .remainingDays >
-                                                0
-                                            ? MyColors.primaryGradient1
-                                            : Colors.red,
-                                        arcBackgroundColor: MyColors.planColor,
-                                        // fillColor:MyColors.planColor,
-                                        circularStrokeCap:
-                                            CircularStrokeCap.round,
-                                        startAngle: 180.0,
-
-                                        arcType: ArcType.HALF,
-                                      ),
-                                    )
-                                  : SizedBox()
-                              : Center(
-                                  child: CircularProgress(),
-                                )),
-                          Obx(() => homeController.userHomeLoad.value
-                              ? homeController
-                                      .userHomeData!.userAllPlans.isEmpty
-                                  ? SizedBox()
-                                  : homeController.userHomeData!.userAllPlans[0]
-                                              .remainingDays >
-                                          0
-                                      ? Positioned(
-                                          bottom: 20,
-                                          child: Column(
+                                          SizedBox(height: 110.h),
+                                          Column(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              SizedBox(
-                                                height: 30,
-                                              ),
-                                              Row(
-                                                // mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  daySpentWidget(
-                                                      textTheme,
-                                                      "${homeController.userHomeData!.userAllPlans[0].spendDays}",
-                                                      "Done"),
-                                                  const SizedBox(
-                                                    width: 15,
-                                                  ),
-                                                  daySpentWidget(
-                                                      textTheme,
-                                                      "${homeController.userHomeData!.userAllPlans[0].remainingDays}",
-                                                      "Remaining"),
-                                                ],
+                                              Text("Days Spent",
+                                                  style: textTheme.bodyMedium!),
+                                              Text(
+                                                homeController.userHomeData!
+                                                        .userAllPlans.isEmpty
+                                                    ? "N/a"
+                                                    : "${homeController.userHomeData!.userAllPlans[0].spendDays}/${homeController.userHomeData!.userAllPlans[0].remainingDays + homeController.userHomeData!.userAllPlans[0].spendDays}",
+                                                style: textTheme.headlineMedium!
+                                                    .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w600),
                                               ),
                                             ],
                                           ),
+                                          SizedBox(height: 150.h),
+                                        ],
+                                      )
+                                    : const Center(child: CircularProgress())),
+                              ),
+
+                              // Percent Indicator
+                              Obx(() => homeController.userHomeLoad.value
+                                  ? homeController
+                                          .userHomeData!.userAllPlans.isNotEmpty
+                                      ? Positioned(
+                                          top: 20,
+                                          child: CircularPercentIndicator(
+                                            radius: 120.0,
+                                            lineWidth: 30.0,
+                                            percent:
+                                                homeController.getPlanValue(),
+                                            progressColor: homeController
+                                                        .userHomeData!
+                                                        .userAllPlans[0]
+                                                        .remainingDays >
+                                                    0
+                                                ? MyColors.primaryGradient1
+                                                : Colors.red,
+                                            arcBackgroundColor:
+                                                MyColors.planColor,
+                                            circularStrokeCap:
+                                                CircularStrokeCap.round,
+                                            startAngle: 180.0,
+                                            arcType: ArcType.HALF,
+                                          ),
                                         )
-                                      : Positioned(
-                                          bottom: 20,
-                                          left: 20,
-                                          right: 20,
-                                          child: CustomButton(
-                                              text: "Renew Plan",
-                                              onPressed: () {
-                                                scrollToPosition(
+                                      : SizedBox()
+                                  : Center(child: CircularProgress())),
+
+                              // Bottom section
+                              Obx(() => homeController.userHomeLoad.value
+                                  ? homeController
+                                          .userHomeData!.userAllPlans.isEmpty
+                                      ? SizedBox()
+                                      : homeController
+                                                  .userHomeData!
+                                                  .userAllPlans[0]
+                                                  .remainingDays >
+                                              0
+                                          ? Positioned(
+                                              bottom: 20,
+                                              child: Column(
+                                                children: [
+                                                  SizedBox(height: 30),
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      daySpentWidget(
+                                                          textTheme,
+                                                          "${homeController.userHomeData!.userAllPlans[0].spendDays}",
+                                                          "Done"),
+                                                      const SizedBox(width: 15),
+                                                      daySpentWidget(
+                                                          textTheme,
+                                                          "${homeController.userHomeData!.userAllPlans[0].remainingDays}",
+                                                          "Remaining"),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : Positioned(
+                                              bottom: 20,
+                                              left: 20,
+                                              right: 20,
+                                              child: CustomButton(
+                                                text: "Renew Plan",
+                                                onPressed: () {
+                                                  scrollToPosition(
                                                     userHomeScreenScrollController
                                                             .position
                                                             .maxScrollExtent /
-                                                        1.2);
-                                              }),
-                                        )
-                              : CircularProgress())
-                        ],
-                      ),
+                                                        1.2,
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                  : CircularProgress()),
+                            ],
+                          ),
+                        );
+                      },
                     )
                   : const SizedBox.shrink()
             ],
@@ -773,6 +859,27 @@ class UserHomeScreen extends StatelessWidget {
         ]),
       );
     });
+  }
+
+  Color colorAccordingToStatus(String text) {
+    if (text == "Confirmed") {
+      return MyColors.buttonColor;
+    } else if (text == "Cancelled") {
+      return MyColors.red1;
+    } else {
+      return Colors.black;
+    }
+  }
+
+  dotWidget() {
+    return Obx(() => homeController.showDotHome.value
+        ? Container(
+            height: 5,
+            width: 5,
+            decoration:
+                BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+          )
+        : SizedBox.shrink());
   }
 
   void scrollToPosition(double position) {

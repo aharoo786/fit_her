@@ -33,10 +33,13 @@ class UserHomeData extends Serializable {
             ? null
             : ClientUser.fromJson(json["customSupporterData"]),
         freeze: RxInt(json["freeze"] ?? 0),
-        userAllPlans: List<UserAllPlan>.from(
-            json["plans"].map((x) => UserAllPlan.fromJson(x))),
+        userAllPlans: json["plans"] == null || json["plans"] == [null]
+            ? []
+            : List<UserAllPlan>.from(
+                json["plans"].map((x) => UserAllPlan.fromJson(x))),
       );
 
+  @override
   Map<String, dynamic> toJson() => {
         "userData": userData.toJson(),
         "customSupporterData": customSupporter?.toJson(),
@@ -77,7 +80,7 @@ class UserAllPlan {
   factory UserAllPlan.fromJson(Map<String, dynamic> json) => UserAllPlan(
         spendDays: json["spendDays"],
         price: json["price"].toString(),
-    currency: json["currency"].toString(),
+        currency: json["currency"].toString(),
         planId: json["planId"],
         remainingDays: json["remainingDays"],
         title: json["title"] ?? "",

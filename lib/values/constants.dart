@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class Constants {
   static const String robotoFamily = "Roboto";
   static const String RobotoFamily = "Roboto";
@@ -8,12 +10,14 @@ class Constants {
   static const String chatRoom = "chatRoom";
   static const String allMessages = "allMessages";
   static const String reviewDate = "reviewDate";
+  static const String giveReview = "giveReview";
 
   static const String subscriptionDuration = "subscriptionDuration";
   static String countryCode = "92";
   static String countryName = "PK";
   static String screenShot = "screenShot";
   static String notificationList = "notificationList";
+  static String upcomingSlot = "upcomingSlot";
   static String type = "type";
   static String recording = "recording";
   static String fullName = "fullName";
@@ -39,7 +43,8 @@ class Constants {
   static String weeklyReports = "weeklyReports";
 
   ///base url
-   static String baseUrl = "http://192.168.1.23:8000";
+  static String baseUrl = "https://test.thefither.com";
+  // static String baseUrl = "http://192.168.1.31:9005";
   // static String baseUrl = "https://backend.thefither.com";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
@@ -58,6 +63,7 @@ class Constants {
 
   static String signupPath = "/users/registration";
   static String loginPath = "/admin/login";
+  static String socialLogin = "/admin/socialLogin";
   static String guestLogin = "/admin/guestlogin";
   static String forgotPassword = "/users/forget_password";
   static String resetPassword = "/users/change_password_after_otp";
@@ -67,7 +73,11 @@ class Constants {
   static String getSubCat = "/admin/get_subcategories";
   static String getUserDietPlans = "/admin/userDietPlans";
   static String getClients = "/dietTimes/getClients";
+  static String addCalorieImage = "/dietTimes/upload";
   static String getAppointments = "/appointment/dietAppointments";
+  static String rescheduleAppointments = "/appointment/rescheduled/appointments";
+  static String getConsultationStatus = "/appointment/status";
+  static String getSchedulePdfStatus = "/admin/getDietPlanStatus";
   static String dietTimes = "/dietTimes";
   static String addReview = "/admin/addReview";
   static String getUserWorkoutPlans = "/admin/user_workout_plans";
@@ -113,6 +123,7 @@ class Constants {
   static String updateLink = "/admin/updateLink";
   static String updateDietLink = "/admin/updateDietitionLink";
   static String updateTrainerJoin = "/admin/updateTrainerJoin";
+  static String updateSlotStatus = "/admin/updateSlotStatus";
   static String addTeamMember = "/admin/addTeamMember";
   static String updateUser = "/admin/updateUser";
   static String paymentSuccess = "/admin/payment_success";
@@ -140,3 +151,7 @@ class Constants {
   ///Duration
   static String timeDuration = "/duration/create";
 }
+
+String get today => DateFormat('EEEE').format(DateTime.now());
+String get tomorrow =>
+    DateFormat('EEEE').format(DateTime.now().add(const Duration(days: 1)));

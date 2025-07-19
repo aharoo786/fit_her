@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "591042819842",
     "project_id": "fither-e7a36",
-    "storage_bucket": "fither-e7a36.appspot.com"
+    "storage_bucket": "fither-e7a36.firebasestorage.app"
   },
   "client": [
     {
@@ -12,7 +12,28 @@
           "package_name": "com.abtechnologies.fitHer"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "591042819842-4s4lvk5h0m4upltrqq0hbjd74oammh2o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abtechnologies.fitHer",
+            "certificate_hash": "4e8e388c77b99cfa465f239e0865a340cba0583b"
+          }
+        },
+        {
+          "client_id": "591042819842-lbm2aqp0e0ask3a7ofhcjm115oul7c6b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abtechnologies.fitHer",
+            "certificate_hash": "24a15429601733087ebc0b1740a52a1725907fd4"
+          }
+        },
+        {
+          "client_id": "591042819842-fljjf0819htvgp5g2tlglmbns73kvmlq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCrH8hJ_VE_VYRj4Kx3anZ4hl_0ypfxzvU"
@@ -20,26 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:591042819842:android:617bd82a60657e9b77f41b",
-        "android_client_info": {
-          "package_name": "com.example.fither"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCrH8hJ_VE_VYRj4Kx3anZ4hl_0ypfxzvU"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "591042819842-fljjf0819htvgp5g2tlglmbns73kvmlq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "591042819842-fadgf08sam81avc9up03bqvss3ndlu86.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.abtechnologies.fitHer"
+              }
+            }
+          ]
         }
       }
     }

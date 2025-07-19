@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 
-import '../chat_controller.dart';
-import '../group_chat_room.dart';
+
 import 'chat_room.dart';
 
 class UserWidget extends StatelessWidget {

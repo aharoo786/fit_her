@@ -24,13 +24,14 @@ class GetFreeTrialUserDetails extends Serializable {
 
   factory GetFreeTrialUserDetails.fromJson(Map<String, dynamic> json) =>
       GetFreeTrialUserDetails(
-        user: json["user"] == null
+        user: json["filteredUsers"] == null
             ? []
-            : List<FreeTrialUser>.from(json["user"]!.map((x) => FreeTrialUser.fromJson(x))),
+            : List<FreeTrialUser>.from(
+                json["filteredUsers"]!.map((x) => FreeTrialUser.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
-        "user": user == null
+        "filteredUsers": user == null
             ? []
             : List<dynamic>.from(user!.map((x) => x.toJson())),
       };
@@ -41,6 +42,7 @@ class FreeTrialUser {
   String? mainGoal;
   String? specificIssues;
   String? prefrences;
+  DateTime? createdAt;
   List<FreeUserSlot>? freeUserSlots;
   ClientUser? freeUserId;
 
@@ -50,12 +52,15 @@ class FreeTrialUser {
     this.specificIssues,
     this.prefrences,
     this.freeUserSlots,
+    this.createdAt,
     this.freeUserId,
   });
 
   factory FreeTrialUser.fromJson(Map<String, dynamic> json) => FreeTrialUser(
         id: json["id"],
         mainGoal: json["mainGoal"],
+        createdAt:
+            DateTime.tryParse(json["createdAt"] ?? DateTime.now().toString()),
         specificIssues: json["specificIssues"],
         prefrences: json["prefrences"],
         freeUserSlots: json["freeUserSlots"] == null

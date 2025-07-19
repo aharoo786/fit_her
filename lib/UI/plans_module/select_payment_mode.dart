@@ -15,12 +15,15 @@ import '../../values/my_imgs.dart';
 import '../../widgets/toasts.dart';
 
 class SelectPaymentMode extends StatelessWidget {
-  SelectPaymentMode({super.key,required this.planId,required this.durationId,required this.price});
+  SelectPaymentMode(
+      {super.key,
+      required this.planId,
+      required this.durationId,
+      required this.price});
   HomeController homeController = Get.find();
   String planId;
   String price;
   int durationId;
-
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +31,7 @@ class SelectPaymentMode extends StatelessWidget {
 
     return Scaffold(
       appBar: HelpingWidgets().appBarWidget(() {
+        homeController.planPicture == null;
         Get.back();
       }, text: "Upload Slip"),
       body: Padding(
@@ -131,8 +135,7 @@ class SelectPaymentMode extends StatelessWidget {
                   if (homeController.planPicture == null) {
                     CustomToast.failToast(msg: "Please select image");
                   } else {
-                    homeController.addPlanBuyImage(
-                        planId,durationId,price);
+                    homeController.addPlanBuyImage(planId, durationId, price);
                   }
                 }),
             SizedBox(

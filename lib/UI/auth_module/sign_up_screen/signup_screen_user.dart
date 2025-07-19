@@ -1,4 +1,4 @@
-import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
+import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/models/get_all_users/get_all_users_based_on_type.dart';
 import 'package:flutter/material.dart';
@@ -6,18 +6,19 @@ import 'package:flutter/services.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/dimens.dart';
 import '../../../values/my_colors.dart';
-import '../../../values/my_imgs.dart';
 import '../../../widgets/app_bar_widget.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../widgets/circular_progress.dart';
 import '../../../widgets/custom_button.dart';
 import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/toasts.dart';
 
 class SignUpNewUser extends StatefulWidget {
-  SignUpNewUser({Key? key}) : super(key: key);
+  SignUpNewUser({Key? key, this.supporterId, this.isSocial = false})
+      : super(key: key);
+  String? supporterId;
+  bool isSocial;
 
   @override
   State<SignUpNewUser> createState() => _SignUpNewUserState();
@@ -26,12 +27,11 @@ class SignUpNewUser extends StatefulWidget {
 class _SignUpNewUserState extends State<SignUpNewUser> {
   final AuthController authController = Get.find();
 
-  final HomeController homeController = Get.find();
-
   @override
   void initState() {
-    homeController.getUsersBasedOnUserType(
-        homeController.addTeamMember[4].replaceAll(" ", "_"));
+    authController.getUsersBasedOnUserType(
+        authController.addTeamMember[4].replaceAll(" ", "_"));
+
     super.initState();
   }
 
@@ -40,7 +40,11 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
     var textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: HelpingWidgets().appBarWidget(() {
-        Get.back();
+        if (widget.supporterId == null) {
+          Get.back();
+        } else {
+          Get.off(Login());
+        }
       }, text: "Sign Up"),
       body: SingleChildScrollView(
         child: Padding(
@@ -98,7 +102,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                 keyboardType: TextInputType.text,
                 text: "First Name".tr,
                 length: 30,
-                controller: homeController.firstNameController,
+                controller: authController.firstNameController,
                 inputFormatters:
                     FilteringTextInputFormatter.singleLineFormatter,
               ),
@@ -109,7 +113,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                 keyboardType: TextInputType.text,
                 text: "Last Name".tr,
                 length: 30,
-                controller: homeController.lastNameController,
+                controller: authController.lastNameController,
                 inputFormatters:
                     FilteringTextInputFormatter.singleLineFormatter,
               ),
@@ -120,7 +124,8 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                 keyboardType: TextInputType.text,
                 text: "Email".tr,
                 length: 30,
-                controller: homeController.emailController,
+                Readonly: widget.isSocial,
+                controller: authController.emailNameController,
                 inputFormatters:
                     FilteringTextInputFormatter.singleLineFormatter,
               ),
@@ -131,7 +136,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                 keyboardType: TextInputType.number,
                 text: "Phone no".tr,
                 length: 30,
-                controller: homeController.phoneController,
+                controller: authController.phoneNumberController,
                 inputFormatters: FilteringTextInputFormatter.digitsOnly,
               ),
               SizedBox(
@@ -141,15 +146,18 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                 keyboardType: TextInputType.text,
                 text: "Password".tr,
                 length: 30,
-                controller: homeController.passwordController,
+                controller: authController.passwordController,
                 inputFormatters:
                     FilteringTextInputFormatter.singleLineFormatter,
               ),
               SizedBox(
                 height: 20.h,
               ),
+
               Text(
-                "Please select customer support representative",
+                widget.supporterId == null
+                    ? "Please select customer support representative"
+                    : "Your sales representative",
                 style: textTheme.headlineSmall!.copyWith(
                     fontSize: 15.sp,
                     color: MyColors.textColor3,
@@ -158,8 +166,8 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
               SizedBox(
                 height: 10.h,
               ),
-              Obx(() => homeController.getUsersBasedOnUserTypeLoad.value
-                  ? homeController
+              Obx(() => authController.getUsersBasedOnUserTypeLoad.value
+                  ? authController
                           .getUsersBasedOnUserTypeModel!.users.isNotEmpty
                       ? Container(
                           decoration: BoxDecoration(
@@ -179,18 +187,23 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                             ),
 
                             //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                            value: homeController
+                            value: authController
                                 .getUsersBasedOnUserTypeModel!.users
                                 .firstWhere((element) =>
-                                    element.id ==
-                                    homeController.selectCustomerSupport.value),
-                            onChanged: (UserTypeData? newValue) {
-                              if (newValue != null) {
-                                homeController.selectCustomerSupport.value =
-                                    newValue.id;
-                              }
-                            },
-                            items: homeController
+                                    element.id.toString() ==
+                                    (widget.supporterId ??
+                                        authController
+                                            .selectCustomerSupport.value
+                                            .toString())),
+                            onChanged: widget.supporterId != null
+                                ? null
+                                : (UserTypeData? newValue) {
+                                    if (newValue != null) {
+                                      authController.selectCustomerSupport
+                                          .value = newValue.id;
+                                    }
+                                  },
+                            items: authController
                                 .getUsersBasedOnUserTypeModel!.users
                                 .map((UserTypeData cat) {
                               return DropdownMenuItem<UserTypeData>(
@@ -251,7 +264,8 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                     text: 'Privacy Policy',
                     style: textTheme.titleLarge!.copyWith(
                         decoration: TextDecoration.underline,
-                        color: MyColors.black,
+                        decorationColor: MyColors.buttonColor,
+                        color: MyColors.buttonColor,
                         height: 2,
                         fontWeight: FontWeight.w400),
                     // You can add a gesture recognizer here to handle clicks
@@ -268,17 +282,26 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
             CustomButton(
                 text: "Continue",
                 onPressed: () async {
-                  if (homeController.firstNameController.text.isEmpty ||
-                      homeController.lastNameController.text.isEmpty ||
-                      homeController.emailController.text.isEmpty ||
-                      homeController.phoneController.text.isEmpty ||
-                      homeController.passwordController.text.isEmpty) {
+                  print('HomeController.addUser ${authController.selectCustomerSupport.value}');
+
+                  if (authController.firstNameController.text.isEmpty ||
+                      authController.lastNameController.text.isEmpty ||
+                      authController.emailNameController.text.isEmpty ||
+                      authController.phoneNumberController.text.isEmpty ||
+                      authController.passwordController.text.isEmpty) {
                     CustomToast.failToast(
                         msg: "Please provide all information");
-                  } else if (!homeController.emailController.text.isEmail) {
+                  } else if (!authController
+                      .emailNameController.text.removeAllWhitespace.isEmail) {
                     CustomToast.failToast(msg: "Please provide valid email");
                   } else {
-                    homeController.addUser(status: false);
+                    Get.find<HomeController>().addUser(
+                        status: false,
+                        firstName: authController.firstNameController.text,
+                        lastName: authController.lastNameController.text,
+                        email: authController.emailNameController.text,
+                        phone: authController.phoneNumberController.text,
+                        password: authController.passwordController.text, customerSupportId: authController.selectCustomerSupport.value);
                   }
                 }),
           ],

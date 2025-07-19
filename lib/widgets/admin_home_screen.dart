@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/add_package.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/get_all_new_user_images/get_new_user_images.dart';
+import 'package:fitness_zone_2/UI/diet_screen/dietry_module/dietaryCheckScreen.dart';
 import 'package:fitness_zone_2/UI/plans_module/add_country.dart';
 import 'package:fitness_zone_2/UI/plans_module/add_time_durations.dart';
 import 'package:fitness_zone_2/UI/plans_module/add_trainer_slots.dart';
@@ -233,6 +234,14 @@ class AdminHomeScreen extends StatelessWidget {
             ),
             SizedBox(
               height: 20.h,
+            ),
+
+            GestureDetector(
+              onTap: () {
+                Get.to(() => DietaryCheckScreen());
+              },
+              child: containerWidget(const Color(0xffE6EEFF), "Dietary Check",
+                  MyImgs.annoucements),
             ),
             // Obx(
             //   () => homeController.trialPlanLoad.value

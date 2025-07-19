@@ -19,6 +19,7 @@ class DietDetails extends StatelessWidget {
       this.price = "2000",
       this.duration = "3 months",
       this.planId = "0",
+      this.currency = "Rs.",
       this.durationId = 0});
   String description;
   String title;
@@ -26,6 +27,7 @@ class DietDetails extends StatelessWidget {
   String price;
   String duration;
   String planId;
+  String currency;
   int? durationId;
 
   final bool isPlan;
@@ -50,7 +52,7 @@ class DietDetails extends StatelessWidget {
             child: Stack(
               children: [
                 Container(
-                  height: 360.h,
+                  height: 250,
                   decoration: BoxDecoration(
                       color: isPlan ? MyColors.primaryGradient2 : Colors.white,
                       image: DecorationImage(
@@ -96,8 +98,8 @@ class DietDetails extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(
-                      height: 270.h,
+                    const SizedBox(
+                      height: 160,
                     ),
                     // const Spacer(),
 
@@ -120,19 +122,13 @@ class DietDetails extends StatelessWidget {
                             style: textTheme.headlineMedium!
                                 .copyWith(fontWeight: FontWeight.w600),
                           ),
-                          Text(
-                            "Transform your health with us",
-                            style: textTheme.titleMedium!.copyWith(
-                                color: MyColors.workOutTextColor,
-                                fontWeight: FontWeight.w500),
-                          ),
-                          SizedBox(
-                            height: 8.h,
+                          const SizedBox(
+                            height: 5,
                           ),
                           Text(
                             description,
                             style: textTheme.titleLarge!.copyWith(
-                                color: MyColors.workOutTextColor,
+                                color: MyColors.grey,
                                 height: 1.5,
                                 fontWeight: FontWeight.w400),
                           ),
@@ -147,7 +143,8 @@ class DietDetails extends StatelessWidget {
                           Text(
                             longDescription,
                             style: textTheme.titleLarge!.copyWith(
-                                color: MyColors.workOutTextColor,
+                                color: MyColors.grey,
+                                fontSize: 13,
                                 height: 1.5,
                                 fontWeight: FontWeight.w400),
                           ),
@@ -166,7 +163,7 @@ class DietDetails extends StatelessWidget {
                                     Text(
                                       duration,
                                       style: textTheme.titleLarge!.copyWith(
-                                          color: MyColors.workOutTextColor,
+                                          color: MyColors.grey,
                                           height: 1.5,
                                           fontWeight: FontWeight.w400),
                                     ),
@@ -233,7 +230,7 @@ class DietDetails extends StatelessWidget {
             Expanded(
                 child: RichText(
                     text: TextSpan(
-                        text: "Rs. ",
+                        text: "$currency ",
                         style: textTheme.bodyMedium!.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -245,7 +242,7 @@ class DietDetails extends StatelessWidget {
                         fontSize: 32.sp,
                       )),
                   TextSpan(
-                      text: " /${duration}",
+                      text: " /$duration",
                       style: textTheme.bodySmall!.copyWith(
                         fontWeight: FontWeight.w600,
                       )),
@@ -256,8 +253,8 @@ class DietDetails extends StatelessWidget {
                 // Get.find<HomeController>().makePayment();
                 Get.to(() => SelectPaymentMode(
                       planId: planId,
-                      price:price,
-                      durationId: durationId??0,
+                      price: price,
+                      durationId: durationId ?? 0,
                     ));
               },
               width: 150.w,

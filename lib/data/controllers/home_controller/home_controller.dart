@@ -4,15 +4,15 @@ import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_cont
 import 'package:fitness_zone_2/data/models/get_all_cat_plan/get_all_sub_cat.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/add_diet_of_user.dart';
 import 'package:fitness_zone_2/data/models/get_team_members/get_team_members.dart';
+import 'package:fitness_zone_2/data/models/upcoming_class_slot.dart';
 import 'package:fitness_zone_2/helper/permissions.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:fitness_zone_2/UI/web_view.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:agora_token_service/agora_token_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/get_all_dietitian_trainers.dart';
 import 'package:fitness_zone_2/data/models/get_guest_user/get_guest_users.dart';
@@ -47,9 +47,12 @@ class HomeController extends GetxController implements GetxService {
   HomeRepo homeRepo;
 
   HomeController({required this.sharedPreferences, required this.homeRepo});
+
   CheckConnectionService connectionService = CheckConnectionService();
+
   @override
   void onInit() {
+    initUpcomingSlot();
     dietOfUserByDiet = [
       getDietOfUser("Monday"),
       getDietOfUser("Tuesday"),
@@ -59,25 +62,24 @@ class HomeController extends GetxController implements GetxService {
       getDietOfUser("Saturday"),
       getDietOfUser("Sunday"),
     ];
-    getPlansUser();
-    //  getAllTeamMembers();
+    if (sharedPreferences.getBool("showDotHome") == null) {
+      showDotHome.value = false;
+    } else if (sharedPreferences.getBool("showDotHome") == true) {
+      showDotHome.value = false;
+    }
+
     super.onInit();
   }
+
+  bool get isFrozen => (userHomeData?.freeze.value == 1);
 
   ///Notifcation listern
 
   ///adding team member
-  List<String> addTeamMember = [
-    "Dietition",
-    "Trainer",
-    "Gynecologist",
-    "Psychiatrist",
-    "Customer_Support_Representative"
-  ];
+  List<String> addTeamMember = ["Dietition", "Trainer", "Gynecologist", "Psychiatrist", "Customer_Support_Representative"];
   var addedTeamMember = "Dietition".obs;
 
-  RxBool get isCustomerSupport =>
-      RxBool(addTeamMember[4] == addedTeamMember.value);
+  RxBool get isCustomerSupport => RxBool(addTeamMember[4] == addedTeamMember.value);
 
   // String get customerSupporter =>
   //     "Customer Support Representative".replaceAll(" ", "_");
@@ -103,13 +105,31 @@ class HomeController extends GetxController implements GetxService {
     '😊', // Satisfied
     '😁', // Very Satisfied
   ];
-  final List<String> labels = [
-    "Very Unsatisfied",
-    "Unsatisfied",
-    "Neutral",
-    "Satisfied",
-    "Very Satisfied"
-  ];
+  final List<String> labels = ["Very Unsatisfied", "Unsatisfied", "Neutral", "Satisfied", "Very Satisfied"];
+
+  ValueNotifier<UpcomingClassSlot?> upComingClassNotifier = ValueNotifier<UpcomingClassSlot?>(null);
+
+  checkTiming(String start, String end) {
+    Timestamp timestamp = Timestamp.fromDate(DateTime.now());
+    int startTime = covertToTimeStamp(start);
+    int endTime = covertToTimeStamp(end);
+
+    if (timestamp.millisecondsSinceEpoch > startTime && timestamp.millisecondsSinceEpoch < endTime) {
+      return true;
+    }
+    return false;
+  }
+
+
+  initUpcomingSlot() {
+    var list = sharedPreferences.getString(Constants.upcomingSlot);
+    UpcomingClassSlot? notificationMessages;
+
+    if (list != null) {
+      notificationMessages = UpcomingClassSlot.fromJson(jsonDecode(list));
+    }
+    upComingClassNotifier.value = notificationMessages;
+  }
 
   clearMeasurementController() {
     firstDay.clear();
@@ -214,27 +234,8 @@ class HomeController extends GetxController implements GetxService {
   // }
 
   getDietOfUser(String day) {
-    DietOfUser dietofDay = DietOfUser(
-        day: day,
-        meals: [MealOfUser(time: "Time", food: "N/A", calories: "N/A")]);
+    DietOfUser dietofDay = DietOfUser(day: day, meals: [MealOfUser(time: "Time", food: "N/A", calories: "N/A")]);
     return dietofDay;
-  }
-
-  Future<String?> getAgoraToken(String channelName) async {
-    const expirationInSeconds = 84600;
-    final currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final expireTimestamp = currentTimestamp + expirationInSeconds;
-    final token = RtcTokenBuilder.build(
-      appId: Constants.appID,
-      appCertificate: Constants.appCertificate,
-      channelName: channelName,
-      uid: "0",
-      role: RtcRole.publisher,
-      expireTimestamp: expireTimestamp,
-    );
-    print("token    $token");
-    update();
-    return token;
   }
 
   getSubCatBasedOnUserType(String userType) {
@@ -253,8 +254,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetSubCategories> model =
-                ApiResponse.fromJson(response.body, GetSubCategories.fromJson);
+            ApiResponse<GetSubCategories> model = ApiResponse.fromJson(response.body, GetSubCategories.fromJson);
             if (model.status == "1") {
               allSubCategories = model.data!;
               if (allSubCategories!.data.isNotEmpty) {
@@ -285,23 +285,14 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(
-                response.body, GetUsersBasedOnUserType.fromJson);
+            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(response.body, GetUsersBasedOnUserType.fromJson);
             if (model.status == "1") {
               getUsersBasedOnUserTypeModel = model.data!;
               if (addNull) {
-                getUsersBasedOnUserTypeModel?.users.insert(
-                    0,
-                    UserTypeData(
-                        id: 0,
-                        firstName: "Select",
-                        lastName: "..",
-                        email: "",
-                        phone: ""));
+                getUsersBasedOnUserTypeModel?.users.insert(0, UserTypeData(id: 0, firstName: "Select", lastName: "..", email: "", phone: ""));
               } else {
                 if (getUsersBasedOnUserTypeModel!.users.isNotEmpty) {
-                  selectCustomerSupport.value =
-                      getUsersBasedOnUserTypeModel!.users[0].id;
+                  selectCustomerSupport.value = getUsersBasedOnUserTypeModel!.users.first.id;
                 }
               }
               getUsersBasedOnUserTypeLoad.value = true;
@@ -328,8 +319,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
 
@@ -356,8 +346,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
 
@@ -374,10 +363,7 @@ class HomeController extends GetxController implements GetxService {
 
     // Use try-catch to handle errors
     try {
-      var querySnapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .where("remoteId", isEqualTo: id)
-          .get();
+      var querySnapshot = await FirebaseFirestore.instance.collection("users").where("remoteId", isEqualTo: id).get();
 
       print("querySnapshot: ${querySnapshot.docs.first.data()}");
 
@@ -414,16 +400,14 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
               if (allPlanModel!.plans.isNotEmpty) {
                 selectedPlanId.value = allPlanModel!.plans[0].id ?? 0;
                 selectedPlanIndex.value = 0;
                 if (allPlanModel!.plans[0].countries!.isNotEmpty) {
-                  allPlanModel!.plans[0].selectedDurationId.value =
-                      allPlanModel!.plans[0].countries![0].duration![0].id!;
+                  allPlanModel!.plans[0].selectedDurationId.value = allPlanModel!.plans[0].countries![0].duration![0].id!;
                 }
               }
 
@@ -456,16 +440,14 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
               if (allPlanModel!.plans.isNotEmpty) {
                 selectedPlanId.value = allPlanModel!.plans[0].id ?? 0;
                 selectedPlanIndex.value = 0;
                 if (allPlanModel!.plans[0].countries!.isNotEmpty) {
-                  allPlanModel!.plans[0].selectedDurationId.value =
-                      allPlanModel!.plans[0].countries![0].duration![0].id!;
+                  allPlanModel!.plans[0].selectedDurationId.value = allPlanModel!.plans[0].countries![0].duration![0].id!;
                 }
               }
 
@@ -477,44 +459,46 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addFreeTrial() {
-    connectionService.checkConnection().then((value) async {
+  Future<bool> addFreeTrial() async {
+    bool already = false;
+    await connectionService.checkConnection().then((value) async {
       if (!value) {
+        already = false;
         CustomToast.noInternetToast();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         var c = await getCountryCode();
-        homeRepo.addFreeTrialUser(
+        await homeRepo.addFreeTrialUser(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "userId": sharedPreferences.getString(Constants.userId) ?? "",
-            "country": c
-          },
+          map: {"userId": sharedPreferences.getString(Constants.userId) ?? "", "country": c},
         ).then((response) async {
           Get.back();
           if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
+            if (response.body["message"] == "You can't subscribe free trial at this movement") {
+              already = true;
+            } else {
+              CustomToast.failToast(msg: response.body["message"]);
+            }
+
+            //  print('HomeController.addFreeTrial here');
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, (p0) {});
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, (p0) {});
             if (model.status == "1") {
               CustomToast.successToast(msg: model.message);
 
-              Get.find<WorkOutController>()
-                  .getWorkoutAllPlansFunc(isFree: true);
+              Get.find<WorkOutController>().getWorkoutAllPlansFunc(isFree: true);
               getUserHomeFunc(isFromFree: true);
+              already = false;
             }
           }
         });
       }
     });
+    return already;
   }
 
   double getPlanValue() {
-    var value = userHomeData!.userAllPlans[0].spendDays /
-        (userHomeData!.userAllPlans[0].remainingDays +
-            userHomeData!.userAllPlans[0].spendDays);
+    var value = userHomeData!.userAllPlans[0].spendDays / (userHomeData!.userAllPlans[0].remainingDays + userHomeData!.userAllPlans[0].spendDays);
 
     print("value-------------333  $value");
 
@@ -538,8 +522,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllHealthTips> model =
-                ApiResponse.fromJson(response.body, GetAllHealthTips.fromJson);
+            ApiResponse<GetAllHealthTips> model = ApiResponse.fromJson(response.body, GetAllHealthTips.fromJson);
             if (model.status == "1") {
               getAllHealthTips = model.data!;
 
@@ -569,19 +552,15 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllDietitianAndTrainers> model =
-                ApiResponse.fromJson(
-                    response.body, GetAllDietitianAndTrainers.fromJson);
+            ApiResponse<GetAllDietitianAndTrainers> model = ApiResponse.fromJson(response.body, GetAllDietitianAndTrainers.fromJson);
             if (model.status == "1") {
               getAllDietitianAndTrainers = model.data!;
               selectedPlanIndex.value = 0;
               if (getAllDietitianAndTrainers!.dietitions.isNotEmpty) {
-                selectedDietId.value =
-                    getAllDietitianAndTrainers!.dietitions[0].id;
+                selectedDietId.value = getAllDietitianAndTrainers!.dietitions[0].id;
               }
               if (getAllDietitianAndTrainers!.trainers.isNotEmpty) {
-                selectedTrainerId.value =
-                    getAllDietitianAndTrainers!.trainers[0].id;
+                selectedTrainerId.value = getAllDietitianAndTrainers!.trainers[0].id;
               }
 
               getDietitianLoad.value = true;
@@ -612,8 +591,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllUsers> model =
-                ApiResponse.fromJson(response.body, GetAllUsers.fromJson);
+            ApiResponse<GetAllUsers> model = ApiResponse.fromJson(response.body, GetAllUsers.fromJson);
             if (model.status == "1") {
               getAllUsers = model.data!;
 
@@ -643,8 +621,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetWeeklyReportsModel> model = ApiResponse.fromJson(
-                response.body, GetWeeklyReportsModel.fromJson);
+            ApiResponse<GetWeeklyReportsModel> model = ApiResponse.fromJson(response.body, GetWeeklyReportsModel.fromJson);
             if (model.status == "1") {
               getWeeklyReportsModel = model.data!;
 
@@ -676,8 +653,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetDietitianUsers> model =
-                ApiResponse.fromJson(response.body, GetDietitianUsers.fromJson);
+            ApiResponse<GetDietitianUsers> model = ApiResponse.fromJson(response.body, GetDietitianUsers.fromJson);
             if (model.status == "1") {
               getDietitianUsers = model.data!;
               dietHomeLoad.value = true;
@@ -710,8 +686,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<Plan> model =
-                ApiResponse.fromJson(response.body, Plan.fromJson);
+            ApiResponse<Plan> model = ApiResponse.fromJson(response.body, Plan.fromJson);
             if (model.status == "1") {
               trailPlan = model.data!;
               trialPlanLoad.value = true;
@@ -729,8 +704,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.changeFreeTrialStatus(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {"status": status, "id": id},
@@ -773,8 +747,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetGuestData> model =
-                ApiResponse.fromJson(response.body, GetGuestData.fromJson);
+            ApiResponse<GetGuestData> model = ApiResponse.fromJson(response.body, GetGuestData.fromJson);
             if (model.status == "1") {
               getGuestData = model.data!;
 
@@ -805,8 +778,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllPlansImages> model =
-                ApiResponse.fromJson(response.body, GetAllPlansImages.fromJson);
+            ApiResponse<GetAllPlansImages> model = ApiResponse.fromJson(response.body, GetAllPlansImages.fromJson);
             if (model.status == "1") {
               getAllPlansImages = model.data!;
 
@@ -837,8 +809,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetTeamMembers> model =
-                ApiResponse.fromJson(response.body, GetTeamMembers.fromJson);
+            ApiResponse<GetTeamMembers> model = ApiResponse.fromJson(response.body, GetTeamMembers.fromJson);
             if (model.status == "1") {
               getTeamMembers = model.data!;
 
@@ -872,11 +843,14 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<UserHomeData> model =
-                ApiResponse.fromJson(response.body, UserHomeData.fromJson);
+            ApiResponse<UserHomeData> model = ApiResponse.fromJson(response.body, UserHomeData.fromJson);
             if (model.status == "1") {
               userHomeData = model.data!;
               userHomeLoad.value = true;
+              if (userHomeData!.userAllPlans.isEmpty) {
+                upComingClassNotifier.value = null;
+              }
+
               if (isFromFree) {
                 Get.find<AuthController>().logInUser!.status = true;
               }
@@ -890,6 +864,12 @@ class HomeController extends GetxController implements GetxService {
 
   addUser(
       {bool status = true,
+      required String firstName,
+      required String lastName,
+      required String email,
+      required String phone,
+      required String password,
+      required int customerSupportId,
       String? age,
       String? height,
       String? weight,
@@ -900,34 +880,28 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
 
         await homeRepo.addUserRepo(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {
-            "firstName": firstNameController.text,
-            "lastName": lastNameController.text,
-            "email": emailController.text,
-            "password": passwordController.text,
-            "phone": phoneController.text.isNotEmpty
-                ? phoneController.text
-                : Random.secure().nextInt(10000),
-            "planId":
-                status ? allPlanModel!.plans[selectedPlanIndex.value].id : null,
+            "firstName": firstName,
+            "lastName": lastName,
+            "email": email,
+            "password": password,
+            "phone": phone.isEmpty ? Random.secure().nextInt(10000) : phone,
+            "planId": status ? allPlanModel!.plans[selectedPlanIndex.value].id : null,
             "status": status,
-            "deviceToken":
-                sharedPreferences.getString(Constants.deviceToken) ?? "",
-            "customSupporterId": selectCustomerSupport.value,
-            "durationId": status
-                ? allPlanModel!
-                    .plans[selectedPlanIndex.value].selectedDurationId.value
-                : null,
+            "deviceToken": sharedPreferences.getString(Constants.deviceToken) ?? "",
+            "customSupporterId": customerSupportId,
+            "durationId": status ? allPlanModel!.plans[selectedPlanIndex.value].selectedDurationId.value : null,
             "age": age,
             "weight": weight,
             "height": height,
             "bmiResult": bmiResult,
-            "price": price
+            "price": price,
+            "timeZone": currentTimeZone
           },
         ).then((response) async {
           Get.back();
@@ -936,8 +910,7 @@ class HomeController extends GetxController implements GetxService {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
-              ApiResponse<LoginModel> model =
-                  ApiResponse.fromJson(response.body, LoginModel.fromJson);
+              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
 
@@ -945,15 +918,12 @@ class HomeController extends GetxController implements GetxService {
                   getAllUsersFunc();
                 } else {
                   Get.find<AuthController>().loginAsA.value = Constants.user;
-                  sharedPreferences.setString(
-                      Constants.accessToken, model.data!.accessToken);
-                  sharedPreferences.setString(
-                      Constants.userId, model.data!.id.toString());
+                  sharedPreferences.setString(Constants.accessToken, model.data!.accessToken);
+                  sharedPreferences.setString(Constants.userId, model.data!.id.toString());
 
                   sharedPreferences.setBool(Constants.isGuest, false);
                   Get.find<AuthController>().logInUser = model.data;
-                  Get.find<AuthController>()
-                      .addLocalStorage(model.data!, passwordController.text);
+                  Get.find<AuthController>().addLocalStorage(model.data!, passwordController.text);
                   // getPlans();
                   Get.offAll(() => SignUpScreenQuestions());
                 }
@@ -968,29 +938,17 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addUserDetails(
-      {bool status = true,
-      String? age,
-      String? height,
-      String? weight,
-      String? bmiResult}) {
+  addUserDetails({bool status = true, String? age, String? height, String? weight, String? bmiResult}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.addUserDetails(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "userId": sharedPreferences.getString(Constants.userId),
-            "age": age,
-            "weight": weight,
-            "height": height,
-            "bmiResult": bmiResult
-          },
+          map: {"userId": sharedPreferences.getString(Constants.userId), "age": age, "weight": weight, "height": height, "bmiResult": bmiResult},
         ).then((response) async {
           Get.back();
 
@@ -998,8 +956,7 @@ class HomeController extends GetxController implements GetxService {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
-              ApiResponse<LoginModel> model =
-                  ApiResponse.fromJson(response.body, (p0) {});
+              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
 
@@ -1022,8 +979,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.getPaymentLink(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {"amount": amount, "planId": id},
@@ -1034,8 +990,7 @@ class HomeController extends GetxController implements GetxService {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
-              ApiResponse<PaymentLink> model =
-                  ApiResponse.fromJson(response.body, PaymentLink.fromJson);
+              ApiResponse<PaymentLink> model = ApiResponse.fromJson(response.body, PaymentLink.fromJson);
               if (model.status == "1") {
                 Get.to(() => WebViewScreen(url: model.data!.session.url));
               }
@@ -1054,15 +1009,10 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.assignWorkoutAndTrainer(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "planId": allPlanModel!.plans[selectedPlanIndex.value].id,
-            "dietitianId": selectedDietId.value,
-            "trainerId": selectedTrainerId.value
-          },
+          map: {"planId": allPlanModel!.plans[selectedPlanIndex.value].id, "dietitianId": selectedDietId.value, "trainerId": selectedTrainerId.value},
         ).then((response) async {
           Get.back();
 
@@ -1086,11 +1036,7 @@ class HomeController extends GetxController implements GetxService {
 
   getspecificUserFromFireStore(String id) async {
     Map<String, dynamic>? userMap;
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(id)
-        .get()
-        .then((value) {
+    await FirebaseFirestore.instance.collection("users").doc(id).get().then((value) {
       userMap = value.data();
     });
     userMap ??= {"id": id, "name": "", "deviceToken": ""};
@@ -1098,9 +1044,7 @@ class HomeController extends GetxController implements GetxService {
   }
 
   makeRoomId(String id) async {
-    String roomId =
-        (sharedPreferences.getString(Constants.userId).hashCode + id.hashCode)
-            .toString();
+    String roomId = (sharedPreferences.getString(Constants.userId).hashCode + id.hashCode).toString();
     return roomId;
   }
 
@@ -1110,8 +1054,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.addAnnouncement(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
@@ -1144,21 +1087,14 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.freezeMyAccount(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {
             "userId": sharedPreferences.getString(Constants.userId),
             "freeze": freeze,
-            "freezingDays": !freeze
-                ? null
-                : Get.find<AuthController>()
-                    .dateExtendController
-                    .text
-                    .split(" ")
-                    .first
+            "freezingDays": !freeze ? null : Get.find<AuthController>().dateExtendController.text.split(" ").first
           },
         ).then((response) async {
           Get.back();
@@ -1190,8 +1126,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo
             .synchronizationRepo(
@@ -1222,8 +1157,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.updateWeeklyReportRepo(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
@@ -1264,15 +1198,13 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  updateLinkFunc(TextEditingController textEditingController, int slotId,
-      bool isDiet, int userId, String planId) {
+  updateLinkFunc(TextEditingController textEditingController, int slotId, bool isDiet, int userId, String planId) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo
             .updateLinkRepo(
@@ -1306,15 +1238,61 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  updateTrainerJoin(int uid, int slotId, String channel,
-      {bool isTrainerJoined = true}) {
+  updateSlotStatus(String slotId, String status) async {
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+
+        await homeRepo.updateSlotStatus(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          map: {
+            "slotId": slotId,
+            "status": status,
+          },
+        ).then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
+              if (model.status == "1") {
+                CustomToast.successToast(msg: response.body["message"]);
+                WorkOutController workOutController = Get.find();
+
+                var trainerSlots = workOutController.getTrainerHome?.trainerSlots;
+                if (trainerSlots != null && trainerSlots.isNotEmpty) {
+                  for (var slot in trainerSlots) {
+                    for (var s in slot.slots) {
+                      if (s.id.toString() == slotId) {
+                        s.status = status;
+                      }
+                    }
+                  }
+                }
+
+                // Get.find<WorkOutController>().getTrainerHomeFunc();
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  updateTrainerJoin(int uid, int slotId, String channel, {bool isTrainerJoined = true}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.updateTrainerJoin(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
@@ -1349,8 +1327,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         // var plan = allPlanModel!.plans[selectedPlanIndex.value];
         // var expiryDate = DateTime.now()
@@ -1395,8 +1372,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.updateUserRepo(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {
@@ -1437,14 +1413,10 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.updateUserPayment(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "userId": sharedPreferences.getString(Constants.userId) ?? "",
-            "planId": planId
-          },
+          map: {"userId": sharedPreferences.getString(Constants.userId) ?? "", "planId": planId},
         ).then((response) async {
           Get.back();
 
@@ -1472,8 +1444,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.approveUser(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {"planImageId": imageId, "rejected": reject},
@@ -1486,8 +1457,7 @@ class HomeController extends GetxController implements GetxService {
             } else if (response.body["status"] != "0") {
               ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
-                getAllPlansImages?.data
-                    .removeWhere((image) => image.id.toString() == imageId);
+                getAllPlansImages?.data.removeWhere((image) => image.id.toString() == imageId);
                 update(["newList"]);
                 CustomToast.successToast(msg: response.body["message"]);
               }
@@ -1506,18 +1476,14 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.addTestimonials(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {"image": testiPicture!.path}).then((response) async {
+            accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {"image": testiPicture!.path}).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
@@ -1533,32 +1499,26 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  updateUserProfile(String speciality, String totalPatients, String experience,
-      String description) {
+  updateUserProfile(String speciality, String totalPatients, String experience, String description) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        await homeRepo.updateUserProfile(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "image": profilePicture!.path,
-              "userId": sharedPreferences.getString(Constants.userId),
-              "speciality": speciality,
-              "totalPatients": totalPatients,
-              "experience": experience,
-              "description": description
-            }).then((response) async {
+        await homeRepo.updateUserProfile(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {
+          "image": profilePicture!.path,
+          "userId": sharedPreferences.getString(Constants.userId),
+          "speciality": speciality,
+          "totalPatients": totalPatients,
+          "experience": experience,
+          "description": description
+        }).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
@@ -1580,18 +1540,12 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo
             .updateUserDietOfWeek(
-                accessToken:
-                    sharedPreferences.getString(Constants.accessToken) ?? "",
-                map: AddDietOfUser(
-                        userId: userID,
-                        userPlanId: userPlanId,
-                        dietOfUser: dietOfUserByDiet)
-                    .toJson())
+                accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+                map: AddDietOfUser(userId: userID, userPlanId: userPlanId, dietOfUser: dietOfUserByDiet).toJson())
             .then((response) async {
           Get.back();
 
@@ -1619,28 +1573,22 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        Plan? plan = allPlanModel?.plans
-            .firstWhereOrNull((p) => p.id == selectedPlanId.value);
+        Plan? plan = allPlanModel?.plans.firstWhereOrNull((p) => p.id == selectedPlanId.value);
 
-        await homeRepo.addPlanImageRepo(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "image": planPicture!.path,
-              "planId": planId,
-              // "durationId": durationId.toString(),
-              "price": price,
-              "durationId": durationId.toString(),
-              "userId": sharedPreferences.getString(Constants.userId),
-            }).then((response) async {
+        await homeRepo.addPlanImageRepo(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {
+          "image": planPicture!.path,
+          "planId": planId,
+          // "durationId": durationId.toString(),
+          "price": price,
+          "durationId": durationId.toString(),
+          "userId": sharedPreferences.getString(Constants.userId),
+        }).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
@@ -1657,48 +1605,7 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  var paymentIntent;
-
-  Future<void> makePayment(String planId) async {
-    try {
-      paymentIntent = await createPaymentIntent('100', 'GBP');
-
-      await Stripe.instance
-          .initPaymentSheet(
-              paymentSheetParameters: SetupPaymentSheetParameters(
-        paymentIntentClientSecret: paymentIntent['client_secret'],
-        style: ThemeMode.light,
-        merchantDisplayName: 'Fit Her',
-      ))
-          .then((value) {
-        displayPaymentSheet(planId);
-        print("init $value");
-      }).onError((error, stackTrace) {
-        print("error    ${error}");
-      });
-      //STEP 3: Display Payment sheet
-    } catch (err) {
-      print(err);
-    }
-  }
-
-  displayPaymentSheet(String planId) async {
-    try {
-      await Stripe.instance.presentPaymentSheet().onError((error, stackTrace) {
-        stackTrace.toString();
-        print("sheet error  $error, ${stackTrace.toString()}]");
-      });
-      var intent = await Stripe.instance
-          .retrievePaymentIntent(paymentIntent['client_secret']);
-      if (intent.status == PaymentIntentsStatus.Succeeded) {
-        updateUserPlanStatus(planId);
-      }
-
-      print("intext   $intent");
-    } catch (e) {
-      print("Catrch error $e");
-    }
-  }
+  var showDotHome = false.obs;
 
   createPaymentIntent(String amount, String currency) async {
     try {
@@ -1713,10 +1620,7 @@ class HomeController extends GetxController implements GetxService {
 
       var response = await http.post(
         Uri.parse('https://api.stripe.com/v1/payment_intents'),
-        headers: {
-          'Authorization': 'Bearer ${dotenv.get("STRIPE_SECRET_KEY_TEST")}',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
+        headers: {'Authorization': 'Bearer ${dotenv.get("STRIPE_SECRET_KEY_TEST")}', 'Content-Type': 'application/x-www-form-urlencoded'},
         body: body,
       );
       print("response    ${response.body}");

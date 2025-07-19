@@ -2,6 +2,7 @@ import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.
 import 'package:fitness_zone_2/data/models/get_all_users/get_all_users.dart';
 import 'package:flutter/material.dart';
 
+import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
@@ -19,6 +20,7 @@ class AllUsersScreen extends StatelessWidget {
   AllUsersScreen({Key? key, this.isCustomerSupport = false}) : super(key: key);
   final bool isCustomerSupport;
   final HomeController homeController = Get.find();
+
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
@@ -41,8 +43,7 @@ class AllUsersScreen extends StatelessWidget {
               indicatorColor: MyColors.primaryGradient1,
               labelColor: MyColors.black,
               indicatorSize: TabBarIndicatorSize.tab,
-              labelStyle:
-                  textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
+              labelStyle: textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
               tabs: const [
                 Tab(
                   text: "My Users",
@@ -56,14 +57,11 @@ class AllUsersScreen extends StatelessWidget {
           body: TabBarView(children: [
             Obx(() => homeController.getAllUsersLoad.value
                 ? ListView.separated(
-                    itemCount:
-                        homeController.getAllUsers!.otherPlanUsers.length,
+                    itemCount: homeController.getAllUsers!.otherPlanUsers.length,
                     padding: EdgeInsets.all(20.h),
                     itemBuilder: (BuildContext context, int index) {
-                      var user =
-                          homeController.getAllUsers!.otherPlanUsers[index];
-                      return containerWidget(
-                          isCustomerSupport, user, textTheme);
+                      var user = homeController.getAllUsers?.otherPlanUsers[index];
+                      return containerWidget(isCustomerSupport, user, textTheme);
                     },
                     separatorBuilder: (BuildContext context, int index) {
                       return SizedBox(
@@ -74,14 +72,11 @@ class AllUsersScreen extends StatelessWidget {
                 : const CircularProgress()),
             Obx(() => homeController.getAllUsersLoad.value
                 ? ListView.separated(
-                    itemCount:
-                        homeController.getAllUsers!.freeTrialUsers.length,
+                    itemCount: homeController.getAllUsers!.freeTrialUsers.length,
                     padding: EdgeInsets.all(20.h),
                     itemBuilder: (BuildContext context, int index) {
-                      var user =
-                          homeController.getAllUsers!.freeTrialUsers[index];
-                      return containerWidget(
-                          isCustomerSupport, user, textTheme);
+                      var user = homeController.getAllUsers!.freeTrialUsers[index];
+                      return containerWidget(isCustomerSupport, user, textTheme);
                     },
                     separatorBuilder: (BuildContext context, int index) {
                       return SizedBox(
@@ -94,8 +89,7 @@ class AllUsersScreen extends StatelessWidget {
           bottomNavigationBar: isCustomerSupport
               ? null
               : Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -103,9 +97,7 @@ class AllUsersScreen extends StatelessWidget {
                           text: "Add User",
                           onPressed: () async {
                             Get.to(() => AddNewUser());
-                            homeController.getUsersBasedOnUserType(
-                                homeController.addTeamMember[4]
-                                    .replaceAll(" ", "_"));
+                            homeController.getUsersBasedOnUserType(homeController.addTeamMember[4].replaceAll(" ", "_"));
                             homeController.getPlans();
                             // Get.find<HomeController>().getAllDietitian();
                           }),
@@ -117,14 +109,12 @@ class AllUsersScreen extends StatelessWidget {
     );
   }
 
-  Widget containerWidget(
-      bool isCustomerSupport, User user, TextTheme textTheme) {
+  Widget containerWidget(bool isCustomerSupport, User? user, TextTheme textTheme) {
     return Row(children: [
       Container(
         height: 32.h,
         width: 32.h,
-        decoration:
-            const BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+        decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black),
         child: Image.asset(
           MyImgs.userIcon,
           scale: 4,
@@ -138,27 +128,23 @@ class AllUsersScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "${user.user.firstName} ${user.user.lastName}",
-              style: textTheme.bodyMedium!.copyWith(
-                  color: MyColors.textColor, fontWeight: FontWeight.w500),
+              "${user?.user.firstName} ${user?.user.lastName}",
+              style: textTheme.bodyMedium!.copyWith(color: MyColors.textColor, fontWeight: FontWeight.w500),
             ),
             Text(
-              isCustomerSupport ? user.user.phone : user.user.email,
-              style: textTheme.bodySmall!.copyWith(
-                  color: MyColors.textColor, fontWeight: FontWeight.w400),
+              isCustomerSupport ? user?.user.phone ?? "N/A" : user?.user.email ?? "N/A",
+              style: textTheme.bodySmall!.copyWith(color: MyColors.textColor, fontWeight: FontWeight.w400),
             ),
-            if (user.plans != null)
-              Text(
-                "Plan: ${user.plans?.plan.title} (${DateTime.now().difference(user.plans!.buyingDate).inDays} days ago)",
-                style: textTheme.bodySmall!.copyWith(
-                    color: MyColors.textColor, fontWeight: FontWeight.w400),
-              ),
+            if (user != null)
+              if (user.plans != null)
+                Text(
+                  "Plan: ${user.plans?.plan.title} (${DateTime.now().difference(user.plans!.buyingDate).inDays} days ago)",
+                  style: textTheme.bodySmall!.copyWith(color: MyColors.textColor, fontWeight: FontWeight.w400),
+                ),
             Text(
-              "BMI Result: ${user.user.bmiResult??"N/A"}",
-              style: textTheme.bodySmall!.copyWith(
-                  color: MyColors.textColor, fontWeight: FontWeight.w400),
+              "BMI Result: ${user?.user.bmiResult ?? "N/A"}",
+              style: textTheme.bodySmall!.copyWith(color: MyColors.textColor, fontWeight: FontWeight.w400),
             )
-
           ],
         ),
       ),
@@ -168,74 +154,71 @@ class AllUsersScreen extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: () {
-                    homeController.firstNameController.text =
-                        user.user.firstName;
-                    homeController.lastNameController.text = user.user.lastName;
-                    homeController.emailController.text = user.user.email;
-                    homeController.phoneController.text = user.user.phone;
+                    homeController.firstNameController.text = user?.user.firstName ?? "";
+                    homeController.lastNameController.text = user?.user.lastName ?? "";
+                    homeController.emailController.text = user?.user.email ?? "";
+                    homeController.phoneController.text = user?.user.phone ?? "";
                     homeController.passwordController.text = "";
-                    if (user.plans != null) {
-                      homeController.dateExtendController.text =
-                          "${user.plans!.expireDate.difference(DateTime.now()).inDays} days";
+                    if (user?.plans != null) {
+                      homeController.dateExtendController.text = "${user?.plans!.expireDate.difference(DateTime.now()).inDays} days";
                     }
-
-                    Get.to(() => EditUser(
-                          user: user,
-                        ));
+                    if (user != null) {
+                      Get.to(() => EditUser(
+                            user: user,
+                          ));
+                    }
                   },
                   child: Container(
                     height: 32.h,
                     width: 32.h,
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Color(0xffEBEBEB)),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xffEBEBEB)),
                     child: const Icon(Icons.edit),
                   ),
                 ),
                 SizedBox(
                   width: 12.w,
                 ),
-                GestureDetector(
-                  onTap: () {
-                    Get.defaultDialog(
-                        title: "Alert",
-                        content: const Text(
-                            "Do you really want to delete that user"),
-                        onConfirm: () async {
-                          Get.back();
-
-                          // Get.find<AuthController>()
-                          //     .deleteUser(doc[Constants.userId]);
-                        },
-                        onCancel: () async {});
-                  },
-                  child: Container(
-                    height: 32.h,
-                    width: 32.h,
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Color(0xffFFDAD3)),
-                    child: Icon(Icons.delete),
-                  ),
-                ),
+                // GestureDetector(
+                //   onTap: () {
+                //     Get.defaultDialog(
+                //         title: "Alert",
+                //         content: const Text("Do you really want to delete this user"),
+                //         onConfirm: () async {
+                //           Get.back();
+                //           if (user?.user != null) {
+                //             Get.find<AuthController>().deleteUser(id: user?.user.id.toString());
+                //           }
+                //         },
+                //         onCancel: () async {});
+                //   },
+                //   child: Container(
+                //     height: 32.h,
+                //     width: 32.h,
+                //     decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xffFFDAD3)),
+                //     child: Icon(Icons.delete),
+                //   ),
+                // ),
               ],
             )
           : GestureDetector(
               onTap: () async {
-                var userDetail = user.user.id.toString();
+                if(user !=null){
+                  var userDetail = user.user.id.toString();
 
-                var userMap = await homeController
-                    .getspecificUserFromFireStore(userDetail);
-                var roomId = await homeController.makeRoomId(userDetail);
+                  var userMap = await homeController.getspecificUserFromFireStore(userDetail);
+                  var roomId = await homeController.makeRoomId(userDetail);
 
-                Get.to(() => ChatRoom(
-                      chatRoomId: roomId,
-                      userMap: userMap,
-                    ));
+                  Get.to(() => ChatRoom(
+                    chatRoomId: roomId,
+                    userMap: userMap,
+                  ));
+                }
+
               },
               child: Container(
                 height: 32.h,
                 width: 32.h,
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: Color(0xffFFDAD3)),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xffFFDAD3)),
                 child: const Icon(
                   Icons.message,
                   size: 15,

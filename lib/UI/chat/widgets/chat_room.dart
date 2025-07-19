@@ -383,6 +383,19 @@ class _ChatRoomState extends State<ChatRoom>
                     : Colors.white,
               ),
             ),
+            SizedBox(
+              height: 5.h,
+            ),
+            Text(
+              HelpingWidgets.getDateFromTimeStamp(map["time"]),
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w500,
+                color: map['sendBy'] == Get.find<AuthController>().logInUser!.id
+                    ? Colors.black
+                    : Colors.white,
+              ),
+            ),
           ],
         ),
       ),

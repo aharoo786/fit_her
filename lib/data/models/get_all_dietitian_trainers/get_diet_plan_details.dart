@@ -20,29 +20,41 @@ class GetDietPlanDetails extends Serializable {
   List<TimeDietition> timeDietition;
   ClientUser dietDetails;
   SlotWithTime? bookedSlot;
-  var pdfFile=''.obs;
-
+  var pdfFile = ''.obs;
+  bool isBooked;
+  String status;
+  int id;
   GetDietPlanDetails({
     required this.timeDietition,
     required this.dietDetails,
     required this.bookedSlot,
+    required this.isBooked,
+    required this.status,
+    required this.id,
   });
 
   factory GetDietPlanDetails.fromJson(Map<String, dynamic> json) =>
       GetDietPlanDetails(
-        timeDietition: List<TimeDietition>.from(
-            json["TimeDietition"].map((x) => TimeDietition.fromJson(x))),
-        dietDetails: ClientUser.fromJson(json["dietDetails"]),
-        bookedSlot: json["bookedSlot"] == null
-            ? null
-            : SlotWithTime.fromJson(json["bookedSlot"]),
+          timeDietition: List<TimeDietition>.from(
+              json["TimeDietition"].map((x) => TimeDietition.fromJson(x))),
+          dietDetails: ClientUser.fromJson(json["dietDetails"]),
+          bookedSlot: json["bookedSlot"] == null
+              ? null
+              : SlotWithTime.fromJson(json["bookedSlot"]),
+          isBooked: json["isBooked"] ?? false,
+          status: json["status"] ?? "pending",
+          id: json["id"] ?? 0
       );
+
 
   Map<String, dynamic> toJson() => {
         "TimeDietition":
             List<dynamic>.from(timeDietition.map((x) => x.toJson())),
         "dietDetails": dietDetails.toJson(),
         "bookedSlot": bookedSlot?.toJson(),
+        "isBooked": isBooked,
+        "status": status,
+        "id": id,
       };
 }
 
