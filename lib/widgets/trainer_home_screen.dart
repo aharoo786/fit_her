@@ -55,11 +55,8 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.only(
-                      top: 42.h, bottom: 42.h, right: 15.w, left: 130.w),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: const Color(0xffFAD8CD)),
+                  padding: EdgeInsets.only(top: 42.h, bottom: 42.h, right: 15.w, left: 130.w),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: const Color(0xffFAD8CD)),
                   child: Text(
                     "Make Your Body\nHealthy & Fit With Us",
                     style: textTheme.headlineMedium!.copyWith(
@@ -81,8 +78,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (BuildContext context, int planIndex) {
-                      var day = workOutController
-                          .getTrainerHome!.trainerSlots[planIndex];
+                      var day = workOutController.getTrainerHome!.trainerSlots[planIndex];
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -102,19 +98,12 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                   Container(
                                     height: 56.h,
                                     width: 120.w,
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 12.w),
+                                    padding: EdgeInsets.symmetric(horizontal: 12.w),
                                     alignment: Alignment.centerLeft,
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        border:
-                                            Border.all(color: Colors.black)),
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black)),
                                     child: Text(
                                       slot.start,
-                                      style: TextStyle(
-                                          color: MyColors.textColor,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w400),
+                                      style: TextStyle(color: MyColors.textColor, fontSize: 16.sp, fontWeight: FontWeight.w400),
                                     ),
                                   ),
                                   SizedBox(
@@ -123,42 +112,32 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                   Container(
                                     height: 56.h,
                                     width: 120.w,
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 12.w),
+                                    padding: EdgeInsets.symmetric(horizontal: 12.w),
                                     alignment: Alignment.centerLeft,
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        border:
-                                            Border.all(color: Colors.black)),
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black)),
                                     child: Text(
                                       slot.end,
-                                      style: TextStyle(
-                                          color: MyColors.textColor,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w400),
+                                      style: TextStyle(color: MyColors.textColor, fontSize: 16.sp, fontWeight: FontWeight.w400),
                                     ),
                                   ),
                                   SizedBox(
                                     width: 10.w,
                                   ),
                                   Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       GestureDetector(
                                         onTap: () {
                                           Get.to(() => SessionScreen(
                                                 slotId: slot.id,
+                                                status: RxString(slot.status ??""),
                                                 isDiet: false,
-                                                planId: workOutController
-                                                    .getTrainerHome?.plan?.id
-                                                    .toString(),
+                                                planId: workOutController.getTrainerHome?.plan?.id.toString(),
                                                 userId: 0,
                                                 link: slot.trainerLink,
                                                 token: slot.token ?? "",
                                               ));
-                                          workOutController
-                                              .getFreeTrialUserDetails(slot.id.toString());
+                                          workOutController.getFreeTrialUserDetails(slot.id.toString());
                                         },
                                         // Get.to(() => PasteLink(
                                         //       slotId: slot.id,
@@ -167,10 +146,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                           alignment: Alignment.center,
                                           width: 100.w,
                                           height: 28.h,
-                                          decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              color: MyColors.buttonColor),
+                                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: MyColors.buttonColor),
                                           child: Text(
                                             "Paste Link",
                                             style: textTheme.titleLarge,
@@ -181,8 +157,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                         height: 4,
                                       ),
                                       GestureDetector(
-                                        onTap: () => Get.to(() =>
-                                            ClassDetails(slotId: slot.id)),
+                                        onTap: () => Get.to(() => ClassDetails(slotId: slot.id)),
                                         // Get.to(() => PasteLink(
                                         //       slotId: slot.id,
                                         //     )),
@@ -190,10 +165,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                                           alignment: Alignment.center,
                                           width: 100.w,
                                           height: 28.h,
-                                          decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              color: MyColors.buttonColor),
+                                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: MyColors.buttonColor),
                                           child: Text(
                                             "Class Details",
                                             style: textTheme.titleLarge,
@@ -218,8 +190,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                         height: 10.h,
                       );
                     },
-                    itemCount:
-                        workOutController.getTrainerHome!.trainerSlots.length,
+                    itemCount: workOutController.getTrainerHome!.trainerSlots.length,
                   )
                 : const Center(
                     child: CircularProgressIndicator(),

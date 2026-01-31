@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../values/my_colors.dart';
 import '../../values/my_imgs.dart';
 import '../data/controllers/auth_controller/auth_controller.dart';
+import '../helper/analytics_helper.dart';
 
 class SocialLoginButtons extends StatelessWidget {
   SocialLoginButtons({super.key});
@@ -19,7 +20,9 @@ class SocialLoginButtons extends StatelessWidget {
       children: [
         Expanded(
           child: GestureDetector(
-            onTap: () {
+            onTap: () async {
+              // Track Apple login attempt
+              await AnalyticsHelper.trackLogin('apple');
               authController.handleappleLogin();
             },
             child: Container(
@@ -40,7 +43,7 @@ class SocialLoginButtons extends StatelessWidget {
                       )),
                   Expanded(
                       child: Text(
-                    "Continue with Apple".tr,
+                    "Apple".tr,
                     style: textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w500,
                       color: Colors.white,
@@ -60,13 +63,17 @@ class SocialLoginButtons extends StatelessWidget {
         ),
         Expanded(
           child: GestureDetector(
-            onTap: () {
+            onTap: () async {
+              // Track Google login attempt
+              await AnalyticsHelper.trackLogin('google');
               authController.showEmailsDialog();
             },
             child: Container(
               height: 56,
               width: double.infinity,
-              decoration: BoxDecoration(border: Border.all(color: MyColors.black.withOpacity(0.2)), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                  border: Border.all(color: MyColors.black.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(8)),
               child: Row(
                 children: [
                   Padding(
@@ -79,7 +86,7 @@ class SocialLoginButtons extends StatelessWidget {
                   ),
                   Expanded(
                       child: Text(
-                    "Continue with Google".tr,
+                    "Google".tr,
                     style: textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w500,
                     ),

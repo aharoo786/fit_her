@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 
-
 import 'chat_room.dart';
 
 class UserWidget extends StatelessWidget {
@@ -25,15 +24,13 @@ class UserWidget extends StatelessWidget {
         onTap: () async {
           Get.to(() => ChatRoom(
                 chatRoomId: roomId,
-                userMap:
-                    snapshot.data!.docs[index].data()! as Map<String, dynamic>,
+                userMap: snapshot.data!.docs[index].data()! as Map<String, dynamic>,
               ));
         },
         leading: Container(
             height: 40,
             width: 40,
-            decoration:
-                BoxDecoration(shape: BoxShape.circle, color: Colors.white10),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white10),
             child: Image.asset(
               MyImgs.logo,
               height: 30,
@@ -53,8 +50,7 @@ class UserWidget extends StatelessWidget {
             ? Container(
                 height: 15,
                 width: 15,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle, color: MyColors.buttonColor),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: MyColors.buttonColor),
               )
             : SizedBox());
   }

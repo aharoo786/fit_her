@@ -13,8 +13,7 @@ class ChatHomeScreen extends StatefulWidget {
   _ChatHomeScreen createState() => _ChatHomeScreen();
 }
 
-class _ChatHomeScreen extends State<ChatHomeScreen>
-    with WidgetsBindingObserver {
+class _ChatHomeScreen extends State<ChatHomeScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? userMap;
   bool isLoading = false;
   final TextEditingController _search = TextEditingController();
@@ -56,11 +55,7 @@ class _ChatHomeScreen extends State<ChatHomeScreen>
                 return ListView.builder(
                   itemBuilder: (context, index) {
                     String roomId =
-                        (authController.logInUser!.id.toString().hashCode +
-                                snapshot.data!.docs[index]['id']
-                                    .toString()
-                                    .hashCode)
-                            .toString();
+                        (authController.logInUser!.id.toString().hashCode + snapshot.data!.docs[index]['id'].toString().hashCode).toString();
                     return Column(
                       children: [
                         UserWidget(
@@ -78,8 +73,7 @@ class _ChatHomeScreen extends State<ChatHomeScreen>
                       ],
                     );
                   },
-                  itemCount:
-                      snapshot.data == null ? 0 : snapshot.data!.docs.length,
+                  itemCount: snapshot.data == null ? 0 : snapshot.data!.docs.length,
                 );
               } else {
                 return const Center(child: Text("Nothing to show yet"));

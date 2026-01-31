@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:fitness_zone_2/UI/auth_module/choose_any_one/choose_any_one.dart';
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
@@ -135,7 +133,7 @@ class AuthController extends GetxController implements GetxService {
     firstNameController.clear();
     lastNameController.clear();
     emailNameController.clear();
-    passwordController.clear();
+    phoneNumberController.clear();
     passwordController.clear();
   }
 
@@ -216,7 +214,7 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  signInUsingGoogle(String userEmail, String name, String signedFrom) {
+  signInUsingGoogle(String userEmail, String name, String signedFrom, {String? userType, bool fromLocal = false}) {
     Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
     connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -229,7 +227,7 @@ class AuthController extends GetxController implements GetxService {
             .googleSignIn(
           email: userEmail,
           deviceToken: sharedPreferences.getString(Constants.deviceToken) ?? "",
-          userType: loginAsA.value,
+          userType: userType ?? loginAsA.value,
         )
             .then((response) async {
           Get.log("login api response :${response.body}");
@@ -261,10 +259,14 @@ class AuthController extends GetxController implements GetxService {
                 emailNameController.text = userEmail;
                 firstNameController.text = name.split(" ").first;
                 lastNameController.text = name.split(" ").last;
-
-                Get.to(() => SignUpNewUser(
-                      isSocial: true,
-                    ));
+                if (fromLocal) {
+                  Get.find<AuthController>().loginUserPhone.text = userEmail;
+                  Get.offAll(() => Login());
+                } else {
+                  Get.to(() => SignUpNewUser(
+                        isSocial: true,
+                      ));
+                }
               }
             }
           } else {
@@ -352,6 +354,7 @@ class AuthController extends GetxController implements GetxService {
       } else {
         final appleAuthProvider = fAuth.AppleAuthProvider();
         appleAuthProvider.addScope("email");
+        appleAuthProvider.addScope("name");
 
         var authCredentials = await _auth.signInWithProvider(appleAuthProvider);
         final fAuth.User? user = authCredentials.user;
@@ -567,7 +570,7 @@ class AuthController extends GetxController implements GetxService {
                 if (response.body["status"] == "1") {
                   CustomToast.successToast(msg: response.body["message"]);
                   sharedPreferences.clear();
-                  Get.offAll(() => ChooseAnyOne());
+                  Get.offAll(() => Login());
                   NotificationServices().getDeviceToken();
                   await init();
                   if (await googleSignIn.isSignedIn()) {
@@ -587,7 +590,7 @@ class AuthController extends GetxController implements GetxService {
       sharedPreferences.clear();
       await init();
       loginAsA.value = Constants.user;
-      Get.offAll(() => ChooseAnyOne());
+      Get.offAll(() => Login());
     }
   }
 

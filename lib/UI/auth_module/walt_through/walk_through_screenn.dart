@@ -1,3 +1,4 @@
+import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
@@ -96,7 +97,7 @@ class WalkThroughScreen extends StatelessWidget {
                   CustomButton(
                       text: "Log In",
                       onPressed: () {
-                        Get.to(() => ChooseAnyOne());
+                        Get.to(() => Login());
                       }),
                   // CustomButton(
                   //     text: "Free PCOS Risk Assessment Task",

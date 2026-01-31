@@ -20,13 +20,9 @@ class DietScreen extends StatelessWidget {
     var textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(
-          fromBottomBar
-              ? null
-              : () {
-                  Get.back();
-                },
-          text: "Consultation"),
+      appBar: HelpingWidgets().appBarWidget(() {
+        Get.back();
+      }, text: "Consultation"),
       body: Column(
         children: [
           SizedBox(
@@ -40,44 +36,28 @@ class DietScreen extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: 8.h),
                         shrinkWrap: true,
                         scrollDirection: Axis.horizontal,
-                        itemCount: homeController
-                            .getUsersBasedOnUserTypeModel!
-                            .users
-                            .length, // Number of stars (you can make this dynamic)
+                        itemCount: homeController.getUsersBasedOnUserTypeModel!.users.length, // Number of stars (you can make this dynamic)
                         itemBuilder: (context, index) {
-                          var user = homeController
-                              .getUsersBasedOnUserTypeModel!.users[index];
+                          var user = homeController.getUsersBasedOnUserTypeModel!.users[index];
                           return Stack(
                             children: [
                               Container(
                                 width: 250.w,
-                                margin: EdgeInsets.only(
-                                    left: 25.w, right: index == 4 ? 20.w : 0),
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 26.h, horizontal: 16.w),
-                                decoration: BoxDecoration(
-                                    color: MyColors.workOut1,
-                                    borderRadius: BorderRadius.circular(5),
-                                    boxShadow: [
-                                      BoxShadow(
-                                          offset: const Offset(0, 1),
-                                          spreadRadius: 0.5,
-                                          blurRadius: 5,
-                                          color: Colors.black.withOpacity(0.25))
-                                    ]),
+                                margin: EdgeInsets.only(left: 25.w, right: index == 4 ? 20.w : 0),
+                                padding: EdgeInsets.symmetric(vertical: 26.h, horizontal: 16.w),
+                                decoration: BoxDecoration(color: MyColors.workOut1, borderRadius: BorderRadius.circular(5), boxShadow: [
+                                  BoxShadow(offset: const Offset(0, 1), spreadRadius: 0.5, blurRadius: 5, color: Colors.black.withOpacity(0.25))
+                                ]),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       "${user.firstName} ${user.lastName}",
-                                      style: textTheme.bodySmall!.copyWith(
-                                          fontWeight: FontWeight.w600),
+                                      style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w600),
                                     ),
                                     Text(
                                       "Expert on diet and\nnutrition",
-                                      style: textTheme.titleLarge!.copyWith(
-                                          color: MyColors.workOutTextColor,
-                                          fontWeight: FontWeight.w500),
+                                      style: textTheme.titleLarge!.copyWith(color: MyColors.workOutTextColor, fontWeight: FontWeight.w500),
                                     ),
                                     const Spacer(),
                                     CustomButton(

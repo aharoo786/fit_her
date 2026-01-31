@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:fitness_zone_2/data/models/diet_appointments.dart';
 import 'package:fitness_zone_2/data/models/dietitian_times.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/get_all_diet_plans_of_user.dart';
+import 'package:fitness_zone_2/data/models/food_suggestion_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -44,6 +45,7 @@ class DietController extends GetxController implements GetxService {
   var slotsLoad = false.obs;
   var dietPlanDetailsLoad = false.obs;
   var bookAppointmentSlotId = 0.obs;
+  var foodSuggestionLoad = false.obs;
 
   ///Calori xFile
   XFile? calorieFile;
@@ -61,6 +63,7 @@ class DietController extends GetxController implements GetxService {
   DietAppointments? dietAppointmentsModel;
   DietitianTiming? dietitianTimingModel;
   DaySlotsOfDiet? daySlotsOfDietModel;
+  FoodSuggestionResponse? foodSuggestionResponse;
 
   getDietAllPlansFunc() {
     dietOfUserLoad.value = false;
@@ -78,8 +81,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetDietAllPlans> model =
-                ApiResponse.fromJson(response.body, GetDietAllPlans.fromJson);
+            ApiResponse<GetDietAllPlans> model = ApiResponse.fromJson(response.body, GetDietAllPlans.fromJson);
             if (model.status == "1") {
               getDietAllPlans = model.data;
 
@@ -107,8 +109,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DietClients> model =
-                ApiResponse.fromJson(response.body, DietClients.fromJson);
+            ApiResponse<DietClients> model = ApiResponse.fromJson(response.body, DietClients.fromJson);
             if (model.status == "1") {
               getDietClientsModel = model.data;
 
@@ -136,8 +137,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DietAppointments> model =
-                ApiResponse.fromJson(response.body, DietAppointments.fromJson);
+            ApiResponse<DietAppointments> model = ApiResponse.fromJson(response.body, DietAppointments.fromJson);
             if (model.status == "1") {
               dietAppointmentsModel = model.data;
 
@@ -165,8 +165,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DietAppointments> model =
-                ApiResponse.fromJson(response.body, DietAppointments.fromJson);
+            ApiResponse<DietAppointments> model = ApiResponse.fromJson(response.body, DietAppointments.fromJson);
             if (model.status == "1") {
               rescheduleAppointments = model.data?.appointments ?? [];
 
@@ -193,8 +192,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DietAppointments> model =
-                ApiResponse.fromJson(response.body, DietAppointments.fromJson);
+            ApiResponse<DietAppointments> model = ApiResponse.fromJson(response.body, DietAppointments.fromJson);
             if (model.status == "1") {
               consultationStatus = model.data?.appointments ?? [];
 
@@ -221,8 +219,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DietPlanScheduleStatus> model = ApiResponse.fromJson(
-                response.body, DietPlanScheduleStatus.fromJson);
+            ApiResponse<DietPlanScheduleStatus> model = ApiResponse.fromJson(response.body, DietPlanScheduleStatus.fromJson);
             if (model.status == "1") {
               pdfDietStatus = model.data?.pdfDiets ?? [];
               dietPlanStatusLoad.value = true;
@@ -249,8 +246,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DietitianTiming> model =
-                ApiResponse.fromJson(response.body, DietitianTiming.fromJson);
+            ApiResponse<DietitianTiming> model = ApiResponse.fromJson(response.body, DietitianTiming.fromJson);
             if (model.status == "1") {
               dietitianTimingModel = model.data;
 
@@ -271,17 +267,13 @@ class DietController extends GetxController implements GetxService {
         homeRepo.getDaySlots(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           userId: sharedPreferences.getString(Constants.userId) ?? "",
-          map: {
-            "dietitionId": sharedPreferences.getString(Constants.userId) ?? "",
-            "dayId": dayId
-          },
+          map: {"dietitionId": sharedPreferences.getString(Constants.userId) ?? "", "dayId": dayId},
         ).then((response) async {
           // Get.back();
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<DaySlotsOfDiet> model =
-                ApiResponse.fromJson(response.body, DaySlotsOfDiet.fromJson);
+            ApiResponse<DaySlotsOfDiet> model = ApiResponse.fromJson(response.body, DaySlotsOfDiet.fromJson);
             if (model.status == "1") {
               daySlotsOfDietModel = model.data;
 
@@ -309,8 +301,7 @@ class DietController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetDietPlanDetails> model = ApiResponse.fromJson(
-                response.body, GetDietPlanDetails.fromJson);
+            ApiResponse<GetDietPlanDetails> model = ApiResponse.fromJson(response.body, GetDietPlanDetails.fromJson);
             if (model.status == "1") {
               getDietPlanDetails = model.data;
               await getUserPdfFile(id.toString());
@@ -342,8 +333,7 @@ class DietController extends GetxController implements GetxService {
           } else if (response.body["status"] != "0") {
             ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
             if (model.status == "1") {
-              getDietPlanDetails!.pdfFile.value =
-                  "${Constants.baseUrl}/${response.body["data"]["details"]["pdfFile"] ?? ""}";
+              getDietPlanDetails!.pdfFile.value = "${Constants.baseUrl}/${response.body["data"]["details"]["pdfFile"] ?? ""}";
 
               dietPlanDetailsLoad.value = true;
             }
@@ -359,22 +349,17 @@ class DietController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        await homeRepo.addPdfFileRepo(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "image": addDietPdfFil!.path,
-              "userId": userId,
-              "userPlanId": planId
-            }).then((response) async {
+        await homeRepo.addPdfFileRepo(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {
+          "image": addDietPdfFil!.path,
+          "userId": userId,
+          "userPlanId": planId,
+        }).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
@@ -397,19 +382,15 @@ class DietController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        await homeRepo.bookAppointment(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "date": date.toIso8601String(),
-              "userId": sharedPreferences.getString(Constants.userId) ?? "",
-              "dietitionId": dietId,
-              "timeSlotId": bookAppointmentSlotId.value,
-              "userPlanId": planId
-            }).then((response) async {
+        await homeRepo.bookAppointment(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {
+          "date": date.toIso8601String(),
+          "userId": sharedPreferences.getString(Constants.userId) ?? "",
+          "dietitionId": dietId,
+          "timeSlotId": bookAppointmentSlotId.value,
+          "userPlanId": planId
+        }).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
@@ -419,14 +400,11 @@ class DietController extends GetxController implements GetxService {
             }
             if (model.status == "1") {
               CustomToast.successToast(msg: model.message);
-              print('DietController.bookAppointment ${response.body}');
               getDietPlanDetails?.isBooked = true;
-              getDietPlanDetails?.status =
-                  response.body["data"]["appointment"]['status'] ?? "pending";
-              getDietPlanDetails?.id =
-                  response.body["data"]["appointment"]["id"] ?? 0;
-              update(["dietBottomScreen"]);
-              //  getDietPlanDetailsFunc(planId.toString());
+              getDietPlanDetails?.status = response.body["data"]["appointment"]['status'] ?? "pending";
+              getDietPlanDetails?.id = response.body["data"]["appointment"]["id"] ?? 0;
+              // update(["dietBottomScreen"]);
+              getDietPlanDetailsFunc(planId.toString());
               //  Get.back();
             }
           } else {
@@ -437,33 +415,34 @@ class DietController extends GetxController implements GetxService {
     });
   }
 
-  addCaloriesImage() {
+  addCaloriesImage(String foodName) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        await homeRepo.addCalorieImage(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "image": calorieFile?.path,
-            }).then((response) async {
-          // Get.back();
-          print('DietController.addCaloriesImage ${response.bodyString}');
-          print('DietController.addCaloriesImage ${response.statusCode}');
+        await homeRepo
+            .addCalorieImage(
+                accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+                map: {
+                  "foodName": foodName,
+                },
+                id: sharedPreferences.getString(Constants.userId) ?? "")
+            .then((response) async {
+          Get.back();
           if (response.statusCode == 200) {
-            // Get.to(() => const NutritionScreen());
-            // if (model.status == "0") {
-            //   CustomToast.failToast(msg: model.message);
-            // }
-            // if (model.status == "1") {
-            //   CustomToast.successToast(msg: model.message);
-            // }
-            analyzeImageUrl(jsonDecode(response.bodyString!)["url"]);
+            ApiResponse<NutritionModel> model = ApiResponse.fromJson(response.body, NutritionModel.fromJson);
+            if (model.status == "0") {
+              CustomToast.failToast(msg: model.message);
+            }
+            if (model.status == "1") {
+              CustomToast.successToast(msg: model.message);
+              Get.to(() => NutritionScreen(
+                    nutritionModel: model.data!,
+                  ));
+            }
           } else {
             CustomToast.failToast(msg: "Something wrong happened");
           }
@@ -472,54 +451,61 @@ class DietController extends GetxController implements GetxService {
     });
   }
 
-  Future<void> analyzeImageUrl(String imageUrl) async {
-    print('DietController.analyzeImageUrl ${imageUrl}');
+  removeImage() {
+    calorieFile = null;
+    update(["colorieUpdate"]);
+  }
 
-    final uri = Uri.https(
-      'api.spoonacular.com',
-      '/food/images/analyze',
-      {'apiKey': 'a2291fd5db7543429f91495c0654f28f', 'imageUrl': imageUrl},
-    );
-
-    try {
-      final resp = await http.get(uri);
-      if (resp.statusCode == 200) {
-        Get.back();
-
-        print('_SpoonacularFoodAnalyzerState._analyzeImageUrl ${resp.body}');
-        NutritionModel model = NutritionModel.fromJson(jsonDecode(resp.body));
-        Get.to(() => NutritionScreen(
-              nutritionModel: model,
-              url: imageUrl,
-            ));
+  getFoodSuggestions(String query) {
+    foodSuggestionLoad.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
       } else {
-        Get.back();
-      }
-    } catch (e) {
-      Get.back();
+        try {
+          final response = await http.get(
+            Uri.parse(
+              'https://api.spoonacular.com/food/ingredients/autocomplete?query=${Uri.encodeComponent(query)}&number=10&apiKey=a2291fd5db7543429f91495c0654f28f',
+            ),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          );
+          print('DietController.getFoodSuggestions ${response.body}');
 
-      print('DietController.analyzeImageUrlc ${e}');
-    } finally {}
+          if (response.statusCode == 200) {
+            final jsonData = jsonDecode(response.body);
+
+            // jsonData will be a List, so you may need a new model
+            // Example format: [{ "name": "apple", "id": 9003, "image": "apple.png" }, ...]
+
+            foodSuggestionResponse =
+                FoodSuggestionResponse.fromJson(jsonData);
+
+            foodSuggestionLoad.value = true;
+          } else {
+            CustomToast.failToast(msg: "Failed to get food suggestions");
+            foodSuggestionLoad.value = false;
+          }
+        } catch (e) {
+          CustomToast.failToast(msg: "Error getting food suggestions");
+          foodSuggestionLoad.value = false;
+        }
+      }
+    });
   }
 
   updateAppointmentStatus(int id, String status,
-      {bool isFromAppointment = false,
-      bool reschedule = false,
-      bool isFromDietDetails = false}) {
+      {bool isFromAppointment = false, bool reschedule = false, bool isFromDietDetails = false, String? planId}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         print('DietController.updateAppointmentStatus ${status}');
         await homeRepo
-            .updateAppointment(
-                accessToken:
-                    sharedPreferences.getString(Constants.accessToken) ?? "",
-                map: {"status": status},
-                id: id.toString())
+            .updateAppointment(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {"status": status}, id: id.toString())
             .then((response) async {
           Get.back();
 
@@ -533,20 +519,14 @@ class DietController extends GetxController implements GetxService {
 
               if (isFromAppointment) {
                 appointmentLoad.value = false;
-                var value = dietAppointmentsModel!.appointments
-                    .firstWhereOrNull((v) => v.id == id);
+                var value = dietAppointmentsModel!.appointments.firstWhereOrNull((v) => v.id == id);
                 if (value != null) {
                   value.status = status;
                   Get.back();
                 }
               }
               if (isFromDietDetails) {
-                getDietPlanDetails?.status =
-                    response.body["data"]["appointment"]['status'] ?? "pending";
-                getDietPlanDetails?.id =
-                    response.body["data"]["appointment"]["id"] ?? 0;
-                update(["dietBottomScreen"]);
-                updateReschedule();
+                getDietPlanDetailsFunc(planId.toString());
               }
               appointmentLoad.value = true;
             }
@@ -564,13 +544,9 @@ class DietController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo
-            .deleteAppointment(
-                accessToken:
-                    sharedPreferences.getString(Constants.accessToken) ?? "",
-                id: id.toString())
+            .deleteAppointment(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", id: id.toString())
             .then((response) async {
           Get.back();
 
@@ -602,8 +578,7 @@ class DietController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         var list = [];
         if (daySlotsOfDietModel != null) {
           for (var value in daySlotsOfDietModel!.slots) {
@@ -616,14 +591,8 @@ class DietController extends GetxController implements GetxService {
         }
 
         await homeRepo.addDaySlots(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "dietitionId":
-                  sharedPreferences.getString(Constants.userId) ?? "",
-              "dayId": dayId,
-              "slotsList": list
-            }).then((response) async {
+            accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+            map: {"dietitionId": sharedPreferences.getString(Constants.userId) ?? "", "dayId": dayId, "slotsList": list}).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
@@ -646,9 +615,7 @@ class DietController extends GetxController implements GetxService {
   Future<String> downloadFile(var filePath, var documentUrl) async {
     try {
       final filename = filePath;
-      var downloadDir = (Platform.isIOS)
-          ? (await getApplicationDocumentsDirectory()).path
-          : (await getApplicationSupportDirectory()).path;
+      var downloadDir = (Platform.isIOS) ? (await getApplicationDocumentsDirectory()).path : (await getApplicationSupportDirectory()).path;
 
       String dir = downloadDir;
 

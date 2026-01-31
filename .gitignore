@@ -51,3 +51,11 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+lib/data/api_provider/chat_api_provider.dart
+
+android/app/libs/mobilertc.aar
+ios/Runner/MobileRTC.xcframework
+ios/Runner/MobileRTCResources.bundle
+ios/Runner/MobileRTCScreenShare.xcframework
+ios/Runner/zoomcml.xcframework

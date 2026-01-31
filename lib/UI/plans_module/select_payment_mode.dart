@@ -15,11 +15,7 @@ import '../../values/my_imgs.dart';
 import '../../widgets/toasts.dart';
 
 class SelectPaymentMode extends StatelessWidget {
-  SelectPaymentMode(
-      {super.key,
-      required this.planId,
-      required this.durationId,
-      required this.price});
+  SelectPaymentMode({super.key, required this.planId, required this.durationId, required this.price});
   HomeController homeController = Get.find();
   String planId;
   String price;
@@ -80,8 +76,7 @@ class SelectPaymentMode extends StatelessWidget {
               child: GetBuilder<HomeController>(builder: (cont) {
                 return GestureDetector(
                   onTap: () {
-                    selectMediaBottomSheet(
-                        _getFromGallery, _getFromCamera, context);
+                    selectMediaBottomSheet(_getFromGallery, _getFromCamera, context);
                   },
                   child: homeController.planPicture != null
                       ? Container(
@@ -97,8 +92,7 @@ class SelectPaymentMode extends StatelessWidget {
                                   color: Colors.grey.withOpacity(0.4),
                                   blurRadius: 2.0,
                                   spreadRadius: 0.0,
-                                  offset: const Offset(0.0,
-                                      2.0), // shadow direction: bottom right
+                                  offset: const Offset(0.0, 2.0), // shadow direction: bottom right
                                 )
                               ],
                               image: DecorationImage(
@@ -131,11 +125,19 @@ class SelectPaymentMode extends StatelessWidget {
             Spacer(),
             CustomButton(
                 text: "Upload",
-                onPressed: () {
+                onPressed: () async {
                   if (homeController.planPicture == null) {
                     CustomToast.failToast(msg: "Please select image");
                   } else {
-                    homeController.addPlanBuyImage(planId, durationId, price);
+                    var success = await homeController.addPlanBuyImage(planId, durationId, price);
+                    if (success) {
+                      HelpingWidgets.showCustomDialog(context, () {
+                        Get.back();
+                        Get.back();
+                      }, "Successfully Uploaded!",
+                          "Our team is reviewing your payment, and you will receive a confirmation shortly. Please wait for approval.", MyImgs.logo,
+                          buttonText: "OK");
+                    }
                   }
                 }),
             SizedBox(
@@ -147,8 +149,7 @@ class SelectPaymentMode extends StatelessWidget {
     );
   }
 
-  selectMediaBottomSheet(
-      Function gallery, Function camera, BuildContext context) {
+  selectMediaBottomSheet(Function gallery, Function camera, BuildContext context) {
     Get.bottomSheet(Container(
       height: 150,
       color: MyColors.bodyBackground,
@@ -196,8 +197,7 @@ class SelectPaymentMode extends StatelessWidget {
   _getFromCamera(BuildContext context) async {
     PermissionOfPhotos().getFromCamera(context).then((value) async {
       if (value) {
-        final pickedFile =
-            await ImagePicker().pickImage(source: ImageSource.camera);
+        final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
         if (pickedFile != null) {
           print("Picked File: ${pickedFile.path}");
           var imagePath = pickedFile.path;
@@ -207,11 +207,8 @@ class SelectPaymentMode extends StatelessWidget {
           var imageName = imagePath.split("/").last;
           print("Image Name: $imageName");
           final dir1 = Directory.systemTemp;
-          final targetPath1 =
-              "${dir1.absolute.path}/dp${Get.find<AuthController>().i}.jpg";
-          var compressedFile1 = await FlutterImageCompress.compressAndGetFile(
-              imagePath, targetPath1,
-              quality: 60);
+          final targetPath1 = "${dir1.absolute.path}/dp${Get.find<AuthController>().i}.jpg";
+          var compressedFile1 = await FlutterImageCompress.compressAndGetFile(imagePath, targetPath1, quality: 60);
           HomeController homeController = Get.find();
 
           homeController.planPicture = XFile(compressedFile1!.path);
@@ -229,8 +226,7 @@ class SelectPaymentMode extends StatelessWidget {
   _getFromGallery(BuildContext context) async {
     PermissionOfPhotos().getFromGallery(context).then((value) async {
       if (value) {
-        final pickedFile =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
+        final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
         if (pickedFile != null) {
           print("Picked File: ${pickedFile.path}");
           var imagePath = pickedFile.path;
@@ -240,11 +236,8 @@ class SelectPaymentMode extends StatelessWidget {
           var imageName = imagePath.split("/").last;
           print("Image Name: $imageName");
           final dir1 = Directory.systemTemp;
-          final targetPath1 =
-              "${dir1.absolute.path}/dp${Get.find<AuthController>().i}.jpg";
-          var compressedFile1 = await FlutterImageCompress.compressAndGetFile(
-              imagePath, targetPath1,
-              quality: 60);
+          final targetPath1 = "${dir1.absolute.path}/dp${Get.find<AuthController>().i}.jpg";
+          var compressedFile1 = await FlutterImageCompress.compressAndGetFile(imagePath, targetPath1, quality: 60);
           HomeController homeController = Get.find();
           homeController.planPicture = XFile(compressedFile1!.path);
           homeController.update();

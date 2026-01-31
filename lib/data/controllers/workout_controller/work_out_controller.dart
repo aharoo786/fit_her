@@ -20,6 +20,7 @@ import '../../models/api_response/api_response_model.dart';
 import '../../models/free_trial_user_details.dart';
 import '../../models/get_user_plan/get_user_plan.dart';
 import '../auth_controller/auth_controller.dart';
+import '../../../helper/analytics_helper.dart';
 
 class WorkOutController extends GetxController implements GetxService {
   SharedPreferences sharedPreferences;
@@ -29,8 +30,6 @@ class WorkOutController extends GetxController implements GetxService {
   WorkOutController({required this.sharedPreferences, required this.homeRepo});
 
   CheckConnectionService connectionService = CheckConnectionService();
-
-
 
   ///Rx Variables
   var workOutOfUserLoad = false.obs;
@@ -71,10 +70,11 @@ class WorkOutController extends GetxController implements GetxService {
             if (model.status == "1") {
               workoutPlans = model.data;
               workOutOfUserLoad.value = true;
-              if (isFree && (workoutPlans?.plans.isNotEmpty ?? false)) {
+              print(
+                  'WorkOutController.getWorkoutAllPlansFunc ${(workoutPlans?.plans.isNotEmpty)}');
+              if (isFree && !(workoutPlans?.plans.isNotEmpty ?? true)) {
                 Get.to(() => FreeTrialSlots());
-                getDietPlanDetailsFunc(workoutPlans!.plans.first.id.toString(),
-                    showSlots: true);
+                getDietPlanDetailsFunc("0", showSlots: true);
               }
             }
           }
@@ -84,6 +84,7 @@ class WorkOutController extends GetxController implements GetxService {
   }
 
   getDietPlanDetailsFunc(String id, {bool showSlots = false}) {
+    print('WorkOutController.getDietPlanDetailsFunc');
     workOutPlanDetailsLoad.value = false;
     connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -377,6 +378,9 @@ class WorkOutController extends GetxController implements GetxService {
             } else if (response.body["status"] != "0") {
               ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
+                // Track free trial completed
+                AnalyticsHelper.trackFreeTrialEvent('completed', step: 'slots');
+
                 CustomToast.successToast(msg: model.message);
                 Get.offAll(() => BottomBarScreen());
               }

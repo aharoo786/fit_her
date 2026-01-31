@@ -6,8 +6,7 @@ import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 
-LoginModel loginModelFromJson(String str) =>
-    LoginModel.fromJson(json.decode(str));
+LoginModel loginModelFromJson(String str) => LoginModel.fromJson(json.decode(str));
 
 String loginModelToJson(LoginModel data) => json.encode(data.toJson());
 
@@ -70,4 +69,6 @@ class LoginModel extends Serializable {
         "adminId": adminId,
         "accessToken": accessToken,
       };
+
+  String get fullName => "${firstName} ${lastName}";
 }

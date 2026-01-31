@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/helper/validators.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
@@ -8,6 +9,10 @@ import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+
+import '../../data/controllers/home_controller/home_controller.dart';
+import '../../values/my_imgs.dart';
+import '../plans_module/all_plans.dart';
 
 class FreeTrialPersonalizationScreen extends StatefulWidget {
   const FreeTrialPersonalizationScreen({Key? key}) : super(key: key);
@@ -75,13 +80,26 @@ class _FreeTrialPersonalizationScreenState
     super.initState();
     // Preallocate space for each question
     answers = List.filled(pagesData.length, null);
+
+    // Track free trial started
+    AnalyticsHelper.trackFreeTrialEvent('started', step: 'personalization');
+    AnalyticsHelper.trackScreenView('free_trial_personalization_screen');
   }
 
-  bool saveCurrentAnswer() {
+  Future<bool> saveCurrentAnswer() async {
     if (answersList.isEmpty) {
       CustomToast.failToast(msg: "Please provide information");
       return false;
     }
+
+    // Track question answered
+    await AnalyticsHelper.trackQuestionnaireEvent(
+      'question_answered',
+      questionnaireType: 'personalization',
+      questionNumber: (_currentPage + 1).toString(),
+      answer: answersList.join(','),
+    );
+
     answers[_currentPage] = {
       "answersList": [...answersList],
       "other": showOther,
@@ -110,8 +128,8 @@ class _FreeTrialPersonalizationScreenState
     }
   }
 
-  void goToNextPage() {
-    bool value = saveCurrentAnswer();
+  Future<void> goToNextPage() async {
+    bool value = await saveCurrentAnswer();
     if (!value) {
       return;
     }
@@ -122,8 +140,34 @@ class _FreeTrialPersonalizationScreenState
           duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       setState(() {});
     } else {
-      Get.find<WorkOutController>().updateFreeTrialData(
-          answers.whereType<Map<String, dynamic>>().toList());
+      // Track questionnaire completed
+      await AnalyticsHelper.trackQuestionnaireEvent(
+        'completed',
+        questionnaireType: 'personalization',
+      );
+
+      bool already = await Get.find<HomeController>().addFreeTrial();
+      print('HelpingWidgets.getOurPlans $already');
+      if (already) {
+        // Track free trial already used
+        await AnalyticsHelper.trackFreeTrialEvent('already_used');
+
+        HelpingWidgets.showCustomDialog(context, () {
+          Navigator.of(context).pop();
+          Get.find<HomeController>().getPlansUser();
+          Get.to(() => OurPlansScreen());
+        },
+            "Trial already availed!",
+            "You've already used your free trial! To continue enjoying our services, please subscribe to one of our plans.",
+            MyImgs.warning,
+            buttonText: "See Plans");
+      } else {
+        // Track free trial personalization completed
+        await AnalyticsHelper.trackFreeTrialEvent('questionnaire_completed',
+            step: 'personalization');
+        Get.find<WorkOutController>().updateFreeTrialData(
+            answers.whereType<Map<String, dynamic>>().toList());
+      }
     }
   }
 

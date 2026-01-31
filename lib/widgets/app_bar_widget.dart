@@ -1,5 +1,12 @@
 import 'package:fitness_zone_2/UI/free_trail/free_trail_question.dart';
+import 'package:fitness_zone_2/UI/free_trail/free_trial_slots.dart';
+import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
+import 'package:fitness_zone_2/data/controllers/zoom_controller.dart';
+import 'package:fitness_zone_2/data/services/youtube_tutorial_service.dart';
+import 'package:fitness_zone_2/widgets/review_bottom_sheet.dart';
 import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +23,7 @@ import '../data/models/get_user_plan/get_workout_user_plan_details.dart';
 import '../values/constants.dart';
 import '../values/my_colors.dart';
 import '../values/my_imgs.dart';
+import '../helper/analytics_helper.dart';
 import 'custom_button.dart';
 import 'package:intl/intl.dart';
 
@@ -54,6 +62,14 @@ class HelpingWidgets {
       actions: [actionWidget ?? const SizedBox()],
       bottom: bottom,
     );
+  }
+
+  static String formatDateWithMonthName(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0'); // 2-digit day
+    final year = (date.year % 100).toString().padLeft(2, '0'); // last 2 digits of year
+    final monthName = DateFormat('MMMM').format(date); // Full month name (e.g., July)
+
+    return '$day $monthName $year';
   }
 
   static DateTime getNextWeekdayDate(String selectedDayName) {
@@ -160,18 +176,7 @@ class HelpingWidgets {
         CustomButton(
           text: "Start Free Trial",
           onPressed: () async {
-            bool already = await Get.find<HomeController>().addFreeTrial();
-            print('HelpingWidgets.getOurPlans $already');
-            if (already) {
-              HelpingWidgets.showCustomDialog(context, () {
-                Navigator.of(context).pop();
-                Get.find<HomeController>().getPlansUser();
-                Get.to(() => OurPlansScreen());
-              }, "Trial already availed!",
-                  "You've already used your free trial! To continue enjoying our services, please subscribe to one of our plans.", MyImgs.warning,
-                  buttonText: "See Plans");
-            }
-            //  Get.to(()=>FreeTrialPersonalizationScreen());
+            Get.find<WorkOutController>().getWorkoutAllPlansFunc(isFree: true);
           },
           color: Colors.white,
           textColor: MyColors.primaryGradient1,
@@ -181,7 +186,15 @@ class HelpingWidgets {
         ),
         CustomButton(
             text: "Subscribe Now",
-            onPressed: () {
+            onPressed: () async {
+              // Track subscribe click
+              await AnalyticsHelper.trackSubscribeClick(screenName: 'home_screen');
+
+              // Show subscribe tutorial first and wait for user response
+              final tutorialService = Get.find<YouTubeTutorialService>();
+              await tutorialService.showSubscribeTutorial(context);
+
+              // Then proceed with subscription
               Get.find<HomeController>().getPlansUser();
               Get.to(() => OurPlansScreen());
             }),
@@ -425,7 +438,10 @@ class HelpingWidgets {
             ElevatedButton.icon(
               onPressed: () async {
                 try {
-                  if (slot?.status != "In Progress") {
+                  if (slot == null) {
+                    return showError("Trainer has not added a link yet.");
+                  }
+                  if (slot.status != "In Progress") {
                     return;
                   }
                   if (homeController.userHomeData?.userData.freeze.value == true) {
@@ -435,14 +451,14 @@ class HelpingWidgets {
                   if (homeController.userHomeData!.userAllPlans.first.remainingDays <= 0) {
                     return showError("Please renew your plan.");
                   }
-                  if (!isSessionValid(slot!, homeController)) {
-                    showCustomDialog(context, () {
-                      Navigator.of(context).pop();
-                    }, "Session Not Started Yet!", "You're a little early!  Please wait or come back closer to the start time.",
-                        MyImgs.sessionNotStarted,
-                        buttonText: "Okay, Got it!");
-                    return;
-                  }
+                  // if (!isSessionValid(slot!, homeController)) {
+                  //   showCustomDialog(context, () {
+                  //     Navigator.of(context).pop();
+                  //   }, "Session Not Started Yet!", "You're a little early!  Please wait or come back closer to the start time.",
+                  //       MyImgs.sessionNotStarted,
+                  //       buttonText: "Okay, Got it!");
+                  //   return;
+                  // }
                   if (slot.trainerLink == null || slot.trainerLink!.isEmpty) {
                     showCustomDialog(context, () {
                       Navigator.of(context).pop();
@@ -451,8 +467,13 @@ class HelpingWidgets {
                         buttonText: "Okay, Got it!");
                     return;
                   }
+                  Future.delayed(Duration(seconds: 1));
+                  if (slot.trainerLink!.contains("https")) {
+                    await launchUrl(Uri.parse(slot.trainerLink!));
+                  } else {
+                    await startMeeting(slot.trainerLink!, slot!.id.toString());
+                  }
 
-                  await launchUrl(Uri.parse(slot.trainerLink!));
                   homeController.sharedPreferences.setBool(Constants.giveReview, true);
                 } catch (e) {
                   return showError("Trainer has not added a link yet.");
@@ -473,6 +494,20 @@ class HelpingWidgets {
         );
       },
     );
+  }
+
+  static startMeeting(
+    String meetingNumber,
+    String slotId,
+  ) async {
+    Get.back();
+    var success = await Get.find<ZoomMeetingGetxController>().joinMeeting(meetingNumber, Get.find<AuthController>().logInUser?.fullName ?? "");
+    if (success) {
+      Future.delayed(Duration(minutes: 5), () {
+        Get.bottomSheet(isScrollControlled: true, FeedbackBottomSheet("0", "0"));
+      });
+    }
+    Get.find<MotivationController>().markAttendance(slotId: slotId);
   }
 
   static StatusType getStatusTypeFromString(String status) {

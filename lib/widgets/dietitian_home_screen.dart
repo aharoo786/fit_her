@@ -29,208 +29,135 @@ class DietitianProfileScreen extends StatelessWidget {
         backGroundColor: MyColors.buttonColor,
       ),
       body: RefreshIndicator(
-        onRefresh: () {
-          dietController.getAppointmentsOfDiets();
-          return Future.value();
-        },
-        child: ListView(
-          children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Column(
+          onRefresh: () {
+            dietController.getAppointmentsOfDiets();
+            return Future.value();
+          },
+          child: ListView(children: [
+            Column(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.only(topRight: Radius.circular(25), topLeft: Radius.circular(25)),
+                    color: Colors.white,
+                  ),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
                     children: [
-                      const SizedBox(height: 50),
-                      Expanded(
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(25),
-                                topLeft: Radius.circular(25)),
-                            color: Colors.white,
+                      // SizedBox(height: 80),
+                      Text(
+                        "${authController.logInUser!.firstName} ${authController.logInUser!.lastName}",
+                        style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        authController.logInUser!.email,
+                        style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w400, color: Colors.black.withOpacity(0.4)),
+                      ),
+                      const SizedBox(height: 15),
+                      // Clients and Slots Buttons
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Get.to(() => RequestsScreen());
+                            dietController.getRescheduleAppointments();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: MyColors.buttonColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                           ),
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
+                          child: Row(
                             children: [
-                              SizedBox(height: 80),
-                              Text(
-                                "${authController.logInUser!.firstName} ${authController.logInUser!.lastName}",
-                                style: textTheme.bodySmall!
-                                    .copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                authController.logInUser!.email,
-                                style: textTheme.titleLarge!.copyWith(
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.black.withOpacity(0.4)),
-                              ),
-                              const SizedBox(height: 15),
-                              // Clients and Slots Buttons
-                              Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Get.to(() => RequestsScreen());
-                                        dietController
-                                            .getRescheduleAppointments();
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: MyColors.buttonColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15, vertical: 10),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          SvgPicture.asset(MyImgs.requests),
-                                          const SizedBox(width: 5),
-                                          const Text('Requests'),
-                                        ],
-                                      ),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        dietController.clientsOfDietFunc();
-                                        Get.to(() => ClientsScreen());
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: MyColors.buttonColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 15, vertical: 10),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.group,
-                                              color: Colors.white),
-                                          SizedBox(width: 5),
-                                          Text('Clients'),
-                                        ],
-                                      ),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        dietController.getDietTimes();
-                                        Get.to(() => SlotsScreen());
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: MyColors.buttonColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 15, vertical: 10),
-                                      ),
-                                      child: const Row(
-                                        children: [
-                                          Icon(Icons.edit_calendar_outlined,
-                                              color: Colors.white),
-                                          SizedBox(width: 5),
-                                          Text('Slots'),
-                                        ],
-                                      ),
-                                    ),
-                                  ]),
-                              SizedBox(
-                                height: 10,
-                              ),
-
-                              Obx(() => dietController.appointmentLoad.value
-                                  ? Expanded(
-                                      child: ListView.separated(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 10),
-                                          itemBuilder: (context, index) {
-                                            var appointMent = dietController
-                                                .dietAppointmentsModel!
-                                                .appointments[index];
-
-                                            return AppointmentCard(
-                                                onTap: () {
-                                                  if (appointMent.clientUser !=
-                                                      null) {
-                                                    Get.to(() =>
-                                                        ClientDetailsScreen(
-                                                            clientUser:
-                                                                appointMent
-                                                                    .clientUser!,
-                                                            slotDiet:
-                                                                appointMent
-                                                                    .slotDiet,
-                                                            appointmentId:
-                                                                appointMent.id,
-                                                            planId: null));
-                                                  }
-                                                },
-                                                name:
-                                                    "${appointMent.clientUser?.firstName} ${appointMent.clientUser?.lastName}",
-                                                status: appointMent.status,
-                                                time:
-                                                    '${appointMent.slotDiet?.start} - ${appointMent.slotDiet?.end}');
-                                          },
-                                          separatorBuilder: (context, index) {
-                                            return const SizedBox(
-                                              height: 15,
-                                            );
-                                          },
-                                          itemCount: dietController
-                                              .dietAppointmentsModel!
-                                              .appointments
-                                              .length))
-                                  : CircularProgress())
+                              SvgPicture.asset(MyImgs.requests),
+                              const SizedBox(width: 5),
+                              const Text('Requests'),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    top: 0,
-                    // left: MediaQuery.of(context).size.width/2.7,
-                    child: CircleAvatar(
-                      radius: 60,
-
-                      backgroundImage: AssetImage(MyImgs
-                          .userProfileIcon), // Replace with your image asset
-                      child: Align(
-                        alignment: Alignment.bottomRight,
-                        child: GestureDetector(
-                          onTap: () {
-                            Get.to(() => ProfileScreenUser());
+                        ElevatedButton(
+                          onPressed: () {
+                            dietController.clientsOfDietFunc();
+                            Get.to(() => ClientsScreen());
                           },
-                          child: Container(
-                            padding: EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              shape: BoxShape.circle,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: MyColors.buttonColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.group, color: Colors.white),
+                              SizedBox(width: 5),
+                              Text('Clients'),
+                            ],
                           ),
                         ),
+                        ElevatedButton(
+                          onPressed: () {
+                            dietController.getDietTimes();
+                            Get.to(() => SlotsScreen());
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: MyColors.buttonColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.edit_calendar_outlined, color: Colors.white),
+                              SizedBox(width: 5),
+                              Text('Slots'),
+                            ],
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(
+                        height: 10,
                       ),
-                    ),
+
+                      Obx(() => dietController.appointmentLoad.value
+                          ? ListView.separated(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              physics: NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              itemBuilder: (context, index) {
+                                var appointMent = dietController.dietAppointmentsModel!.appointments[index];
+
+                                return AppointmentCard(
+                                    onTap: () {
+                                      if (appointMent.clientUser != null) {
+                                        Get.to(() => ClientDetailsScreen(
+                                            status: appointMent.status,
+                                            clientUser: appointMent.clientUser!,
+                                            slotDiet: appointMent.slotDiet,
+                                            appointmentId: appointMent.id,
+                                            planId: null));
+                                      }
+                                    },
+                                    name: "${appointMent.clientUser?.firstName} ${appointMent.clientUser?.lastName}",
+                                    status: appointMent.status,
+                                    time:
+                                        '${HelpingWidgets.formatDateWithMonthName(appointMent.date)} ${appointMent.slotDiet?.start} - ${appointMent.slotDiet?.end}');
+                              },
+                              separatorBuilder: (context, index) {
+                                return const SizedBox(
+                                  height: 15,
+                                );
+                              },
+                              itemCount: dietController.dietAppointmentsModel!.appointments.length)
+                          : CircularProgress())
+                    ],
                   ),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
+                ),
+              ],
+            ),
+          ])),
     );
   }
 }
@@ -241,8 +168,7 @@ class AppointmentCard extends StatelessWidget {
   final String? status;
   final Function()? onTap;
 
-  const AppointmentCard(
-      {required this.name, this.time, this.onTap, this.status});
+  const AppointmentCard({required this.name, this.time, this.onTap, this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -261,25 +187,23 @@ class AppointmentCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap ?? () {},
         visualDensity: const VisualDensity(horizontal: -4, vertical: -3),
-        title: Text(name,
-            style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500)),
+        title: Text(name, style: textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w500)),
         subtitle: time == null
             ? null
             : Row(
                 children: [
                   Text(
                     time!,
-                    style: textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black.withOpacity(0.4)),
+                    style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 10,
                   ),
-                  Text(
-                    (status?.capitalizeFirst ?? ""),
-                    style: textTheme.bodySmall!
-                        .copyWith(fontWeight: FontWeight.w400, color: color),
+                  Expanded(
+                    child: Text(
+                      (status?.capitalizeFirst ?? ""),
+                      style: textTheme.labelMedium!.copyWith(fontWeight: FontWeight.w400, color: color),
+                    ),
                   ),
                 ],
               ),

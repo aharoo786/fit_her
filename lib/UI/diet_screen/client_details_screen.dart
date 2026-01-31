@@ -20,12 +20,13 @@ class ClientDetailsScreen extends StatelessWidget {
       required this.clientUser,
       this.slotDiet,
       this.planId,
-      this.appointmentId});
+      this.appointmentId, this.status});
 
   final ClientUser clientUser;
   final SlotDiet? slotDiet;
   final int? planId;
   final int? appointmentId;
+  final String? status;
   final List<_ChartData> chartData = [
     _ChartData('M', 100),
     _ChartData('T', 80),
@@ -82,64 +83,71 @@ class ClientDetailsScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               if (slotDiet != null)
-                                Row(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    CustomIconButton(
-                                      onTap: () {
-                                        Get.to(() => SessionScreen(
-                                              link: slotDiet?.dietitionLink,
-                                              slotId: slotDiet?.id ?? 0,
-                                              isDiet: true,
-                                              userId: clientUser.id,
-                                              token: "",
-                                            ));
-                                        Get.find<WorkOutController>()
-                                            .getFreeTrialUserDetails(
-                                                slotDiet!.id.toString());
-                                      },
-                                      iconData: Icons.phone,
-                                      text: "Appointment",
+                                    Row(
+                                      children: [
+                                        CustomIconButton(
+                                          onTap: () {
+                                            Get.to(() => SessionScreen(
+                                                  link: slotDiet?.dietitionLink,
+                                                  slotId: slotDiet?.id ?? 0,
+                                                  isDiet: true,
+                                                  userId: clientUser.id,
+                                                  token: "",
+                                                ));
+                                            Get.find<WorkOutController>()
+                                                .getFreeTrialUserDetails(
+                                                    slotDiet!.id.toString());
+                                          },
+                                          iconData: Icons.phone,
+                                          text: "Appointment",
+                                        ),
+                                        const SizedBox(
+                                          width: 5,
+                                        ),
+                                        CustomIconButton(
+                                          onTap: () {
+                                            Get.find<DietController>()
+                                                .updateAppointmentStatus(
+                                                    appointmentId ?? 0, "completed",
+                                                    isFromAppointment: true);
+                                          },
+                                          iconData: Icons.done,
+                                          text: "Completed",
+                                        ),
+                                        const SizedBox(
+                                          width: 5,
+                                        ),
+                                        CustomIconButton(
+                                          onTap: () {
+                                            Get.find<DietController>()
+                                                .updateAppointmentStatus(
+                                                    appointmentId ?? 0, "confirmed",
+                                                    isFromAppointment: true);
+                                          },
+                                          iconData: Icons.done,
+                                          text: "Confirm",
+                                        ),
+                                        const SizedBox(
+                                          width: 5,
+                                        ),
+                                        CustomIconButton(
+                                          onTap: () {
+                                            Get.find<DietController>()
+                                                .updateAppointmentStatus(
+                                                    appointmentId ?? 0, "canceled",
+                                                    isFromAppointment: true);
+                                          },
+                                          iconData: Icons.clear,
+                                          text: "Cancel",
+                                          backGroundColor: Colors.red,
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(
-                                      width: 5,
-                                    ),
-                                    CustomIconButton(
-                                      onTap: () {
-                                        Get.find<DietController>()
-                                            .updateAppointmentStatus(
-                                                appointmentId ?? 0, "completed",
-                                                isFromAppointment: true);
-                                      },
-                                      iconData: Icons.done,
-                                      text: "Completed",
-                                    ),
-                                    const SizedBox(
-                                      width: 5,
-                                    ),
-                                    CustomIconButton(
-                                      onTap: () {
-                                        Get.find<DietController>()
-                                            .updateAppointmentStatus(
-                                                appointmentId ?? 0, "confirmed",
-                                                isFromAppointment: true);
-                                      },
-                                      iconData: Icons.done,
-                                      text: "Confirm",
-                                    ),
-                                    const SizedBox(
-                                      width: 5,
-                                    ),
-                                    CustomIconButton(
-                                      onTap: () {
-                                        Get.find<DietController>()
-                                            .updateAppointmentStatus(
-                                                appointmentId ?? 0, "canceled",
-                                                isFromAppointment: true);
-                                      },
-                                      iconData: Icons.clear,
-                                      text: "Cancel",
-                                      backGroundColor: Colors.red,
-                                    ),
+                                    SizedBox(height: 10,),
+                                    Text("Current Status: ${(status?.capitalizeFirst ?? "")}")
                                   ],
                                 ),
                               const SizedBox(

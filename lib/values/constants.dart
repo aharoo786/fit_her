@@ -56,6 +56,7 @@ class Constants {
   static String fcmToken = "fcmToken";
   static String members = "members";
   static String deviceToken = "deviceToken";
+  static String announcementNotification = "announcementNotification";
   static const serverKey =
       "AAAAY1XRUEo:APA91bHjQM7SlZ0Yj9rSCJzJoLfatUhOJkye1HfBQsJkw8c8p92-L44E5t7jAc0FJy-sFzcYprNQWmutMifd2DVUhZQF08qRl1IePncuPLWoh-0V1aTEbQgEm74BHlHCkucRDHsWGNJu";
 
@@ -73,9 +74,10 @@ class Constants {
   static String getSubCat = "/admin/get_subcategories";
   static String getUserDietPlans = "/admin/userDietPlans";
   static String getClients = "/dietTimes/getClients";
-  static String addCalorieImage = "/dietTimes/upload";
+  static String addCalorieImage = "/dietTimes/checkNutrition";
   static String getAppointments = "/appointment/dietAppointments";
-  static String rescheduleAppointments = "/appointment/rescheduled/appointments";
+  static String rescheduleAppointments =
+      "/appointment/rescheduled/appointments";
   static String getConsultationStatus = "/appointment/status";
   static String getSchedulePdfStatus = "/admin/getDietPlanStatus";
   static String dietTimes = "/dietTimes";
@@ -144,12 +146,28 @@ class Constants {
   static String updateSlotTrainer = "/admin/update_slot_trainer";
   static String addFreeTrailUser = "/admin/createFreeTrialUser";
 
+  /// Motivation module
+  static String getMotivationStats = "/attendance/motivation";
+  static String markMotivationAttendance = "/attendance/mark";
+
   ///  Country ///
   static String country = "/country";
   static String add_slots = "/admin/update_slots";
 
   ///Duration
   static String timeDuration = "/duration/create";
+
+  /// POSTS MODULE
+  static const String getAllPosts = "/posts/";
+  static const String createPost = "/posts";
+  static const String deletePost = "/posts";
+  static const String approvePost = "/posts/approve";
+  static const String likePost = "/posts/like"; // new
+  static const String sendReply = "/posts/reply"; // new
+  static const String getReplies = "/posts/replies"; // new
+    // POST approve/disapprove post
+
+
 }
 
 String get today => DateFormat('EEEE').format(DateTime.now());

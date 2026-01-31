@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
@@ -104,6 +105,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   void initState() {
     _answers = List.filled(_questions.length, "");
     super.initState();
+
+    // Track hormone test questionnaire started
+    AnalyticsHelper.trackScreenView('hormone_test_questionnaire_screen');
+    AnalyticsHelper.trackQuestionnaireEvent('started',
+        questionnaireType: 'hormone_test');
   }
 
   String answer = "";
@@ -158,6 +164,10 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                       CustomToast.failToast(
                           msg: "Please fill up all the questions");
                     } else {
+                      // Track questionnaire completed
+                      AnalyticsHelper.trackQuestionnaireEvent('completed',
+                          questionnaireType: 'hormone_test');
+
                       var low = _answers!
                           .where((element) => element == "0")
                           .toList()
@@ -177,6 +187,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                       } else {
                         result = "High Risk of PCOS";
                       }
+
+                      // Track test result
+                      AnalyticsHelper.trackQuestionnaireEvent('test_result',
+                          questionnaireType: 'hormone_test', answer: result);
+
                       Get.find<AuthController>().guestLogin(result);
                     }
                   }

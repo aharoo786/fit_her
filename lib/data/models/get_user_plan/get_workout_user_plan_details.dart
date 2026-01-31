@@ -92,7 +92,7 @@ class Slot {
   int id;
   String start;
   String end;
-  dynamic trainerLink;
+  String? trainerLink;
   ClientUser? trainer;
   String? type;
   String? level;

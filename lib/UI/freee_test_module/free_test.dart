@@ -1,4 +1,5 @@
 import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
@@ -8,14 +9,27 @@ import 'package:get/get.dart';
 
 import '../../values/my_imgs.dart';
 
-class FreeTest extends StatelessWidget {
+class FreeTest extends StatefulWidget {
   FreeTest({super.key});
+
+  @override
+  State<FreeTest> createState() => _FreeTestState();
+}
+
+class _FreeTestState extends State<FreeTest> {
   final List<String> items = [
     "Snoozing your alarm every morning.",
     "Depending on multiple cups of coffee to survive the day",
     "The dreaded afternoon energy slump",
     "Feeling sluggish after eating"
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Track free test screen view
+    AnalyticsHelper.trackScreenView('free_test_screen');
+  }
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
@@ -45,7 +59,10 @@ class FreeTest extends StatelessWidget {
           ),
           CustomButton(
             text: "Start Free Test",
-            onPressed: () {
+            onPressed: () async {
+              // Track free test started
+              await AnalyticsHelper.trackButtonClick('start_free_test', screenName: 'free_test_screen');
+              await AnalyticsHelper.trackQuestionnaireEvent('started', questionnaireType: 'hormone_test');
               Get.to(()=>QuestionnaireScreen());
             },
             width: 150,

@@ -2,6 +2,7 @@ import 'package:fitness_zone_2/UI/diet_screen/diet_module.dart';
 import 'package:fitness_zone_2/UI/plans_module/select_payment_mode.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
+import 'package:fitness_zone_2/data/services/youtube_tutorial_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +11,7 @@ import 'package:get/get.dart';
 
 import '../data/models/get_user_plan/get_user_plan.dart';
 import '../values/my_colors.dart';
+import '../helper/analytics_helper.dart';
 import 'meal_details.dart';
 
 class PlanWidget extends StatelessWidget {
@@ -38,10 +40,7 @@ class PlanWidget extends StatelessWidget {
             const SizedBox(
               height: 20,
             ),
-            Text(plan.title,
-                textAlign: TextAlign.center,
-                style: textTheme.titleLarge!
-                    .copyWith(fontWeight: FontWeight.w600)),
+            Text(plan.title, textAlign: TextAlign.center, style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w600)),
             // const SizedBox(
             //   height: 5,
             // ),
@@ -52,7 +51,7 @@ class PlanWidget extends StatelessWidget {
               icon: Container(
                 height: 30,
                 width: 30,
-                decoration: BoxDecoration(color: MyColors.buttonColor,borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: MyColors.buttonColor, borderRadius: BorderRadius.circular(10)),
                 child: Icon(
                   Icons.arrow_drop_down_outlined,
                   color: Colors.white,
@@ -73,8 +72,7 @@ class PlanWidget extends StatelessWidget {
                   ? plan.countries!.first.duration![0]
                   : plan.countries!.first.duration!.firstWhere(
                       (value) => value.id == plan.selectedDurationId.value,
-                      orElse: () =>
-                          plan.countries!.first.duration![0], // Safety check
+                      orElse: () => plan.countries!.first.duration![0], // Safety check
                     ),
               onChanged: (DurationPlan? newValue) {
                 if (newValue != null) {
@@ -127,14 +125,24 @@ class PlanWidget extends StatelessWidget {
               text: "Subscribe",
               fontSize: 14.sp,
               textColor: Colors.white,
-              onPressed: () {
+              onPressed: () async {
+                // Track plan selection
                 DurationPlan? durationPlan;
                 if (plan!.countries!.isNotEmpty) {
                   if (plan.countries!.first.duration!.isNotEmpty) {
-                    durationPlan = plan.countries?.first!.duration!.firstWhere(
-                        (test) => test.id == plan.selectedDurationId.value);
+                    durationPlan = plan.countries?.first!.duration!.firstWhere((test) => test.id == plan.selectedDurationId.value);
                   }
                 }
+
+                await AnalyticsHelper.trackPlanSelected(
+                  plan.title,
+                  planPrice: durationPlan?.priceAmount,
+                  planDuration: durationPlan?.days,
+                );
+
+                // Show subscribe tutorial first and wait for user response
+                final tutorialService = Get.find<YouTubeTutorialService>();
+                await tutorialService.showSubscribeTutorial(context);
 
                 Get.to(() => DietDetails(
                       currency: plan.countries?.first.currency ?? "Rs.",
@@ -143,11 +151,8 @@ class PlanWidget extends StatelessWidget {
                       description: plan.shortDescription,
                       longDescription: plan.longDescription,
                       planId: plan.id.toString(),
-                      price: durationPlan == null
-                          ? ""
-                          : durationPlan.priceAmount ?? "",
-                      duration:
-                          durationPlan == null ? "" : durationPlan.days ?? "",
+                      price: durationPlan == null ? "" : durationPlan.priceAmount ?? "",
+                      duration: durationPlan == null ? "" : durationPlan.days ?? "",
                       durationId: plan.selectedDurationId.value,
                     ));
                 // Get.to(()=>DietDetails());
@@ -178,8 +183,7 @@ class PlanWidget extends StatelessWidget {
         children: [
           SvgPicture.asset(
             MyImgs.arrowCircleRight,
-            colorFilter:
-                const ColorFilter.mode(MyColors.buttonColor, BlendMode.srcIn),
+            colorFilter: const ColorFilter.mode(MyColors.buttonColor, BlendMode.srcIn),
           ),
           SizedBox(
             width: 10.w,

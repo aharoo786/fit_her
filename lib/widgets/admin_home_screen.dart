@@ -1,5 +1,7 @@
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/add_package.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/get_all_new_user_images/get_new_user_images.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/posts_module/admin_approve_posts.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/posts_module/feed_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/dietry_module/dietaryCheckScreen.dart';
 import 'package:fitness_zone_2/UI/plans_module/add_country.dart';
 import 'package:fitness_zone_2/UI/plans_module/add_time_durations.dart';
@@ -19,6 +21,7 @@ import '../UI/dashboard_module/my_daily_meal/my_daily_meal.dart';
 import '../UI/dashboard_module/my_recordings/my_recordings_screen.dart';
 
 import '../UI/dashboard_module/reminders_screen/reminders_screen.dart';
+import '../data/controllers/post_controller.dart';
 import '../values/constants.dart';
 import '../values/my_colors.dart';
 import '../values/my_imgs.dart';
@@ -46,11 +49,8 @@ class AdminHomeScreen extends StatelessWidget {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.only(
-                      top: 42.h, bottom: 42.h, right: 15.w, left: 130.w),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: const Color(0xffFAD8CD)),
+                  padding: EdgeInsets.only(top: 42.h, bottom: 42.h, right: 15.w, left: 130.w),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: const Color(0xffFAD8CD)),
                   child: Text(
                     "Make Your Body\nHealthy & Fit With Us",
                     style: textTheme.headlineMedium!.copyWith(
@@ -72,8 +72,7 @@ class AdminHomeScreen extends StatelessWidget {
                 Get.to(() => AllUsersScreen());
                 homeController.getAllUsersFunc();
               },
-              child: containerWidget(
-                  const Color(0xffCCF2FE), "All Users", MyImgs.userIcon),
+              child: containerWidget(const Color(0xffCCF2FE), "All Users", MyImgs.userIcon),
             ),
             SizedBox(
               height: 20.h,
@@ -83,8 +82,7 @@ class AdminHomeScreen extends StatelessWidget {
                 Get.to(() => AllGuestUsers());
                 homeController.getGuestUsers();
               },
-              child: containerWidget(const Color(0xffCCF2FE),
-                  "PCOS Assessment Users", MyImgs.userIcon),
+              child: containerWidget(const Color(0xffCCF2FE), "PCOS Assessment Users", MyImgs.userIcon),
             ),
             SizedBox(
               height: 20.h,
@@ -94,8 +92,7 @@ class AdminHomeScreen extends StatelessWidget {
                 Get.to(() => AllNewUserImages());
                 homeController.getAllImagesPlan();
               },
-              child: containerWidget(
-                  const Color(0xffCCF2FE), "New Users", MyImgs.userIcon),
+              child: containerWidget(const Color(0xffCCF2FE), "New Users", MyImgs.userIcon),
             ),
             SizedBox(
               height: 20.h,
@@ -105,8 +102,7 @@ class AdminHomeScreen extends StatelessWidget {
                 Get.to(() => AllWeeklyReport());
                 homeController.getWeeklyReportsFunc();
               },
-              child: containerWidget(const Color(0xffFCE4D1),
-                  "All Weekly Reports", MyImgs.myWeeklyReport),
+              child: containerWidget(const Color(0xffFCE4D1), "All Weekly Reports", MyImgs.myWeeklyReport),
             ),
             SizedBox(
               height: 20.h,
@@ -118,8 +114,7 @@ class AdminHomeScreen extends StatelessWidget {
                     ));
                 homeController.getPlans();
               },
-              child: containerWidget(
-                  const Color(0xffFdE4F1), "All Packages", MyImgs.package),
+              child: containerWidget(const Color(0xffFdE4F1), "All Packages", MyImgs.package),
             ),
             SizedBox(
               height: 20.h,
@@ -133,8 +128,7 @@ class AdminHomeScreen extends StatelessWidget {
                 homeController.selectedDietIdForMember.value = 0;
                 homeController.getUsersBasedOnUserType(Constants.dietitian);
               },
-              child: containerWidget(
-                  const Color(0xffFdE4F1), "Add Package", MyImgs.package),
+              child: containerWidget(const Color(0xffFdE4F1), "Add Package", MyImgs.package),
             ),
             SizedBox(
               height: 16.h,
@@ -157,24 +151,19 @@ class AdminHomeScreen extends StatelessWidget {
                       isMember: true,
                     ));
               },
-              child: containerWidget(
-                  const Color(0xffE9ECEF), "Add Team Member", MyImgs.addMember),
+              child: containerWidget(const Color(0xffE9ECEF), "Add Team Member", MyImgs.addMember),
             ),
-            // SizedBox(
-            //   height: 20.h,
-            // ),
-            // GestureDetector(
-            //   onTap: () {
-            //     // Get.to(() => MyDailyMeal(
-            //     //       isAnnouceMent: true,
-            //     //     ));
-            //     Get.to(() => RemindersScreen(
-            //           isAnnouncement: true,
-            //         ));
-            //   },
-            //   child: containerWidget(const Color(0xffE6EEFF), "Announcements",
-            //       MyImgs.annoucements),
-            // ),
+            SizedBox(
+              height: 20.h,
+            ),
+            GestureDetector(
+              onTap: () {
+                Get.to(() => RemindersScreen(
+                      isAnnouncement: true,
+                    ));
+              },
+              child: containerWidget(const Color(0xffE6EEFF), "Announcements", MyImgs.annoucements),
+            ),
             SizedBox(
               height: 20.h,
             ),
@@ -182,8 +171,7 @@ class AdminHomeScreen extends StatelessWidget {
               onTap: () {
                 Get.to(() => RemindersScreen());
               },
-              child: containerWidget(const Color(0xffE6EEFF),
-                  "Meal Plan Tracker", MyImgs.annoucements),
+              child: containerWidget(const Color(0xffE6EEFF), "Meal Plan Tracker", MyImgs.annoucements),
             ),
             SizedBox(
               height: 20.h,
@@ -194,8 +182,7 @@ class AdminHomeScreen extends StatelessWidget {
                       isTestimonials: true,
                     ));
               },
-              child: containerWidget(const Color(0xffE6EEFF),
-                  "Add Testimonials", MyImgs.annoucements),
+              child: containerWidget(const Color(0xffE6EEFF), "Add Testimonials", MyImgs.annoucements),
             ),
             SizedBox(
               height: 20.h,
@@ -204,8 +191,7 @@ class AdminHomeScreen extends StatelessWidget {
               onTap: () {
                 Get.to(() => AddCountry());
               },
-              child: containerWidget(
-                  const Color(0xffE6EEFF), "Add Country", MyImgs.annoucements),
+              child: containerWidget(const Color(0xffE6EEFF), "Add Country", MyImgs.annoucements),
             ),
             SizedBox(
               height: 20.h,
@@ -213,12 +199,10 @@ class AdminHomeScreen extends StatelessWidget {
             GestureDetector(
               onTap: () {
                 Get.find<WorkOutController>().getAllTimesSlotsTrainerFunc();
-                homeController.getUsersBasedOnUserType(Constants.trainer,
-                    addNull: true);
+                homeController.getUsersBasedOnUserType(Constants.trainer, addNull: true);
                 Get.to(() => AddTrainerSlots());
               },
-              child: containerWidget(const Color(0xffE6EEFF),
-                  "Add Trainer Slots", MyImgs.annoucements),
+              child: containerWidget(const Color(0xffE6EEFF), "Add Trainer Slots", MyImgs.annoucements),
             ),
             SizedBox(
               height: 20.h,
@@ -229,8 +213,7 @@ class AdminHomeScreen extends StatelessWidget {
 
                 Get.to(() => AddTimeDurations());
               },
-              child: containerWidget(const Color(0xffE6EEFF),
-                  "Add Time Duration", MyImgs.annoucements),
+              child: containerWidget(const Color(0xffE6EEFF), "Add Time Duration", MyImgs.annoucements),
             ),
             SizedBox(
               height: 20.h,
@@ -240,8 +223,18 @@ class AdminHomeScreen extends StatelessWidget {
               onTap: () {
                 Get.to(() => DietaryCheckScreen());
               },
-              child: containerWidget(const Color(0xffE6EEFF), "Dietary Check",
-                  MyImgs.annoucements),
+              child: containerWidget(const Color(0xffE6EEFF), "Dietary Check", MyImgs.annoucements),
+            ),
+            SizedBox(
+              height: 20.h,
+            ),
+
+            GestureDetector(
+              onTap: () {
+                Get.find<PostController>().getAllPosts(approved: false);
+                Get.to(() => AdminApprovePosts());
+              },
+              child: containerWidget(const Color(0xffE6EEFF), "Posts Check", MyImgs.annoucements),
             ),
             // Obx(
             //   () => homeController.trialPlanLoad.value

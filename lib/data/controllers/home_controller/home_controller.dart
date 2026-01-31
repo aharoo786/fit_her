@@ -14,6 +14,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/get_all_dietitian_trainers.dart';
 import 'package:fitness_zone_2/data/models/get_guest_user/get_guest_users.dart';
 import 'package:fitness_zone_2/data/models/get_user_plan/get_user_plan.dart';
@@ -119,7 +120,6 @@ class HomeController extends GetxController implements GetxService {
     }
     return false;
   }
-
 
   initUpcomingSlot() {
     var list = sharedPreferences.getString(Constants.upcomingSlot);
@@ -849,6 +849,10 @@ class HomeController extends GetxController implements GetxService {
               userHomeLoad.value = true;
               if (userHomeData!.userAllPlans.isEmpty) {
                 upComingClassNotifier.value = null;
+                await FirebaseMessaging.instance.unsubscribeFromTopic('userPlan');
+              }
+              if (userHomeData!.userAllPlans.isNotEmpty) {
+                await FirebaseMessaging.instance.subscribeToTopic('userPlan');
               }
 
               if (isFromFree) {
@@ -923,7 +927,7 @@ class HomeController extends GetxController implements GetxService {
 
                   sharedPreferences.setBool(Constants.isGuest, false);
                   Get.find<AuthController>().logInUser = model.data;
-                  Get.find<AuthController>().addLocalStorage(model.data!, passwordController.text);
+                  Get.find<AuthController>().addLocalStorage(model.data!, password);
                   // getPlans();
                   Get.offAll(() => SignUpScreenQuestions());
                 }
@@ -1567,8 +1571,9 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addPlanBuyImage(String planId, int durationId, String price) {
-    connectionService.checkConnection().then((value) async {
+  Future<bool> addPlanBuyImage(String planId, int durationId, String price) async {
+    bool success = false;
+    await connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
@@ -1593,9 +1598,9 @@ class HomeController extends GetxController implements GetxService {
               CustomToast.failToast(msg: model.message);
             }
             if (model.status == "1") {
-              CustomToast.successToast(msg: model.message);
+              // CustomToast.successToast(msg: model.message);
               planPicture = null;
-              Get.back();
+              success = true;
             }
           } else {
             CustomToast.failToast(msg: "Something wrong happened");
@@ -1603,6 +1608,7 @@ class HomeController extends GetxController implements GetxService {
         });
       }
     });
+    return success;
   }
 
   var showDotHome = false.obs;

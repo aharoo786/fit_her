@@ -3,18 +3,16 @@
 //     final getDietPlanDetails = getDietPlanDetailsFromJson(jsonString);
 
 import 'dart:convert';
-
+import 'package:intl/intl.dart';
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 import 'package:fitness_zone_2/data/models/get_clients_diet.dart';
 
 import '../day_slots_of_diet.dart';
 import "package:get/get.dart";
 
-GetDietPlanDetails getDietPlanDetailsFromJson(String str) =>
-    GetDietPlanDetails.fromJson(json.decode(str));
+GetDietPlanDetails getDietPlanDetailsFromJson(String str) => GetDietPlanDetails.fromJson(json.decode(str));
 
-String getDietPlanDetailsToJson(GetDietPlanDetails data) =>
-    json.encode(data.toJson());
+String getDietPlanDetailsToJson(GetDietPlanDetails data) => json.encode(data.toJson());
 
 class GetDietPlanDetails extends Serializable {
   List<TimeDietition> timeDietition;
@@ -23,6 +21,7 @@ class GetDietPlanDetails extends Serializable {
   var pdfFile = ''.obs;
   bool isBooked;
   String status;
+  DateTime date;
   int id;
   GetDietPlanDetails({
     required this.timeDietition,
@@ -31,30 +30,26 @@ class GetDietPlanDetails extends Serializable {
     required this.isBooked,
     required this.status,
     required this.id,
+    required this.date,
   });
 
-  factory GetDietPlanDetails.fromJson(Map<String, dynamic> json) =>
-      GetDietPlanDetails(
-          timeDietition: List<TimeDietition>.from(
-              json["TimeDietition"].map((x) => TimeDietition.fromJson(x))),
-          dietDetails: ClientUser.fromJson(json["dietDetails"]),
-          bookedSlot: json["bookedSlot"] == null
-              ? null
-              : SlotWithTime.fromJson(json["bookedSlot"]),
-          isBooked: json["isBooked"] ?? false,
-          status: json["status"] ?? "pending",
-          id: json["id"] ?? 0
-      );
-
+  factory GetDietPlanDetails.fromJson(Map<String, dynamic> json) => GetDietPlanDetails(
+      timeDietition: List<TimeDietition>.from(json["TimeDietition"].map((x) => TimeDietition.fromJson(x))),
+      dietDetails: ClientUser.fromJson(json["dietDetails"]),
+      bookedSlot: json["bookedSlot"] == null ? null : SlotWithTime.fromJson(json["bookedSlot"]),
+      isBooked: json["isBooked"] ?? false,
+      status: json["status"] ?? "pending",
+      id: json["id"] ?? 0,
+      date: DateTime.parse(json["date"] ?? DateTime.now().toString())) ;
 
   Map<String, dynamic> toJson() => {
-        "TimeDietition":
-            List<dynamic>.from(timeDietition.map((x) => x.toJson())),
+        "TimeDietition": List<dynamic>.from(timeDietition.map((x) => x.toJson())),
         "dietDetails": dietDetails.toJson(),
         "bookedSlot": bookedSlot?.toJson(),
         "isBooked": isBooked,
         "status": status,
         "id": id,
+        "date": date
       };
 }
 
@@ -91,8 +86,7 @@ class TimeDietitionNot {
     this.day,
   });
 
-  factory TimeDietitionNot.fromJson(Map<String, dynamic> json) =>
-      TimeDietitionNot(
+  factory TimeDietitionNot.fromJson(Map<String, dynamic> json) => TimeDietitionNot(
         id: json["id"],
         day: json["day"],
       );
@@ -120,12 +114,18 @@ class SlotWithTime {
 
   factory SlotWithTime.fromJson(Map<String, dynamic> json) => SlotWithTime(
         id: json["id"],
-        start: json["start"],
-        end: json["end"],
+        start: json["start"] == "Start Time"
+            ? "Start Time"
+            : (json["start"].toString().contains("AM") || json["start"].toString().contains("PM"))
+                ? json["start"]
+                : DateFormat('hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["start"]))),
+        end: json["end"] == "End Time"
+            ? "End Time"
+            : (json["end"].toString().contains("AM") || json["end"].toString().contains("PM"))
+                ? json["end"]
+                : DateFormat('hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["end"]))),
         dietitionLink: json["dietitionLink"],
-        timeDietition: json["TimeDietition"] == null
-            ? null
-            : TimeDietitionNot.fromJson(json["TimeDietition"]),
+        timeDietition: json["TimeDietition"] == null ? null : TimeDietitionNot.fromJson(json["TimeDietition"]),
       );
 
   Map<String, dynamic> toJson() => {

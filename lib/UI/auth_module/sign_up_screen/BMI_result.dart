@@ -323,7 +323,7 @@ class BmiResult extends StatelessWidget {
                 },
                     "Welcome 🎉",
                     "Unlock live workout sessions, and expert consultations",
-                    MyImgs.logo3);
+                    MyImgs.logo);
               }
             }),
       ),

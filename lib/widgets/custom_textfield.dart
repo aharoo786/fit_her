@@ -106,10 +106,7 @@ class CustomTextField extends StatelessWidget {
           }
           return null;
         },
-        style: TextStyle(
-            color: textColor ?? MyColors.textColor,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w400),
+        style: TextStyle(color: textColor ?? MyColors.textColor, fontSize: 16.sp, fontWeight: FontWeight.w400),
         controller: controller,
         keyboardType: keyboardType,
         textAlign: TextAlign.start,
@@ -123,9 +120,9 @@ class CustomTextField extends StatelessWidget {
         obscureText: isObscure ?? false,
         onFieldSubmitted: onFieldSubmitted,
         autofocus: authFocus,
+        expands: false,
         decoration: InputDecoration(
-          contentPadding: EdgeInsets.symmetric(
-              horizontal: 16, vertical: verticalPadding ?? 15),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: verticalPadding ?? 15),
           border: InputBorder.none,
           errorText: errorText,
           counterText: "",
@@ -141,10 +138,7 @@ class CustomTextField extends StatelessWidget {
           // ),
           hintText: text.tr,
           suffixIcon: suffixIcon,
-          hintStyle: TextStyle(
-              color: hintColor ?? MyColors.hintText,
-              fontWeight: FontWeight.normal,
-              fontSize: 14.sp),
+          hintStyle: TextStyle(color: hintColor ?? MyColors.hintText, fontWeight: FontWeight.normal, fontSize: 14.sp),
           // contentPadding: EdgeInsets.only(left: 15, top: 9),
           prefixIcon: icon != null
               ? Padding(
