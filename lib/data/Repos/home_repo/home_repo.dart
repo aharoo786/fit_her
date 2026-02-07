@@ -195,6 +195,11 @@ class HomeRepo extends GetxService {
     return await apiProvider.postData(Constants.payment, body: map, headers: {"accessToken": accessToken});
   }
 
+  /// Direct Pay (Payin PWA): backend returns payment URL; client_secret never sent to app
+  Future<Response> getDirectPayPaymentUrl({required String accessToken, required Map<String, dynamic> map}) async {
+    return await apiProvider.postData(Constants.directPayUrl, body: map, headers: {"accessToken": accessToken});
+  }
+
   Future<Response> getAllTimesWithSlotsTrainer({required String accessToken}) async {
     return await apiProvider.getData(Constants.getAllTimesWithSlots, headers: {"accessToken": accessToken});
   }

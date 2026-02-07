@@ -29,49 +29,32 @@ class SelectPaymentMode extends StatelessWidget {
       appBar: HelpingWidgets().appBarWidget(() {
         homeController.planPicture == null;
         Get.back();
-      }, text: "Upload Slip"),
+      }, text: "Select Payment"),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(
-              height: 50,
+            const SizedBox(height: 24),
+            Center(
+              child: CustomButton(
+                text: "Pay with JazzCash / EasyPaisa (Direct Pay)",
+                onPressed: () {
+                  homeController.getDirectPayPaymentLink(price, planId);
+                },
+              ),
             ),
-            // Center(
-            //     child: CustomButton(
-            //         text: "Debit/Credit Card",
-            //         onPressed: () {
-            //           homeController.makePayment(planId);
-            //         })),
-            // const SizedBox(
-            //   height: 50,
-            // ),
-            // const Row(
-            //   children: [
-            //     Expanded(
-            //       child: Divider(
-            //         height: 1.5,
-            //         color: Colors.black,
-            //       ),
-            //     ),
-            //     SizedBox(
-            //       width: 10,
-            //     ),
-            //     Text("Or"),
-            //     SizedBox(
-            //       width: 10,
-            //     ),
-            //     Expanded(
-            //         child: Divider(
-            //       height: 1.5,
-            //       color: Colors.black,
-            //     ))
-            //   ],
-            // ),
-            const SizedBox(
-              height: 50,
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                const Expanded(child: Divider(height: 1.5, color: Colors.black54)),
+                const SizedBox(width: 10),
+                Text("Or", style: textTheme.titleSmall),
+                const SizedBox(width: 10),
+                const Expanded(child: Divider(height: 1.5, color: Colors.black54)),
+              ],
             ),
+            const SizedBox(height: 24),
             Center(
               child: GetBuilder<HomeController>(builder: (cont) {
                 return GestureDetector(

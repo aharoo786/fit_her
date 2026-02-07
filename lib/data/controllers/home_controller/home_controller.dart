@@ -21,6 +21,7 @@ import 'package:fitness_zone_2/data/models/get_user_plan/get_user_plan.dart';
 import 'package:fitness_zone_2/data/models/get_users_plan_images/get_user_plan_images.dart';
 import 'package:fitness_zone_2/data/models/get_weekly_report/get_weekly_report.dart';
 import 'package:fitness_zone_2/data/models/login_response_model/login_response_model.dart';
+import 'package:fitness_zone_2/data/models/paymetn/direct_pay_url_response.dart';
 import 'package:fitness_zone_2/data/models/paymetn/payment_link.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -1005,6 +1006,76 @@ class HomeController extends GetxController implements GetxService {
         });
       }
     });
+  }
+
+  /// Direct Pay (Payin PWA): JazzCash / EasyPaisa. Backend returns payment URL.
+  /// Redirect URLs use fither:// so WebView can intercept success/fail and update plan.
+  void getDirectPayPaymentLink(String amount, String planId) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        return;
+      }
+      final user = Get.find<AuthController>().logInUser;
+      if (user == null) {
+        CustomToast.failToast(msg: "Please log in to continue.");
+        return;
+      }
+      final payerName = user.fullName.trim();
+      final email = user.email.trim();
+      if (payerName.isEmpty || email.isEmpty) {
+        CustomToast.failToast(msg: "Please complete your profile (name and email) before paying.");
+        return;
+      }
+      final msisdn = _normalizeMsisdn(user.phone);
+      if (msisdn == null || msisdn.length != 11) {
+        CustomToast.failToast(msg: "Please add a valid Pakistan mobile number (03xxxxxxxxx) in your profile.");
+        return;
+      }
+      final successRedirectUrl = "fither://payment/success?planId=$planId";
+      final failedRedirectUrl = "fither://payment/failed";
+      Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+      await homeRepo.getDirectPayPaymentUrl(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        map: {
+          "planId": planId,
+          "userId": sharedPreferences.getString(Constants.userId),
+          "amount": "10",
+          "payerName": payerName,
+          "email": email,
+          "msisdn": msisdn,
+          "successRedirectUrl": successRedirectUrl,
+          "failedRedirectUrl": failedRedirectUrl,
+        },
+      ).then((response) async {
+        Get.back();
+        if (response.statusCode == 200 && response.body["status"] != "0") {
+          ApiResponse<DirectPayUrlResponse> model =
+              ApiResponse.fromJson(response.body, DirectPayUrlResponse.fromJson);
+          if (model.status == "1" && model.data != null && model.data!.url.isNotEmpty) {
+            Get.to(() => WebViewScreen(
+                  url: model.data!.url,
+                  successPlanId: planId,
+                ));
+          } else {
+            CustomToast.failToast(msg: model.message ?? response.body["message"] ?? "Could not create payment link.");
+          }
+        } else {
+          CustomToast.failToast(msg: response.body["message"] ?? "Could not create payment link.");
+        }
+      });
+    });
+  }
+
+  /// Normalize Pakistan mobile to 03xxxxxxxxx (11 digits) for Direct Pay.
+  static String? _normalizeMsisdn(String? phone) {
+    if (phone == null || phone.isEmpty) return null;
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 10 && digits.startsWith('3')) return '0$digits';
+    if (digits.length == 12 && digits.startsWith('92')) return '0${digits.substring(2)}';
+    if (digits.length == 11 && digits.startsWith('03')) return digits;
+    if (digits.length == 11 && digits.startsWith('0')) return digits;
+    return null;
   }
 
   addWorkoutAndTrainerApp() {

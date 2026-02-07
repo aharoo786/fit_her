@@ -141,6 +141,8 @@ class Constants {
   static String getDietitianUsers = "/users/dietition_get_all_users";
   static String getUserPlan = "/users/get_user_plans";
   static String stripePayment = "/users/stripe_payment";
+  /// Direct Pay (Payin PWA) - backend returns payment URL; client_secret stays on server
+  static String directPayUrl = "/pay/directpay_payment";
   static String logout = "/users/logout";
   static String deleteUser = "/users/delete_user";
   static String updateSlotTrainer = "/admin/update_slot_trainer";
