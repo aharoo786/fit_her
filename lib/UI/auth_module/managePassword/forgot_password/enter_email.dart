@@ -12,6 +12,7 @@ import '../../../../values/my_imgs.dart';
 import '../../../../widgets/custom_button.dart';
 import '../../../../widgets/custom_textfield.dart';
 import '../../../../widgets/toasts.dart';
+import 'otp_screen.dart';
 
 class ForgotPassword extends StatelessWidget {
   final TextEditingController email = TextEditingController();
@@ -38,15 +39,26 @@ class ForgotPassword extends StatelessWidget {
                     SizedBox(
                       height: Dimens.size40.h,
                     ),
+                    // Text(
+                    //   'Forgot Password?'.tr,
+                    //   style: TextStyle(
+                    //       fontWeight: FontWeight.w400,
+                    //       fontSize: Dimens.size32.sp,
+                    //       color: MyColors.black),
+                    // ),
+                    // Image.asset(MyImgs.logo3),
+
                     Text(
-                      'Forgot Password?'.tr,
+                      'Enter Email Address'.tr,
                       style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontSize: Dimens.size32.sp,
-                          color: MyColors.black),
+                        fontWeight: FontWeight.w600,
+                        fontSize: Dimens.size16,
+                        color: MyColors.black,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                     SizedBox(
-                      height: (Dimens.size140).h,
+                      height: (Dimens.size10).h,
                     ),
                     Text(
                       'Please enter your email address to receive a verification code'
@@ -62,7 +74,7 @@ class ForgotPassword extends StatelessWidget {
                       height: 31.h,
                     ),
                     CustomTextField(
-                        height: 48.h,
+                        height: 58.h,
                         controller: email,
                         text: "Enter email".tr,
                         background: MyColors.textFieldColor,
@@ -76,9 +88,27 @@ class ForgotPassword extends StatelessWidget {
                     ),
                     CustomButton(
                       text: 'Send Code'.tr,
-                      onPressed: () {
+                      onPressed: () async {
                         if (emailFormKey.currentState!.validate()) {
-                          // authController.forgotPassword(email: email.text);
+                          String? otp =
+                              await authController.forgotPassword(email.text);
+                          print('ForgotPassword.build $otp');
+
+                          if (otp != null) {
+                            HelpingWidgets.showCustomDialog(
+                                context,
+                                null,
+                                "Check your email",
+                                "We have sent password recovery instruction to your email.",
+                                MyImgs.checkEmail);
+
+                            Future.delayed(const Duration(seconds: 2), () {
+                              Get.off(() => OtpScreen(
+                                    email: email.text,
+                                    otp: otp,
+                                  ));
+                            });
+                          }
                         } else {
                           CustomToast.failToast(
                               msg: "Please enter valid data".tr);

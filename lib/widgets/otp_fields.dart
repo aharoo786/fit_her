@@ -131,13 +131,14 @@ class CustomPinEntryFieldState extends State<CustomPinEntryField> {
       width: Dimens.size48.w,
       margin: EdgeInsets.only(right: 10.w),
       decoration: BoxDecoration(
-        color: MyColors.transparent,
+        border: Border.all(color: MyColors.buttonColor),
+        color: MyColors.buttonColor,
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
       child: TextField(
         autofocus: true,
         maxLength: 1,
-        cursorColor: MyColors.black,
+        cursorColor: MyColors.primaryColor,
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
         showCursor: widget.showCursor,
         controller: _textControllers[i],
@@ -151,12 +152,12 @@ class CustomPinEntryFieldState extends State<CustomPinEntryField> {
               counterText: "",
               focusedBorder: UnderlineInputBorder(
                   borderSide: BorderSide(
-                color: MyColors.primaryColor,
+                color: MyColors.buttonColor,
               )),
               // enabledBorder: InputBorder.none,
               border: UnderlineInputBorder(
                   borderSide: BorderSide(
-                color: MyColors.primaryColor,
+                color: MyColors.buttonColor,
               )),
             ),
         onChanged: (String str) {

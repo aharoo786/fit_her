@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 10.0.0+10
+version: 13.0.0+22
 
 environment:
   sdk: '>=3.0.5 <4.0.0'
@@ -48,44 +48,54 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   flutter_screenutil: ^5.4.0
   get: ^4.6.1
-#  firebase_auth: ^4.12.1
-#  cloud_firestore: ^4.12.2
-#  firebase_core: ^2.21.0
   fluttertoast: ^8.2.2
-  permission_handler: ^10.2.0
-  shared_preferences: ^2.2.2
+  permission_handler: ^11.3.1
+  firebase_messaging_web: ^3.9.0
+  syncfusion_flutter_gauges: ^27.1.56
+  syncfusion_flutter_sliders: ^27.1.56
+  shared_preferences: ^2.3.2
   intl_phone_field: ^3.1.0
   image_picker: ^1.0.7
-  connectivity_plus: ^4.0.2
-  flutter_image_compress: ^1.1.0
-  uuid: ^3.0.6
+  connectivity_plus: ^6.0.5
+  flutter_image_compress: ^2.3.0
+  uuid: ^4.1.0
   intl:
+  pdf: ^3.11.3
   share_plus: ^7.2.1
-  device_info_plus: ^9.1.0
-  firebase_auth: ^4.12.1
-  cloud_firestore: ^4.12.2
-  firebase_core: ^2.21.0
-  carousel_slider: ^4.2.1
+  device_info_plus: ^10.1.2
+  cloud_firestore: ^5.6.11
+  firebase_core: ^3.14.0
+  carousel_slider: ^5.0.0
   url_launcher: ^6.2.6
-  flutter_local_notifications: ^13.0.0
-  firebase_messaging: ^14.4.0
+  flutter_local_notifications: ^18.0.1
+  firebase_messaging: ^15.1.5
+  mixpanel_flutter: ^2.3.0
+  custom_rating_bar: ^3.0.0
   googleapis_auth: ^1.6.0
-  agora_rtc_engine: ^6.2.2
-  agora_token_service: ^0.1.2
+  file_picker: ^9.0.2
   wakelock_plus: ^1.1.4
   webview_flutter: ^4.5.0
   flutter_dotenv: ^5.1.0
   flutter_svg: ^2.0.10+1
-  flutter_stripe: ^11.0.0
   percent_indicator: ^4.2.3
-  syncfusion_flutter_charts: ^25.2.7
-
-  #  uni_links: ^0.5.1
-  #  agora_chat_sdk: ^1.1.1
-  #  screen_recorder: ^0.2.0
-#  firebase_storage: ^11.5.2
-  #  ed_screen_recorder: ^0.0.13
-#  screen_protector: ^1.4.1
+  syncfusion_flutter_charts: ^27.1.51
+  syncfusion_flutter_pdfviewer: ^27.1.51
+  open_filex: ^4.7.0
+  app_links: ^6.3.2
+  pinput: ^5.0.1
+  socket_io_client: ^3.1.2
+  flutter_inappwebview: ^6.1.5  #  uni_links: ^0.5.1
+  youtube_player_flutter: ^9.1.2
+  youtube_player_iframe: ^4.0.4
+  country_picker: ^2.0.26
+  flutter_timezone: ^3.0.1
+  google_sign_in: ^6.2.2
+  sign_in_with_apple: ^7.0.1
+  firebase_auth: ^5.6.0
+  dart_jsonwebtoken:
+  crypto:
+  cached_network_image: ^3.2.3
+  sentry_flutter: 9.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,26 +1,27 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/data/models/get_all_cat_plan/get_all_sub_cat.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/add_diet_of_user.dart';
 import 'package:fitness_zone_2/data/models/get_team_members/get_team_members.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
-import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import 'package:fitness_zone_2/data/models/upcoming_class_slot.dart';
+import 'package:fitness_zone_2/helper/permissions.dart';
+import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/UI/web_view.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
-import 'package:fitness_zone_2/data/models/add_package/add_package_model.dart'
-    as addPackage;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:agora_token_service/agora_token_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/get_all_dietitian_trainers.dart';
 import 'package:fitness_zone_2/data/models/get_guest_user/get_guest_users.dart';
 import 'package:fitness_zone_2/data/models/get_user_plan/get_user_plan.dart';
 import 'package:fitness_zone_2/data/models/get_users_plan_images/get_user_plan_images.dart';
 import 'package:fitness_zone_2/data/models/get_weekly_report/get_weekly_report.dart';
 import 'package:fitness_zone_2/data/models/login_response_model/login_response_model.dart';
+import 'package:fitness_zone_2/data/models/paymetn/direct_pay_url_response.dart';
 import 'package:fitness_zone_2/data/models/paymetn/payment_link.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -28,6 +29,8 @@ import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../UI/auth_module/sign_up_screen/BMI_result.dart';
+import '../../../UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
 import '../../GetServices/CheckConnectionService.dart';
@@ -46,20 +49,12 @@ class HomeController extends GetxController implements GetxService {
   HomeRepo homeRepo;
 
   HomeController({required this.sharedPreferences, required this.homeRepo});
+
   CheckConnectionService connectionService = CheckConnectionService();
+
   @override
   void onInit() {
-    // TODO: implement onInit
-    addPackageTimeTable = [
-      getTimeModel("Monday"),
-      getTimeModel("Tuesday"),
-      getTimeModel("Wednesday"),
-      getTimeModel("Thursday"),
-      getTimeModel("Friday"),
-      getTimeModel("Saturday"),
-      getTimeModel("Sunday"),
-    ];
-
+    initUpcomingSlot();
     dietOfUserByDiet = [
       getDietOfUser("Monday"),
       getDietOfUser("Tuesday"),
@@ -69,19 +64,31 @@ class HomeController extends GetxController implements GetxService {
       getDietOfUser("Saturday"),
       getDietOfUser("Sunday"),
     ];
-    getPlans();
-    getAllTeamMembers();
+    if (sharedPreferences.getBool("showDotHome") == null) {
+      showDotHome.value = false;
+    } else if (sharedPreferences.getBool("showDotHome") == true) {
+      showDotHome.value = false;
+    }
+
     super.onInit();
   }
 
+  bool get isFrozen => (userHomeData?.freeze.value == 1);
+
+  /// True if user has at least one active plan (remaining days > 0). Used to restrict posts/messages.
+  bool get hasActivePackage =>
+      userHomeData != null && userHomeData!.userAllPlans.isNotEmpty && userHomeData!.userAllPlans.any((p) => p.remainingDays > 0);
+
+  ///Notifcation listern
+
   ///adding team member
-  List<String> addTeamMember = [
-    "Dietition",
-    "Trainer",
-    "Gynecologist",
-    "Psychiatrist"
-  ];
+  List<String> addTeamMember = ["Dietition", "Trainer", "Gynecologist", "Psychiatrist", "Customer_Support_Representative"];
   var addedTeamMember = "Dietition".obs;
+
+  RxBool get isCustomerSupport => RxBool(addTeamMember[4] == addedTeamMember.value);
+
+  // String get customerSupporter =>
+  //     "Customer Support Representative".replaceAll(" ", "_");
 
   ///Measurement controllers Weekly
   TextEditingController firstDay = TextEditingController();
@@ -95,7 +102,39 @@ class HomeController extends GetxController implements GetxService {
   TextEditingController chest = TextEditingController();
   TextEditingController abdonmen = TextEditingController();
   TextEditingController thighs = TextEditingController();
-  List<Map<String, dynamic>> participantList = [];
+  TextEditingController tellUsMore = TextEditingController();
+  var selectedSatisfaction = 4.obs;
+  final List<String> satisfactionEmojis = [
+    '😡', // Very Unsatisfied
+    '😕', // Unsatisfied
+    '😐', // Neutral
+    '😊', // Satisfied
+    '😁', // Very Satisfied
+  ];
+  final List<String> labels = ["Very Unsatisfied", "Unsatisfied", "Neutral", "Satisfied", "Very Satisfied"];
+
+  ValueNotifier<UpcomingClassSlot?> upComingClassNotifier = ValueNotifier<UpcomingClassSlot?>(null);
+
+  checkTiming(String start, String end) {
+    Timestamp timestamp = Timestamp.fromDate(DateTime.now());
+    int startTime = covertToTimeStamp(start);
+    int endTime = covertToTimeStamp(end);
+
+    if (timestamp.millisecondsSinceEpoch > startTime && timestamp.millisecondsSinceEpoch < endTime) {
+      return true;
+    }
+    return false;
+  }
+
+  initUpcomingSlot() {
+    var list = sharedPreferences.getString(Constants.upcomingSlot);
+    UpcomingClassSlot? notificationMessages;
+
+    if (list != null) {
+      notificationMessages = UpcomingClassSlot.fromJson(jsonDecode(list));
+    }
+    upComingClassNotifier.value = notificationMessages;
+  }
 
   clearMeasurementController() {
     firstDay.clear();
@@ -110,15 +149,8 @@ class HomeController extends GetxController implements GetxService {
     thighs.clear();
     abdonmen.clear();
     chest.clear();
+    tellUsMore.clear();
   }
-
-  ///for adding Package
-
-  TextEditingController packageName = TextEditingController();
-  TextEditingController shortDis = TextEditingController();
-  TextEditingController longDis = TextEditingController();
-  TextEditingController price = TextEditingController();
-  TextEditingController packageDuration = TextEditingController();
 
   ///Get Cat
   AllCategoriesOfPlan? allCategoriesOfPlan;
@@ -136,15 +168,13 @@ class HomeController extends GetxController implements GetxService {
   UserHomeData? userHomeData;
   GetWeeklyReportsModel? getWeeklyReportsModel;
 
-  /// call screen variabls
-  var muteAudio = false.obs;
-  var muteVideo = false.obs;
+  var team = [MyImgs.team1, MyImgs.team2, MyImgs.team3, MyImgs.team4];
 
   ///My Weekly Report Function
 
   var selectedPlanIndex = 0.obs;
 
-  List<addPackage.Time> addPackageTimeTable = [];
+  // List<addPackage.Time> addPackageTimeTable = [];
   List<DietOfUser> dietOfUserByDiet = [];
 
   ///get Cat
@@ -192,108 +222,25 @@ class HomeController extends GetxController implements GetxService {
   ///select cat id
   var selectedId = 0.obs;
   var selectedSubCatId = 0.obs;
+  var selectCustomerSupport = 0.obs;
   var selectedPlanId = 0.obs;
+  var selectedDurationId = 0.obs;
   var selectedDietId = 0.obs;
   var selectedDietIdForMember = 0.obs;
   var selectedTrainerId = 0.obs;
   var selectedTrainerIdForMember = 0.obs;
   var selectedTrainerIdForBoth = 0.obs;
 
-  getTimeModel(String day) {
-    addPackage.Time timeModel = addPackage.Time(
-        day: day,
-        slots: [addPackage.Slot(start: "Start Time", end: "End Time")]);
-    return timeModel;
-  }
+  // getTimeModel(String day) {
+  //   addPackage.Time timeModel = addPackage.Time(
+  //       day: day,
+  //       slots: [addPackage.Slot(start: "Start Time", end: "End Time")]);
+  //   return timeModel;
+  // }
 
   getDietOfUser(String day) {
-    DietOfUser dietofDay = DietOfUser(
-        day: day,
-        meals: [MealOfUser(time: "Time", food: "N/A", calories: "N/A")]);
+    DietOfUser dietofDay = DietOfUser(day: day, meals: [MealOfUser(time: "Time", food: "N/A", calories: "N/A")]);
     return dietofDay;
-  }
-
-  Future<String?> getAgoraToken(String channelName) async {
-    const expirationInSeconds = 84600;
-    final currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final expireTimestamp = currentTimestamp + expirationInSeconds;
-    final token = RtcTokenBuilder.build(
-      appId: Constants.appID,
-      appCertificate: Constants.appCertificate,
-      channelName: channelName,
-      uid: "0",
-      role: RtcRole.publisher,
-      expireTimestamp: expireTimestamp,
-    );
-    print("token    $token");
-    update();
-    return token;
-  }
-
-  getCategories() {
-    getCatLoaded.value = false;
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-      } else {
-        // Get.dialog(const Center(child: CircularProgressIndicator()),
-        //     barrierDismissible: false);
-
-        homeRepo
-            .getAllCategories(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-        )
-            .then((response) async {
-          // Get.back();
-          if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
-          } else if (response.body["status"] != "0") {
-            ApiResponse<AllCategoriesOfPlan> model = ApiResponse.fromJson(
-                response.body, AllCategoriesOfPlan.fromJson);
-            if (model.status == "1") {
-              allCategoriesOfPlan = model.data!;
-              if (allCategoriesOfPlan!.categories.isNotEmpty) {
-                selectedId.value = allCategoriesOfPlan!.categories[0].id;
-              }
-
-              getCatLoaded.value = true;
-            }
-          }
-        });
-      }
-    });
-  }
-
-  getSubCategories(String catId) {
-    getSubCatLoaded.value = false;
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-      } else {
-        homeRepo
-            .getSubCategories(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          catId: catId,
-        )
-            .then((response) async {
-          // Get.back();
-          if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
-          } else if (response.body["status"] != "0") {
-            ApiResponse<GetSubCategories> model =
-                ApiResponse.fromJson(response.body, GetSubCategories.fromJson);
-            if (model.status == "1") {
-              allSubCategories = model.data!;
-              if (allSubCategories!.data.isNotEmpty) {
-                selectedSubCatId.value = allSubCategories!.data[0].id;
-              }
-
-              getSubCatLoaded.value = true;
-            }
-          }
-        });
-      }
-    });
   }
 
   getSubCatBasedOnUserType(String userType) {
@@ -312,8 +259,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetSubCategories> model =
-                ApiResponse.fromJson(response.body, GetSubCategories.fromJson);
+            ApiResponse<GetSubCategories> model = ApiResponse.fromJson(response.body, GetSubCategories.fromJson);
             if (model.status == "1") {
               allSubCategories = model.data!;
               if (allSubCategories!.data.isNotEmpty) {
@@ -328,7 +274,7 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  getUsersBasedOnUserType(String userType) {
+  getUsersBasedOnUserType(String userType, {bool addNull = false}) {
     getUsersBasedOnUserTypeLoad.value = false;
     connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -344,10 +290,16 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(
-                response.body, GetUsersBasedOnUserType.fromJson);
+            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(response.body, GetUsersBasedOnUserType.fromJson);
             if (model.status == "1") {
               getUsersBasedOnUserTypeModel = model.data!;
+              if (addNull) {
+                getUsersBasedOnUserTypeModel?.users.insert(0, UserTypeData(id: 0, firstName: "Select", lastName: "..", email: "", phone: ""));
+              } else {
+                if (getUsersBasedOnUserTypeModel!.users.isNotEmpty) {
+                  selectCustomerSupport.value = getUsersBasedOnUserTypeModel!.users.first.id;
+                }
+              }
               getUsersBasedOnUserTypeLoad.value = true;
             }
           }
@@ -372,8 +324,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
 
@@ -400,8 +351,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
 
@@ -413,28 +363,19 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  Future<String> getUserNameUsingId(int id) async {
-    String name = "Unknown";
+  Future<Map<String, dynamic>> getUserNameUsingId(int id) async {
+    Map<String, dynamic> name = {"name": "unknown", "days": ""};
 
     // Use try-catch to handle errors
     try {
-      var querySnapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .where("remoteId", isEqualTo: id)
-          .get();
+      var querySnapshot = await FirebaseFirestore.instance.collection("users").where("remoteId", isEqualTo: id).get();
 
-      print("querySnapshot: $querySnapshot");
+      print("querySnapshot: ${querySnapshot.docs.first.data()}");
 
       if (querySnapshot.docs.isNotEmpty) {
-        // Access the first document in the result
         var documentSnapshot = querySnapshot.docs.first;
-
-        // Access the data within the document
         var data = documentSnapshot.data();
-
-        //  var userModel = UserModel.fromJson(data);
-        //   print("remote id $id    ...local  ${userModel.remoteId}");
-        //   name = userModel.fullName;
+        name = {"name": data["name"], "days": data["days"]};
       }
     } catch (error) {
       print("Error: $error");
@@ -442,13 +383,6 @@ class HomeController extends GetxController implements GetxService {
     }
 
     return name;
-  }
-
-  updateUserRemoteId(int id) async {
-    await FirebaseFirestore.instance
-        .collection(Constants.customers)
-        .doc(Get.find<AuthController>().logInUser!.id.toString())
-        .update({"remoteId": id});
   }
 
   getPlans() {
@@ -463,7 +397,7 @@ class HomeController extends GetxController implements GetxService {
         trainerPlanList.value = [];
 
         homeRepo
-            .getAllPlans(
+            .getAllPlansAdmin(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
         )
             .then((response) async {
@@ -471,20 +405,14 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<AllPlanModel> model =
-                ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               allPlanModel = model.data!;
               if (allPlanModel!.plans.isNotEmpty) {
-                selectedPlanId.value = allPlanModel!.plans[0].id;
-                for (var element in allPlanModel!.plans) {
-                  if (element.categoryId == 1) {
-                    dietPlanList.value.add(element);
-                    selectedDietIdForMember.value = dietPlanList[0].id;
-                  } else if (element.categoryId == 2) {
-                    trainerPlanList.value.add(element);
-                    selectedTrainerIdForMember.value = trainerPlanList[0].id;
-                  }
+                selectedPlanId.value = allPlanModel!.plans[0].id ?? 0;
+                selectedPlanIndex.value = 0;
+                if (allPlanModel!.plans[0].countries!.isNotEmpty) {
+                  allPlanModel!.plans[0].selectedDurationId.value = allPlanModel!.plans[0].countries![0].duration![0].id!;
                 }
               }
 
@@ -494,6 +422,95 @@ class HomeController extends GetxController implements GetxService {
         });
       }
     });
+  }
+
+  getPlansUser() {
+    getPlanLoaded.value = false;
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        // Get.dialog(const Center(child: CircularProgressIndicator()),
+        //     barrierDismissible: false);
+        dietPlanList.value = [];
+        trainerPlanList.value = [];
+        String code = await getCountryCode();
+        homeRepo
+            .getAllPlans(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          code: code,
+        )
+            .then((response) async {
+          // Get.back();
+          if (response.body["status"] == "0") {
+            CustomToast.failToast(msg: response.body["message"]);
+          } else if (response.body["status"] != "0") {
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
+            if (model.status == "1") {
+              allPlanModel = model.data!;
+              if (allPlanModel!.plans.isNotEmpty) {
+                selectedPlanId.value = allPlanModel!.plans[0].id ?? 0;
+                selectedPlanIndex.value = 0;
+                if (allPlanModel!.plans[0].countries!.isNotEmpty) {
+                  allPlanModel!.plans[0].selectedDurationId.value = allPlanModel!.plans[0].countries![0].duration![0].id!;
+                }
+              }
+
+              getPlanLoaded.value = true;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  Future<bool> addFreeTrial() async {
+    bool already = false;
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        already = false;
+        CustomToast.noInternetToast();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        var c = await getCountryCode();
+        await homeRepo.addFreeTrialUser(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          map: {"userId": sharedPreferences.getString(Constants.userId) ?? "", "country": c},
+        ).then((response) async {
+          Get.back();
+          if (response.body["status"] == "0") {
+            if (response.body["message"] == "You can't subscribe free trial at this movement") {
+              already = true;
+            } else {
+              CustomToast.failToast(msg: response.body["message"]);
+            }
+
+            //  print('HomeController.addFreeTrial here');
+          } else if (response.body["status"] != "0") {
+            ApiResponse<AllPlanModel> model = ApiResponse.fromJson(response.body, (p0) {});
+            if (model.status == "1") {
+              CustomToast.successToast(msg: model.message);
+
+              Get.find<WorkOutController>().getWorkoutAllPlansFunc(isFree: true);
+              getUserHomeFunc(isFromFree: true);
+              already = false;
+            }
+          }
+        });
+      }
+    });
+    return already;
+  }
+
+  double getPlanValue() {
+    var value = userHomeData!.userAllPlans[0].spendDays / (userHomeData!.userAllPlans[0].remainingDays + userHomeData!.userAllPlans[0].spendDays);
+
+    print("value-------------333  $value");
+
+    if (value >= 0 && value <= 1) {
+      return value;
+    }
+    return 1;
   }
 
   getHealthTips() {
@@ -510,8 +527,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllHealthTips> model =
-                ApiResponse.fromJson(response.body, GetAllHealthTips.fromJson);
+            ApiResponse<GetAllHealthTips> model = ApiResponse.fromJson(response.body, GetAllHealthTips.fromJson);
             if (model.status == "1") {
               getAllHealthTips = model.data!;
 
@@ -541,19 +557,15 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllDietitianAndTrainers> model =
-                ApiResponse.fromJson(
-                    response.body, GetAllDietitianAndTrainers.fromJson);
+            ApiResponse<GetAllDietitianAndTrainers> model = ApiResponse.fromJson(response.body, GetAllDietitianAndTrainers.fromJson);
             if (model.status == "1") {
               getAllDietitianAndTrainers = model.data!;
               selectedPlanIndex.value = 0;
               if (getAllDietitianAndTrainers!.dietitions.isNotEmpty) {
-                selectedDietId.value =
-                    getAllDietitianAndTrainers!.dietitions[0].id;
+                selectedDietId.value = getAllDietitianAndTrainers!.dietitions[0].id;
               }
               if (getAllDietitianAndTrainers!.trainers.isNotEmpty) {
-                selectedTrainerId.value =
-                    getAllDietitianAndTrainers!.trainers[0].id;
+                selectedTrainerId.value = getAllDietitianAndTrainers!.trainers[0].id;
               }
 
               getDietitianLoad.value = true;
@@ -564,7 +576,7 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  getAllUsersFunc() {
+  getAllUsersFunc({bool isCustomerSupport = false}) {
     getAllUsersLoad.value = false;
     connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -575,52 +587,20 @@ class HomeController extends GetxController implements GetxService {
 
         homeRepo
             .getAllUsers(
+          isCustomerSupport: isCustomerSupport,
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          userId: sharedPreferences.getString(Constants.userId) ?? "",
         )
             .then((response) async {
           // Get.back();
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllUsers> model =
-                ApiResponse.fromJson(response.body, GetAllUsers.fromJson);
+            ApiResponse<GetAllUsers> model = ApiResponse.fromJson(response.body, GetAllUsers.fromJson);
             if (model.status == "1") {
               getAllUsers = model.data!;
 
               getAllUsersLoad.value = true;
-            }
-          }
-        });
-      }
-    });
-  }
-
-  getTrainerHomeFunc() {
-    trainerHomeLoad.value = false;
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-      } else {
-        // Get.dialog(const Center(child: CircularProgressIndicator()),
-        //     barrierDismissible: false);
-
-        homeRepo
-            .getTrainerHome(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          userId: sharedPreferences.getString(Constants.userId) ?? "0",
-        )
-            .then((response) async {
-          // Get.back();
-          if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
-          } else if (response.body["status"] != "0") {
-            ApiResponse<GetTrainerHome> model =
-                ApiResponse.fromJson(response.body, GetTrainerHome.fromJson);
-            if (model.status == "1") {
-              getTrainerHome = model.data!;
-
-              trainerHomeLoad.value = true;
-              update();
             }
           }
         });
@@ -646,8 +626,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetWeeklyReportsModel> model = ApiResponse.fromJson(
-                response.body, GetWeeklyReportsModel.fromJson);
+            ApiResponse<GetWeeklyReportsModel> model = ApiResponse.fromJson(response.body, GetWeeklyReportsModel.fromJson);
             if (model.status == "1") {
               getWeeklyReportsModel = model.data!;
 
@@ -679,8 +658,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetDietitianUsers> model =
-                ApiResponse.fromJson(response.body, GetDietitianUsers.fromJson);
+            ApiResponse<GetDietitianUsers> model = ApiResponse.fromJson(response.body, GetDietitianUsers.fromJson);
             if (model.status == "1") {
               getDietitianUsers = model.data!;
               dietHomeLoad.value = true;
@@ -713,8 +691,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<Plan> model =
-                ApiResponse.fromJson(response.body, Plan.fromJson);
+            ApiResponse<Plan> model = ApiResponse.fromJson(response.body, Plan.fromJson);
             if (model.status == "1") {
               trailPlan = model.data!;
               trialPlanLoad.value = true;
@@ -732,8 +709,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.changeFreeTrialStatus(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {"status": status, "id": id},
@@ -776,8 +752,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetGuestData> model =
-                ApiResponse.fromJson(response.body, GetGuestData.fromJson);
+            ApiResponse<GetGuestData> model = ApiResponse.fromJson(response.body, GetGuestData.fromJson);
             if (model.status == "1") {
               getGuestData = model.data!;
 
@@ -808,8 +783,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetAllPlansImages> model =
-                ApiResponse.fromJson(response.body, GetAllPlansImages.fromJson);
+            ApiResponse<GetAllPlansImages> model = ApiResponse.fromJson(response.body, GetAllPlansImages.fromJson);
             if (model.status == "1") {
               getAllPlansImages = model.data!;
 
@@ -840,8 +814,7 @@ class HomeController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetTeamMembers> model =
-                ApiResponse.fromJson(response.body, GetTeamMembers.fromJson);
+            ApiResponse<GetTeamMembers> model = ApiResponse.fromJson(response.body, GetTeamMembers.fromJson);
             if (model.status == "1") {
               getTeamMembers = model.data!;
 
@@ -854,30 +827,42 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  getUserHomeFunc() {
+  getUserHomeFunc({bool isFromFree = false}) {
     userHomeLoad.value = false;
+
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
       } else {
         // Get.dialog(const Center(child: CircularProgressIndicator()),
         //     barrierDismissible: false);
-
+        String code = await getCountryCode();
         homeRepo
             .getUserHome(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           userId: sharedPreferences.getString(Constants.userId) ?? "0",
+          code: code,
         )
             .then((response) async {
           // Get.back();
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<UserHomeData> model =
-                ApiResponse.fromJson(response.body, UserHomeData.fromJson);
+            ApiResponse<UserHomeData> model = ApiResponse.fromJson(response.body, UserHomeData.fromJson);
             if (model.status == "1") {
               userHomeData = model.data!;
               userHomeLoad.value = true;
+              if (userHomeData!.userAllPlans.isEmpty) {
+                upComingClassNotifier.value = null;
+                await FirebaseMessaging.instance.unsubscribeFromTopic('userPlan');
+              }
+              if (userHomeData!.userAllPlans.isNotEmpty) {
+                await FirebaseMessaging.instance.subscribeToTopic('userPlan');
+              }
+
+              if (isFromFree) {
+                Get.find<AuthController>().logInUser!.status = true;
+              }
               update();
             }
           }
@@ -886,123 +871,46 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addPlan() {
+  addUser(
+      {bool status = true,
+      required String firstName,
+      required String lastName,
+      required String email,
+      required String phone,
+      required String password,
+      required int customerSupportId,
+      String? age,
+      String? height,
+      String? weight,
+      String? price,
+      String? bmiResult}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
-        await homeRepo
-            .addPlanRepo(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: addPackage.AddPackageModel(
-                  title: packageName.text,
-                  shortDescription: shortDis.text,
-                  longDescription: longDis.text,
-                  categoryId: selectedId.toString(),
-                  price: price.text,
-                  times: addPackageTimeTable,
-                  duration: packageDuration.text,
-                  subCategoryId: selectedSubCatId.value.toString())
-              .toJson(),
-        )
-            .then((response) async {
-          Get.back();
-
-          if (response.statusCode == 200) {
-            if (response.body["status"] == "0") {
-              CustomToast.failToast(msg: response.body["message"]);
-            } else if (response.body["status"] != "0") {
-              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
-              if (model.status == "1") {
-                CustomToast.failToast(msg: response.body["message"]);
-              }
-            }
-          } else {
-            CustomToast.failToast(msg: response.body["message"]);
-          }
-        });
-      }
-    });
-  }
-
-  updatePlan() {
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-        // Get.back();
-      } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
-        await homeRepo
-            .updatePlanRepo(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: addPackage.AddPackageModel(
-                  title: packageName.text,
-                  shortDescription: shortDis.text,
-                  longDescription: longDis.text,
-                  categoryId: selectedId.toString(),
-                  price: price.text,
-                  times: addPackageTimeTable,
-                  duration: packageDuration.text,
-                  subCategoryId: selectedSubCatId.value.toString())
-              .toJson(),
-        )
-            .then((response) async {
-          Get.back();
-
-          if (response.statusCode == 200) {
-            if (response.body["status"] == "0") {
-              CustomToast.failToast(msg: response.body["message"]);
-            } else if (response.body["status"] != "0") {
-              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
-              if (model.status == "1") {
-                CustomToast.failToast(msg: response.body["message"]);
-              }
-            }
-          } else {
-            CustomToast.failToast(msg: response.body["message"]);
-          }
-        });
-      }
-    });
-  }
-
-  addUser({bool status = true}) {
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-        // Get.back();
-      } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
-        var plan;
-        var expiryDate;
-        var price;
-        if (status) {
-          plan = allPlanModel!.plans[selectedPlanIndex.value];
-          expiryDate = DateTime.now()
-              .add(Duration(days: int.parse(plan.duration.split(" ").first)));
-          price = plan.price;
-        }
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
 
         await homeRepo.addUserRepo(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {
-            "firstName": firstNameController.text,
-            "lastName": lastNameController.text,
-            "email": emailController.text,
-            "password": passwordController.text,
-            "phone": phoneController.text.isNotEmpty
-                ? phoneController.text
-                : Random.secure().nextInt(10000),
-            "planId":
-                status ? allPlanModel!.plans[selectedPlanIndex.value].id : null,
+            "firstName": firstName,
+            "lastName": lastName,
+            "email": email,
+            "password": password,
+            "phone": phone.isEmpty ? Random.secure().nextInt(10000) : phone,
+            "planId": status ? allPlanModel!.plans[selectedPlanIndex.value].id : null,
             "status": status,
-            "deviceToken":
-                sharedPreferences.getString(Constants.deviceToken) ?? ""
+            "deviceToken": sharedPreferences.getString(Constants.deviceToken) ?? "",
+            "customSupporterId": customerSupportId,
+            "durationId": status ? allPlanModel!.plans[selectedPlanIndex.value].selectedDurationId.value : null,
+            "age": age,
+            "weight": weight,
+            "height": height,
+            "bmiResult": bmiResult,
+            "price": price,
+            "timeZone": currentTimeZone
           },
         ).then((response) async {
           Get.back();
@@ -1011,26 +919,59 @@ class HomeController extends GetxController implements GetxService {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
-              ApiResponse<LoginModel> model =
-                  ApiResponse.fromJson(response.body, LoginModel.fromJson);
+              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
 
-                clearyControllers();
                 if (status) {
                   getAllUsersFunc();
                 } else {
                   Get.find<AuthController>().loginAsA.value = Constants.user;
-                  sharedPreferences.setString(
-                      Constants.accessToken, model.data!.accessToken);
-                  sharedPreferences.setString(
-                      Constants.userId, model.data!.id.toString());
+                  sharedPreferences.setString(Constants.accessToken, model.data!.accessToken);
+                  sharedPreferences.setString(Constants.userId, model.data!.id.toString());
 
                   sharedPreferences.setBool(Constants.isGuest, false);
                   Get.find<AuthController>().logInUser = model.data;
-                  getPlans();
-                  Get.to(() => SignUpScreenQuestions());
+                  Get.find<AuthController>().addLocalStorage(model.data!, password);
+                  // getPlans();
+                  Get.offAll(() => SignUpScreenQuestions());
                 }
+                clearyControllers();
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  addUserDetails({bool status = true, String? age, String? height, String? weight, String? bmiResult}) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+
+        await homeRepo.addUserDetails(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          map: {"userId": sharedPreferences.getString(Constants.userId), "age": age, "weight": weight, "height": height, "bmiResult": bmiResult},
+        ).then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, (p0) {});
+              if (model.status == "1") {
+                CustomToast.successToast(msg: response.body["message"]);
+
+                Get.offAll(() => BmiResult(
+                      bmi: bmiResult ?? "0",
+                    ));
               }
             }
           } else {
@@ -1047,8 +988,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.getPaymentLink(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {"amount": amount, "planId": id},
@@ -1059,8 +999,7 @@ class HomeController extends GetxController implements GetxService {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
-              ApiResponse<PaymentLink> model =
-                  ApiResponse.fromJson(response.body, PaymentLink.fromJson);
+              ApiResponse<PaymentLink> model = ApiResponse.fromJson(response.body, PaymentLink.fromJson);
               if (model.status == "1") {
                 Get.to(() => WebViewScreen(url: model.data!.session.url));
               }
@@ -1073,21 +1012,92 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
+  /// Direct Pay (Payin PWA): JazzCash / EasyPaisa. Backend returns payment URL.
+  /// [msisdn] if provided is used (e.g. from phone confirmation dialog); otherwise uses profile phone.
+  void getDirectPayPaymentLink(String amount, String planId, {String? msisdn}) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        return;
+      }
+      final user = Get.find<AuthController>().logInUser;
+      if (user == null) {
+        CustomToast.failToast(msg: "Please log in to continue.");
+        return;
+      }
+      final payerName = user.fullName.trim();
+      final email = user.email.trim();
+      if (payerName.isEmpty || email.isEmpty) {
+        CustomToast.failToast(msg: "Please complete your profile (name and email) before paying.");
+        return;
+      }
+      final phoneToUse = msisdn ?? normalizeMsisdn(user.phone);
+      if (phoneToUse == null || phoneToUse.length != 11) {
+        CustomToast.failToast(msg: "Please provide a valid Pakistan mobile number (03xxxxxxxxx).");
+        return;
+      }
+      final successRedirectUrl = "fither://payment/success?planId=$planId";
+      final failedRedirectUrl = "fither://payment/failed";
+      Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+      await homeRepo.getDirectPayPaymentUrl(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        map: {
+          "planId": planId,
+          "amount": amount,
+          "payerName": payerName,
+          "email": email,
+          "userId": sharedPreferences.getString(Constants.userId),
+          "msisdn": phoneToUse,
+          "successRedirectUrl": successRedirectUrl,
+          "failedRedirectUrl": failedRedirectUrl,
+        },
+      ).then((response) async {
+        Get.back();
+        if (response.statusCode == 200 && response.body["status"] != "0") {
+          ApiResponse<DirectPayUrlResponse> model = ApiResponse.fromJson(response.body, DirectPayUrlResponse.fromJson);
+          if (model.status == "1" && model.data != null && model.data!.url.isNotEmpty) {
+            Get.to(() => WebViewScreen(
+                  url: model.data!.url,
+                  successPlanId: planId,
+                ));
+          } else {
+            CustomToast.failToast(msg: model.message ?? response.body["message"] ?? "Could not create payment link.");
+          }
+        } else {
+          CustomToast.failToast(msg: response.body["message"] ?? "Could not create payment link.");
+        }
+      });
+    });
+  }
+
+  /// Normalize Pakistan mobile to 03xxxxxxxxx (11 digits) for Direct Pay. Public for prefilling UI.
+  static String? normalizeMsisdn(String? phone) {
+    if (phone == null || phone.isEmpty) return null;
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 10 && digits.startsWith('3')) return '0$digits';
+    if (digits.length == 12 && digits.startsWith('92')) return '0${digits.substring(2)}';
+    if (digits.length == 11 && digits.startsWith('03')) return digits;
+    if (digits.length == 11 && digits.startsWith('0')) return digits;
+    return null;
+  }
+
+  /// Validate Pakistan mobile for Direct Pay: 03 + 9 digits (11 total).
+  static bool isValidMsisdn(String? value) {
+    if (value == null || value.isEmpty) return false;
+    final normalized = normalizeMsisdn(value);
+    return normalized != null && normalized.length == 11 && RegExp(r'^03\d{9}$').hasMatch(normalized);
+  }
+
   addWorkoutAndTrainerApp() {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.assignWorkoutAndTrainer(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "planId": allPlanModel!.plans[selectedPlanIndex.value].id,
-            "dietitianId": selectedDietId.value,
-            "trainerId": selectedTrainerId.value
-          },
+          map: {"planId": allPlanModel!.plans[selectedPlanIndex.value].id, "dietitianId": selectedDietId.value, "trainerId": selectedTrainerId.value},
         ).then((response) async {
           Get.back();
 
@@ -1111,11 +1121,7 @@ class HomeController extends GetxController implements GetxService {
 
   getspecificUserFromFireStore(String id) async {
     Map<String, dynamic>? userMap;
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(id)
-        .get()
-        .then((value) {
+    await FirebaseFirestore.instance.collection("users").doc(id).get().then((value) {
       userMap = value.data();
     });
     userMap ??= {"id": id, "name": "", "deviceToken": ""};
@@ -1123,53 +1129,8 @@ class HomeController extends GetxController implements GetxService {
   }
 
   makeRoomId(String id) async {
-    String roomId =
-        (sharedPreferences.getString(Constants.userId).hashCode + id.hashCode)
-            .toString();
+    String roomId = (sharedPreferences.getString(Constants.userId).hashCode + id.hashCode).toString();
     return roomId;
-  }
-
-  addDietitionPlan() {
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-        // Get.back();
-      } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
-        await homeRepo
-            .addDietitionPlan(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: addPackage.AddPackageModel(
-                  title: packageName.text,
-                  shortDescription: shortDis.text,
-                  longDescription: longDis.text,
-                  categoryId: selectedId.toString(),
-                  price: price.text,
-                  times: addPackageTimeTable,
-                  duration: packageDuration.text,
-                  subCategoryId: selectedSubCatId.value.toString())
-              .toJson(),
-        )
-            .then((response) async {
-          Get.back();
-
-          if (response.statusCode == 200) {
-            if (response.body["status"] == "0") {
-              CustomToast.failToast(msg: response.body["message"]);
-            } else if (response.body["status"] != "0") {
-              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
-              if (model.status == "1") {
-                CustomToast.successToast(msg: model.message);
-                Get.back();
-              }
-            }
-          } else {
-            CustomToast.failToast(msg: response.body["message"]);
-          }
-        });
-      }
-    });
   }
 
   addAnnouncement(TextEditingController title, TextEditingController body) {
@@ -1178,8 +1139,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.addAnnouncement(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
@@ -1206,25 +1166,20 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  freezeMyAccount() {
+  freezeMyAccount(bool freeze) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.freezeMyAccount(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {
             "userId": sharedPreferences.getString(Constants.userId),
-            "freeze": true,
-            "freezingDays": Get.find<AuthController>()
-                .dateExtendController
-                .text
-                .split(" ")
-                .first
+            "freeze": freeze,
+            "freezingDays": !freeze ? null : Get.find<AuthController>().dateExtendController.text.split(" ").first
           },
         ).then((response) async {
           Get.back();
@@ -1235,6 +1190,11 @@ class HomeController extends GetxController implements GetxService {
               ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
+                // userHomeData?.userData.usedFreezeOption.value =
+                //     freeze ? false : true;
+                //   userHomeData!.userData.freeze.value = freeze;
+                getUserHomeFunc();
+                update(['freezeButton']);
               }
             }
           } else {
@@ -1251,8 +1211,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo
             .synchronizationRepo(
@@ -1283,8 +1242,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.updateWeeklyReportRepo(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
@@ -1300,7 +1258,9 @@ class HomeController extends GetxController implements GetxService {
             "hips": hips.text,
             "istDayDate": firstDay.text.replaceAll("/", "-"),
             "currentDate": currentDate.text.replaceAll("/", "-"),
-            "weist": waist.text
+            "weist": waist.text,
+            "review": labels[selectedSatisfaction.value],
+            "aboutService": tellUsMore.text
           },
         ).then((response) async {
           Get.back();
@@ -1323,15 +1283,13 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  updateLinkFunc(TextEditingController textEditingController, int slotId,
-      bool isDiet, int userId) {
+  updateLinkFunc(TextEditingController textEditingController, int slotId, bool isDiet, int userId, String planId) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo
             .updateLinkRepo(
@@ -1339,7 +1297,8 @@ class HomeController extends GetxController implements GetxService {
           map: {
             isDiet ? "id" : "slotId": slotId,
             "link": textEditingController.text,
-            "userId": userId
+            "userId": userId,
+            "planId": planId,
           },
           isDiet: isDiet,
         )
@@ -1352,7 +1311,90 @@ class HomeController extends GetxController implements GetxService {
             } else if (response.body["status"] != "0") {
               ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
-                textEditingController.clear();
+                CustomToast.successToast(msg: response.body["message"]);
+                Get.find<WorkOutController>().getTrainerHomeFunc();
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  updateSlotStatus(String slotId, String status) async {
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+
+        await homeRepo.updateSlotStatus(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          map: {
+            "slotId": slotId,
+            "status": status,
+          },
+        ).then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
+              if (model.status == "1") {
+                CustomToast.successToast(msg: response.body["message"]);
+                WorkOutController workOutController = Get.find();
+
+                var trainerSlots = workOutController.getTrainerHome?.trainerSlots;
+                if (trainerSlots != null && trainerSlots.isNotEmpty) {
+                  for (var slot in trainerSlots) {
+                    for (var s in slot.slots) {
+                      if (s.id.toString() == slotId) {
+                        s.status = status;
+                      }
+                    }
+                  }
+                }
+
+                // Get.find<WorkOutController>().getTrainerHomeFunc();
+              }
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"]);
+          }
+        });
+      }
+    });
+  }
+
+  updateTrainerJoin(int uid, int slotId, String channel, {bool isTrainerJoined = true}) {
+    connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        // Get.back();
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+
+        await homeRepo.updateTrainerJoin(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+          map: {
+            "slotId": slotId,
+            "isTrainerJoined": isTrainerJoined,
+            "joinedUserUID": uid,
+          },
+        ).then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "0") {
+              CustomToast.failToast(msg: response.body["message"]);
+            } else if (response.body["status"] != "0") {
+              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
+              if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
               }
             }
@@ -1364,14 +1406,13 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addTeamMemberFunc(int planId) {
+  addTeamMemberFunc(int? planId) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         // var plan = allPlanModel!.plans[selectedPlanIndex.value];
         // var expiryDate = DateTime.now()
@@ -1387,7 +1428,7 @@ class HomeController extends GetxController implements GetxService {
             "password": passwordController.text,
             "phone": phoneController.text,
             "userType": addedTeamMember.value,
-            "planId": planId
+            "planId": null
           },
         ).then((response) async {
           Get.back();
@@ -1416,8 +1457,7 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.updateUserRepo(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           map: {
@@ -1458,14 +1498,10 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.updateUserPayment(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "userId": sharedPreferences.getString(Constants.userId) ?? "",
-            "planId": planId
-          },
+          map: {"userId": sharedPreferences.getString(Constants.userId) ?? "", "planId": planId},
         ).then((response) async {
           Get.back();
 
@@ -1487,19 +1523,16 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  approveUser(String imageId) {
+  approveUser(String imageId, bool reject) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await homeRepo.approveUser(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "planImageId": imageId,
-          },
+          map: {"planImageId": imageId, "rejected": reject},
         ).then((response) async {
           Get.back();
 
@@ -1509,6 +1542,8 @@ class HomeController extends GetxController implements GetxService {
             } else if (response.body["status"] != "0") {
               ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
+                getAllPlansImages?.data.removeWhere((image) => image.id.toString() == imageId);
+                update(["newList"]);
                 CustomToast.successToast(msg: response.body["message"]);
               }
             }
@@ -1526,18 +1561,14 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo.addTestimonials(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {"image": testiPicture!.path}).then((response) async {
+            accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {"image": testiPicture!.path}).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
@@ -1553,32 +1584,26 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  updateUserProfile(String speciality, String totalPatients, String experience,
-      String description) {
+  updateUserProfile(String speciality, String totalPatients, String experience, String description) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        await homeRepo.updateUserProfile(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "image": profilePicture!.path,
-              "userId": sharedPreferences.getString(Constants.userId),
-              "speciality": speciality,
-              "totalPatients": totalPatients,
-              "experience": experience,
-              "description": description
-            }).then((response) async {
+        await homeRepo.updateUserProfile(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {
+          "image": profilePicture!.path,
+          "userId": sharedPreferences.getString(Constants.userId),
+          "speciality": speciality,
+          "totalPatients": totalPatients,
+          "experience": experience,
+          "description": description
+        }).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
@@ -1600,18 +1625,12 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
         await homeRepo
             .updateUserDietOfWeek(
-                accessToken:
-                    sharedPreferences.getString(Constants.accessToken) ?? "",
-                map: AddDietOfUser(
-                        userId: userID,
-                        userPlanId: userPlanId,
-                        dietOfUser: dietOfUserByDiet)
-                    .toJson())
+                accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+                map: AddDietOfUser(userId: userID, userPlanId: userPlanId, dietOfUser: dietOfUserByDiet).toJson())
             .then((response) async {
           Get.back();
 
@@ -1633,41 +1652,36 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addPlanBuyImage(String planId, int catId) {
-    connectionService.checkConnection().then((value) async {
+  Future<bool> addPlanBuyImage(String planId, int durationId, String price) async {
+    bool success = false;
+    await connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-        await homeRepo.addPlanImageRepo(
-            accessToken:
-                sharedPreferences.getString(Constants.accessToken) ?? "",
-            map: {
-              "image": planPicture!.path,
-              "planId": planId,
-              "userId": sharedPreferences.getString(Constants.userId),
-              "trainerId": catId == 2 || catId == 3
-                  ? selectedTrainerId.value.toString()
-                  : "",
-              "dietitianId": catId == 1 || catId == 3
-                  ? selectedDietId.value.toString()
-                  : ""
-            }).then((response) async {
+        Plan? plan = allPlanModel?.plans.firstWhereOrNull((p) => p.id == selectedPlanId.value);
+
+        await homeRepo.addPlanImageRepo(accessToken: sharedPreferences.getString(Constants.accessToken) ?? "", map: {
+          "image": planPicture!.path,
+          "planId": planId,
+          // "durationId": durationId.toString(),
+          "price": price,
+          "durationId": durationId.toString(),
+          "userId": sharedPreferences.getString(Constants.userId),
+        }).then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
-            ApiResponse model =
-                ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
+            ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
             }
             if (model.status == "1") {
-              CustomToast.successToast(msg: model.message);
+              // CustomToast.successToast(msg: model.message);
               planPicture = null;
-              Get.back();
+              success = true;
             }
           } else {
             CustomToast.failToast(msg: "Something wrong happened");
@@ -1675,50 +1689,10 @@ class HomeController extends GetxController implements GetxService {
         });
       }
     });
+    return success;
   }
 
-  var paymentIntent;
-
-  Future<void> makePayment(String planId) async {
-    try {
-      paymentIntent = await createPaymentIntent('100', 'GBP');
-
-      await Stripe.instance
-          .initPaymentSheet(
-              paymentSheetParameters: SetupPaymentSheetParameters(
-        paymentIntentClientSecret: paymentIntent['client_secret'],
-        style: ThemeMode.light,
-        merchantDisplayName: 'Fit Her',
-      ))
-          .then((value) {
-        displayPaymentSheet(planId);
-        print("init $value");
-      }).onError((error, stackTrace) {
-        print("error    ${error}");
-      });
-      //STEP 3: Display Payment sheet
-    } catch (err) {
-      print(err);
-    }
-  }
-
-  displayPaymentSheet(String planId) async {
-    try {
-      await Stripe.instance.presentPaymentSheet().onError((error, stackTrace) {
-        stackTrace.toString();
-        print("sheet error  $error, ${stackTrace.toString()}]");
-      });
-      var intent = await Stripe.instance
-          .retrievePaymentIntent(paymentIntent['client_secret']);
-      if (intent.status == PaymentIntentsStatus.Succeeded) {
-        updateUserPlanStatus(planId);
-      }
-
-      print("intext   $intent");
-    } catch (e) {
-      print("Catrch error $e");
-    }
-  }
+  var showDotHome = false.obs;
 
   createPaymentIntent(String amount, String currency) async {
     try {
@@ -1733,10 +1707,7 @@ class HomeController extends GetxController implements GetxService {
 
       var response = await http.post(
         Uri.parse('https://api.stripe.com/v1/payment_intents'),
-        headers: {
-          'Authorization': 'Bearer ${dotenv.get("STRIPE_SECRET_KEY_TEST")}',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
+        headers: {'Authorization': 'Bearer ${dotenv.get("STRIPE_SECRET_KEY_TEST")}', 'Content-Type': 'application/x-www-form-urlencoded'},
         body: body,
       );
       print("response    ${response.body}");

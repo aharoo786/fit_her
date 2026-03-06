@@ -11,11 +11,25 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../data/controllers/home_controller/home_controller.dart';
+import '../../helper/analytics_helper.dart';
 
-class WorkoutScreen extends StatelessWidget {
+class WorkoutScreen extends StatefulWidget {
   WorkoutScreen({super.key, this.isProduct = false});
   final bool isProduct;
+
+  @override
+  State<WorkoutScreen> createState() => _WorkoutScreenState();
+}
+
+class _WorkoutScreenState extends State<WorkoutScreen> {
   HomeController homeController = Get.find();
+
+  @override
+  void initState() {
+    super.initState();
+    // Track screen view
+    AnalyticsHelper.trackScreenView('workout_screen');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +38,7 @@ class WorkoutScreen extends StatelessWidget {
     return Scaffold(
       appBar: HelpingWidgets().appBarWidget(() {
         Get.back();
-      }, text: isProduct ? "Our Products" : "Workouts"),
+      }, text: widget.isProduct ? "Our Products" : "Workouts"),
       body: Obx(() => homeController.getUsersBasedOnUserTypeLoad.value
           ? ListView.separated(
               shrinkWrap: true,
@@ -35,8 +49,15 @@ class WorkoutScreen extends StatelessWidget {
                 var trainer =
                     homeController.getUsersBasedOnUserTypeModel!.users[index];
                 return GestureDetector(
-                  onTap: () {
-                    if (isProduct) {
+                  onTap: () async {
+                    // Track class view
+                    await AnalyticsHelper.trackClassView(
+                      trainer.firstName ?? 'Unknown Class',
+                      classType: 'live',
+                      instructorName: trainer.firstName,
+                    );
+
+                    if (widget.isProduct) {
                       Get.to(() => DietDetails());
                     } else {
                       Get.to(() => DoctorDetails(
@@ -48,7 +69,7 @@ class WorkoutScreen extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     children: [
                       Container(
-                        height: 120.h,
+                        height: 130.h,
                         width: double.maxFinite,
                         padding: EdgeInsets.symmetric(
                             vertical: 13.h, horizontal: 25.w),
@@ -65,23 +86,28 @@ class WorkoutScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              isProduct
-                                  ? "Workout Equipment"
-                                  : "${trainer.description ?? ""}",
-                              style: textTheme.bodySmall!.copyWith(
-                                  color: MyColors.workOutTextColor,
-                                  fontWeight: FontWeight.w500),
+                            SizedBox(
+                              width: 270,
+                              child: Text(
+                                widget.isProduct
+                                    ? "Workout Equipment"
+                                    : "${trainer.description ?? ""}",
+                                style: textTheme.bodySmall!.copyWith(
+                                    color: MyColors.workOutTextColor,
+                                    fontWeight: FontWeight.w500),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             Text(
-                              isProduct
+                              widget.isProduct
                                   ? "Dumbbells"
                                   : "${trainer.firstName} ${trainer.lastName}",
                               style: textTheme.headlineSmall!
                                   .copyWith(fontWeight: FontWeight.w600),
                             ),
                             Spacer(),
-                            isProduct
+                            widget.isProduct
                                 ? Text(
                                     "Rs. 2000",
                                     style: textTheme.bodyMedium!
@@ -104,7 +130,7 @@ class WorkoutScreen extends StatelessWidget {
                         ),
                       ),
                       Image.asset(
-                        isProduct ? MyImgs.dumble : MyImgs.yoga3,
+                        widget.isProduct ? MyImgs.dumble : MyImgs.yoga3,
                         scale: 4,
                       )
                     ],
@@ -113,7 +139,7 @@ class WorkoutScreen extends StatelessWidget {
               },
               separatorBuilder: (BuildContext context, int index) {
                 return SizedBox(
-                  height: isProduct ? 25.h : 15.h,
+                  height: widget.isProduct ? 25.h : 15.h,
                 );
               },
             )

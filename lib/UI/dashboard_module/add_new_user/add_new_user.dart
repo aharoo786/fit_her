@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../data/models/get_all_cat_plan/get_all_sub_cat.dart';
+import '../../../data/models/get_all_users/get_all_users_based_on_type.dart';
+import '../../../data/models/get_user_plan/get_user_plan.dart';
 import '../../../values/dimens.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
@@ -121,8 +123,11 @@ class AddNewUser extends StatelessWidget {
                                   if (newValue != null) {
                                     homeController.addedTeamMember.value =
                                         newValue;
-                                    homeController
-                                        .getSubCatBasedOnUserType(newValue);
+                                    if (!homeController
+                                        .isCustomerSupport.value) {
+                                      homeController
+                                          .getSubCatBasedOnUserType(newValue);
+                                    }
                                   }
                                 },
                                 items: homeController.addTeamMember
@@ -141,652 +146,322 @@ class AddNewUser extends StatelessWidget {
                             SizedBox(
                               height: 16.h,
                             ),
-                            Obx(() => homeController.selectedSubCatId.value == 0
-                                ? const SizedBox.shrink()
-                                : homeController.getSubCatLoaded.value
-                                    ? homeController
-                                            .allSubCategories!.data.isNotEmpty
-                                        ? Container(
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                  color: Colors.black),
-                                              color: MyColors.textFieldColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: DropdownButtonFormField<
-                                                SubCategory>(
-                                              style: TextStyle(
-                                                  color: MyColors.textColor,
-                                                  fontSize: 16.sp,
-                                                  fontWeight: FontWeight.w600),
-                                              decoration: InputDecoration(
-                                                contentPadding:
-                                                    EdgeInsets.symmetric(
-                                                        horizontal: 16.w,
-                                                        vertical: 12.h),
-                                                border: InputBorder.none,
-                                              ),
-
-                                              //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                                              value: homeController
-                                                  .allSubCategories!.data
-                                                  .firstWhere((element) =>
-                                                      element.id ==
-                                                      homeController
-                                                          .selectedSubCatId
-                                                          .value),
-                                              onChanged:
-                                                  (SubCategory? newValue) {
-                                                if (newValue != null) {
-                                                  homeController
-                                                      .selectedSubCatId
-                                                      .value = newValue.id;
-                                                  homeController
-                                                      .getPlansBasedOnSubCat(
-                                                          newValue.id
-                                                              .toString());
-                                                }
-                                              },
-                                              items: homeController
-                                                  .allSubCategories!.data
-                                                  .map((SubCategory cat) {
-                                                return DropdownMenuItem<
-                                                    SubCategory>(
-                                                  value: cat,
-                                                  child: SizedBox(
-                                                    width: 200.w,
-                                                    child: Text(
-                                                      cat.title,
-                                                      maxLines: 2,
-                                                      style: textTheme
-                                                          .bodySmall!
-                                                          .copyWith(
-                                                              color:
-                                                                  Colors.black,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis),
-                                                    ),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                            ),
-                                          )
-                                        : SizedBox.shrink()
-                                    : const Center(
-                                        child: CircularProgressIndicator(
-                                        color: MyColors.buttonColor,
-                                      ))),
                           ],
                         )
-                      : SizedBox.shrink(),
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 20.h,
+                            ),
+                            Text(
+                              "Please select customer support representative",
+                              style: textTheme.headlineSmall!.copyWith(
+                                  fontSize: 15.sp,
+                                  color: MyColors.textColor3,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(
+                              height: 10.h,
+                            ),
+                            Obx(() => homeController
+                                    .getUsersBasedOnUserTypeLoad.value
+                                ? homeController.getUsersBasedOnUserTypeModel!
+                                        .users.isNotEmpty
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black),
+                                          color: MyColors.textFieldColor,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: DropdownButtonFormField<
+                                            UserTypeData>(
+                                          style: TextStyle(
+                                              color: MyColors.textColor,
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w600),
+                                          decoration: InputDecoration(
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                    horizontal: 16.w,
+                                                    vertical: 12.h),
+                                            border: InputBorder.none,
+                                          ),
 
-                  SizedBox(height: 20.h),
-                  Text(
-                    "Select Plan",
-                    style: textTheme.headlineMedium!
-                        .copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  SizedBox(
-                    height: 10.h,
-                  ),
-                  // isMember
-                  //     ?
-                  Obx(() => homeController.getPlanLoaded.value
-                      ? SizedBox(
-                          height: 170.h,
-                          child: ListView.separated(
-                            padding: EdgeInsets.symmetric(vertical: 20.h),
-                            itemCount:
-                                homeController.allPlanModel!.plans.length,
-                            // homeController
-                            //             .addedTeamMember.value ==
-                            //         "Trainer"
-                            //     ? homeController
-                            //         .trainerPlanList.value.length
-                            //     : homeController
-                            //         .dietPlanList.value.length,
-                            scrollDirection: Axis.horizontal,
-                            itemBuilder: (BuildContext context, int index) {
-                              var plan =
-                                  homeController.allPlanModel!.plans[index];
-
-                              // homeController
-                              //             .addedTeamMember.value ==
-                              //         "Trainer"
-                              //     ? homeController
-                              //         .trainerPlanList.value[index]
-                              //     : homeController
-                              //         .dietPlanList.value[index];
-                              var id = homeController.addedTeamMember.value ==
-                                      "Trainer"
-                                  ? homeController.selectedTrainerIdForMember
-                                  : homeController.selectedDietIdForMember;
-                              return GestureDetector(
-                                onTap: () {
-                                  id.value = plan.id;
-                                  homeController.selectedPlanIndex.value =
-                                      index;
-                                },
-                                child: Obx(
-                                  () => Container(
-                                    width: 300.w,
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                            color: id.value == plan.id
-                                                ? MyColors.buttonColor
-                                                : Colors.white),
-                                        boxShadow: [
-                                          BoxShadow(
-                                              offset: Offset(0, 2),
-                                              blurRadius: 4,
-                                              color:
-                                                  Colors.black.withOpacity(0.1))
-                                        ]),
-                                    child: Row(children: [
-                                      SizedBox(
-                                        width: 70.w,
-                                        child: Image.asset(MyImgs.logo),
-                                      ),
-                                      SizedBox(
-                                        width: 10.w,
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              plan.title,
-                                              style:
-                                                  textTheme.bodyLarge!.copyWith(
-                                                fontWeight: FontWeight.w500,
+                                          //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                          value: homeController
+                                              .getUsersBasedOnUserTypeModel!
+                                              .users
+                                              .firstWhere((element) =>
+                                                  element.id ==
+                                                  homeController
+                                                      .selectCustomerSupport
+                                                      .value),
+                                          onChanged: (UserTypeData? newValue) {
+                                            if (newValue != null) {
+                                              homeController
+                                                  .selectCustomerSupport
+                                                  .value = newValue.id;
+                                            }
+                                          },
+                                          items: homeController
+                                              .getUsersBasedOnUserTypeModel!
+                                              .users
+                                              .map((UserTypeData cat) {
+                                            return DropdownMenuItem<
+                                                UserTypeData>(
+                                              value: cat,
+                                              child: SizedBox(
+                                                width: 200.w,
+                                                child: Text(
+                                                  "${cat.id}: ${cat.firstName} ${cat.lastName}",
+                                                  maxLines: 2,
+                                                  style: textTheme.bodySmall!
+                                                      .copyWith(
+                                                          color: Colors.black,
+                                                          overflow: TextOverflow
+                                                              .ellipsis),
+                                                ),
                                               ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              plan.shortDescription,
-                                              style: textTheme.bodySmall!
-                                                  .copyWith(),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              "Duration: ${plan.duration}",
-                                              style: textTheme.titleLarge!
-                                                  .copyWith(),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              "PKR ${plan.price}",
-                                              style: textTheme.titleLarge!
-                                                  .copyWith(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
+                                            );
+                                          }).toList(),
                                         ),
                                       )
-                                    ]),
-                                  ),
-                                ),
-                              );
-                            },
-                            separatorBuilder:
-                                (BuildContext context, int index) {
-                              return SizedBox(
-                                width: 10.w,
-                              );
-                            },
-                          ))
-                      : const Center(
-                          child: CircularProgress(),
-                        )),
-                  SizedBox(
-                    height: 20.h,
-                  ),
-                  // : SizedBox(
-                  //     height: 170.h,
-                  //     child: ListView.separated(
-                  //       padding: EdgeInsets.symmetric(vertical: 20.h),
-                  //       itemCount:
-                  //           homeController.allPlanModel!.plans.length,
-                  //       scrollDirection: Axis.horizontal,
-                  //       itemBuilder: (BuildContext context, int index) {
-                  //         var plan =
-                  //             homeController.allPlanModel!.plans[index];
-                  //         return GestureDetector(
-                  //           onTap: () {
-                  //             homeController.selectedPlanId.value = plan.id;
-                  //             homeController.selectedPlanIndex.value =
-                  //                 index;
-                  //           },
-                  //           child: Obx(
-                  //             () => Container(
-                  //               width: 300.w,
-                  //               padding: const EdgeInsets.all(10),
-                  //               decoration: BoxDecoration(
-                  //                   color: Colors.white,
-                  //                   borderRadius: BorderRadius.circular(16),
-                  //                   border: Border.all(
-                  //                       color: homeController
-                  //                                   .selectedPlanId.value ==
-                  //                               plan.id
-                  //                           ? MyColors.buttonColor
-                  //                           : Colors.white),
-                  //                   boxShadow: [
-                  //                     BoxShadow(
-                  //                         offset: Offset(0, 2),
-                  //                         blurRadius: 4,
-                  //                         color:
-                  //                             Colors.black.withOpacity(0.1))
-                  //                   ]),
-                  //               child: Row(children: [
-                  //                 SizedBox(
-                  //                   width: 70.w,
-                  //                   child: Image.asset(MyImgs.logo),
-                  //                 ),
-                  //                 SizedBox(
-                  //                   width: 10.w,
-                  //                 ),
-                  //                 Expanded(
-                  //                   child: Column(
-                  //                     crossAxisAlignment:
-                  //                         CrossAxisAlignment.start,
-                  //                     children: [
-                  //                       Text(
-                  //                         plan.title,
-                  //                         style: textTheme.headlineSmall!
-                  //                             .copyWith(
-                  //                           fontWeight: FontWeight.w500,
-                  //                         ),
-                  //                         maxLines: 1,
-                  //                         overflow: TextOverflow.ellipsis,
-                  //                       ),
-                  //                       Text(
-                  //                         plan.shortDescription,
-                  //                         style: textTheme.bodySmall!
-                  //                             .copyWith(),
-                  //                         maxLines: 3,
-                  //                         overflow: TextOverflow.ellipsis,
-                  //                       ),
-                  //                       Text(
-                  //                         "Duration: ${plan.duration}",
-                  //                         style: textTheme.bodySmall!
-                  //                             .copyWith(),
-                  //                         maxLines: 2,
-                  //                         overflow: TextOverflow.ellipsis,
-                  //                       ),
-                  //                       Text(
-                  //                         "PKR ${plan.price}",
-                  //                         style:
-                  //                             textTheme.bodyLarge!.copyWith(
-                  //                           fontWeight: FontWeight.w500,
-                  //                         ),
-                  //                       ),
-                  //                     ],
-                  //                   ),
-                  //                 )
-                  //               ]),
-                  //             ),
-                  //           ),
-                  //         );
-                  //       },
-                  //       separatorBuilder:
-                  //           (BuildContext context, int index) {
-                  //         return SizedBox(
-                  //           width: 10.w,
-                  //         );
-                  //       },
-                  //     ),
-                  //   ),
-                  // SizedBox(
-                  //   height: 10.h,
-                  // ),
-                  // isMember
-                  //     ? SizedBox()
-                  //     : Text(
-                  //         "Select ${homeController.allPlanModel!.plans[homeController.selectedPlanIndex.value].categoryId == 1 || homeController.allPlanModel!.plans[homeController.selectedPlanIndex.value].categoryId == 3 ? "Dietitian" : "Trainers"}",
-                  //         style: textTheme.headlineMedium!
-                  //             .copyWith(fontWeight: FontWeight.w600),
-                  //       ),
-                  // isMember
-                  //     ? SizedBox()
-                  //     : Obx(() => homeController.getDietitianLoad.value
-                  //         ? Obx(() {
-                  //             if (homeController
-                  //                     .allPlanModel!
-                  //                     .plans[homeController
-                  //                         .selectedPlanIndex.value]
-                  //                     .categoryId ==
-                  //                 3) {
-                  //               return Column(
-                  //                 crossAxisAlignment: CrossAxisAlignment.start,
-                  //                 children: [
-                  //                   ListView.separated(
-                  //                     shrinkWrap: true,
-                  //                     physics:
-                  //                         const NeverScrollableScrollPhysics(),
-                  //                     padding:
-                  //                         EdgeInsets.symmetric(vertical: 20.h),
-                  //                     itemCount: homeController
-                  //                         .getAllDietitianAndTrainers!
-                  //                         .dietitions
-                  //                         .length,
-                  //                     itemBuilder:
-                  //                         (BuildContext context, int index) {
-                  //                       var diet = homeController
-                  //                           .getAllDietitianAndTrainers!
-                  //                           .dietitions[index];
-                  //
-                  //                       return GestureDetector(
-                  //                         onTap: () {
-                  //                           homeController
-                  //                               .selectedDietId.value = diet.id;
-                  //                         },
-                  //                         child: Obx(
-                  //                           () => Container(
-                  //                             width: 300.w,
-                  //                             padding: const EdgeInsets.all(10),
-                  //                             decoration: BoxDecoration(
-                  //                                 color: Colors.white,
-                  //                                 borderRadius:
-                  //                                     BorderRadius.circular(16),
-                  //                                 border: Border.all(
-                  //                                     color: homeController
-                  //                                                 .selectedDietId
-                  //                                                 .value ==
-                  //                                             diet.id
-                  //                                         ? MyColors.buttonColor
-                  //                                         : Colors.white),
-                  //                                 boxShadow: [
-                  //                                   BoxShadow(
-                  //                                       offset:
-                  //                                           const Offset(0, 2),
-                  //                                       blurRadius: 4,
-                  //                                       color: Colors.black
-                  //                                           .withOpacity(0.1))
-                  //                                 ]),
-                  //                             child: Row(children: [
-                  //                               SizedBox(
-                  //                                 width: 70.w,
-                  //                                 child:
-                  //                                     Image.asset(MyImgs.logo),
-                  //                               ),
-                  //                               SizedBox(
-                  //                                 width: 10.w,
-                  //                               ),
-                  //                               Expanded(
-                  //                                 child: Column(
-                  //                                   crossAxisAlignment:
-                  //                                       CrossAxisAlignment
-                  //                                           .start,
-                  //                                   children: [
-                  //                                     Text(
-                  //                                       "${diet.firstName} ${diet.lastName}",
-                  //                                       style: textTheme
-                  //                                           .headlineSmall!
-                  //                                           .copyWith(
-                  //                                         fontWeight:
-                  //                                             FontWeight.w500,
-                  //                                       ),
-                  //                                     ),
-                  //                                     Text(
-                  //                                       diet.email,
-                  //                                       style: textTheme
-                  //                                           .bodySmall!
-                  //                                           .copyWith(),
-                  //                                       maxLines: 3,
-                  //                                       overflow: TextOverflow
-                  //                                           .ellipsis,
-                  //                                     ),
-                  //                                   ],
-                  //                                 ),
-                  //                               )
-                  //                             ]),
-                  //                           ),
-                  //                         ),
-                  //                       );
-                  //                     },
-                  //                     separatorBuilder:
-                  //                         (BuildContext context, int index) {
-                  //                       return SizedBox(
-                  //                         height: 10.h,
-                  //                       );
-                  //                     },
-                  //                   ),
-                  //                   Text(
-                  //                     "Select Trainers",
-                  //                     style: textTheme.headlineMedium!.copyWith(
-                  //                         fontWeight: FontWeight.w600),
-                  //                   ),
-                  //                   ListView.separated(
-                  //                     shrinkWrap: true,
-                  //                     physics:
-                  //                         const NeverScrollableScrollPhysics(),
-                  //                     padding:
-                  //                         EdgeInsets.symmetric(vertical: 20.h),
-                  //                     itemCount: homeController
-                  //                         .getAllDietitianAndTrainers!
-                  //                         .trainers
-                  //                         .length,
-                  //                     itemBuilder:
-                  //                         (BuildContext context, int index) {
-                  //                       var diet = homeController
-                  //                           .getAllDietitianAndTrainers!
-                  //                           .trainers[index];
-                  //
-                  //                       return GestureDetector(
-                  //                         onTap: () {
-                  //                           homeController.selectedTrainerId
-                  //                               .value = diet.id;
-                  //                         },
-                  //                         child: Obx(
-                  //                           () => Container(
-                  //                             width: 300.w,
-                  //                             padding: const EdgeInsets.all(10),
-                  //                             decoration: BoxDecoration(
-                  //                                 color: Colors.white,
-                  //                                 borderRadius:
-                  //                                     BorderRadius.circular(16),
-                  //                                 border: Border.all(
-                  //                                     color: homeController
-                  //                                                 .selectedTrainerId
-                  //                                                 .value ==
-                  //                                             diet.id
-                  //                                         ? MyColors.buttonColor
-                  //                                         : Colors.white),
-                  //                                 boxShadow: [
-                  //                                   BoxShadow(
-                  //                                       offset:
-                  //                                           const Offset(0, 2),
-                  //                                       blurRadius: 4,
-                  //                                       color: Colors.black
-                  //                                           .withOpacity(0.1))
-                  //                                 ]),
-                  //                             child: Row(children: [
-                  //                               SizedBox(
-                  //                                 width: 70.w,
-                  //                                 child:
-                  //                                     Image.asset(MyImgs.logo),
-                  //                               ),
-                  //                               SizedBox(
-                  //                                 width: 10.w,
-                  //                               ),
-                  //                               Expanded(
-                  //                                 child: Column(
-                  //                                   crossAxisAlignment:
-                  //                                       CrossAxisAlignment
-                  //                                           .start,
-                  //                                   children: [
-                  //                                     Text(
-                  //                                       "${diet.firstName} ${diet.lastName}",
-                  //                                       style: textTheme
-                  //                                           .headlineSmall!
-                  //                                           .copyWith(
-                  //                                         fontWeight:
-                  //                                             FontWeight.w500,
-                  //                                       ),
-                  //                                     ),
-                  //                                     Text(
-                  //                                       diet.email,
-                  //                                       style: textTheme
-                  //                                           .bodySmall!
-                  //                                           .copyWith(),
-                  //                                       maxLines: 3,
-                  //                                       overflow: TextOverflow
-                  //                                           .ellipsis,
-                  //                                     ),
-                  //                                   ],
-                  //                                 ),
-                  //                               )
-                  //                             ]),
-                  //                           ),
-                  //                         ),
-                  //                       );
-                  //                     },
-                  //                     separatorBuilder:
-                  //                         (BuildContext context, int index) {
-                  //                       return SizedBox(
-                  //                         height: 10.h,
-                  //                       );
-                  //                     },
-                  //                   )
-                  //                 ],
-                  //               );
-                  //             } else {
-                  //               return ListView.separated(
-                  //                 shrinkWrap: true,
-                  //                 padding: EdgeInsets.symmetric(vertical: 20.h),
-                  //                 itemCount: homeController
-                  //                             .allPlanModel!
-                  //                             .plans[homeController
-                  //                                 .selectedPlanIndex.value]
-                  //                             .categoryId ==
-                  //                         1
-                  //                     ? homeController
-                  //                         .getAllDietitianAndTrainers!
-                  //                         .dietitions
-                  //                         .length
-                  //                     : homeController
-                  //                         .getAllDietitianAndTrainers!
-                  //                         .trainers
-                  //                         .length,
-                  //                 itemBuilder:
-                  //                     (BuildContext context, int index) {
-                  //                   var diet = homeController
-                  //                               .allPlanModel!
-                  //                               .plans[homeController
-                  //                                   .selectedPlanIndex.value]
-                  //                               .categoryId ==
-                  //                           1
-                  //                       ? homeController
-                  //                           .getAllDietitianAndTrainers!
-                  //                           .dietitions[index]
-                  //                       : homeController
-                  //                           .getAllDietitianAndTrainers!
-                  //                           .trainers[index];
-                  //
-                  //                   return GestureDetector(
-                  //                     onTap: () {
-                  //                       if (homeController
-                  //                               .allPlanModel!
-                  //                               .plans[homeController
-                  //                                   .selectedPlanIndex.value]
-                  //                               .categoryId ==
-                  //                           1) {
-                  //                         homeController.selectedDietId.value =
-                  //                             diet.id;
-                  //                       } else {
-                  //                         homeController.selectedTrainerId
-                  //                             .value = diet.id;
-                  //                       }
-                  //                     },
-                  //                     child: Obx(
-                  //                       () => Container(
-                  //                         width: 300.w,
-                  //                         padding: const EdgeInsets.all(10),
-                  //                         decoration: BoxDecoration(
-                  //                             color: Colors.white,
-                  //                             borderRadius:
-                  //                                 BorderRadius.circular(16),
-                  //                             border: Border.all(
-                  //                                 color: (homeController
-                  //                                                     .allPlanModel!
-                  //                                                     .plans[homeController
-                  //                                                         .selectedPlanIndex
-                  //                                                         .value]
-                  //                                                     .categoryId ==
-                  //                                                 1
-                  //                                             ? homeController
-                  //                                                 .selectedDietId
-                  //                                                 .value
-                  //                                             : homeController
-                  //                                                 .selectedTrainerId) ==
-                  //                                         diet.id
-                  //                                     ? MyColors.buttonColor
-                  //                                     : Colors.white),
-                  //                             boxShadow: [
-                  //                               BoxShadow(
-                  //                                   offset: const Offset(0, 2),
-                  //                                   blurRadius: 4,
-                  //                                   color: Colors.black
-                  //                                       .withOpacity(0.1))
-                  //                             ]),
-                  //                         child: Row(children: [
-                  //                           SizedBox(
-                  //                             width: 70.w,
-                  //                             child: Image.asset(MyImgs.logo),
-                  //                           ),
-                  //                           SizedBox(
-                  //                             width: 10.w,
-                  //                           ),
-                  //                           Expanded(
-                  //                             child: Column(
-                  //                               crossAxisAlignment:
-                  //                                   CrossAxisAlignment.start,
-                  //                               children: [
-                  //                                 Text(
-                  //                                   "${diet.firstName} ${diet.lastName}",
-                  //                                   style: textTheme
-                  //                                       .headlineSmall!
-                  //                                       .copyWith(
-                  //                                     fontWeight:
-                  //                                         FontWeight.w500,
-                  //                                   ),
-                  //                                 ),
-                  //                                 Text(
-                  //                                   diet.email,
-                  //                                   style: textTheme.bodySmall!
-                  //                                       .copyWith(),
-                  //                                   maxLines: 3,
-                  //                                   overflow:
-                  //                                       TextOverflow.ellipsis,
-                  //                                 ),
-                  //                               ],
-                  //                             ),
-                  //                           )
-                  //                         ]),
-                  //                       ),
-                  //                     ),
-                  //                   );
-                  //                 },
-                  //                 separatorBuilder:
-                  //                     (BuildContext context, int index) {
-                  //                   return SizedBox(
-                  //                     height: 10.h,
-                  //                   );
-                  //                 },
-                  //               );
-                  //             }
-                  //           })
-                  //         : const CircularProgress())
+                                    : SizedBox.shrink()
+                                : const Center(
+                                    child: CircularProgressIndicator(
+                                    color: MyColors.buttonColor,
+                                  ))),
+                          ],
+                        ),
+                  isMember
+                      ? const SizedBox.shrink()
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 20.h),
+                            Text(
+                              "Select Plan",
+                              style: textTheme.headlineMedium!
+                                  .copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(
+                              height: 10.h,
+                            ),
+                            // isMember
+                            //     ?
+                            Obx(() => homeController.getPlanLoaded.value
+                                ? SizedBox(
+                                    height: 180.h,
+                                    child: ListView.separated(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 20.h),
+                                      itemCount: homeController
+                                          .allPlanModel!.plans.length,
+                                      scrollDirection: Axis.horizontal,
+                                      itemBuilder:
+                                          (BuildContext context, int index) {
+                                        var plan = homeController
+                                            .allPlanModel!.plans[index];
+
+                                        return GestureDetector(
+                                          onTap: () {
+                                            homeController.selectedPlanIndex
+                                                .value = index;
+                                          },
+                                          child: Obx(
+                                            () => Container(
+                                              width: 300.w,
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  border: Border.all(
+                                                      color: homeController
+                                                                  .selectedPlanIndex
+                                                                  .value ==
+                                                              index
+                                                          ? MyColors.buttonColor
+                                                          : Colors.white),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                        offset: Offset(0, 2),
+                                                        blurRadius: 4,
+                                                        color: Colors.black
+                                                            .withOpacity(0.1))
+                                                  ]),
+                                              child: Column(
+                                                children: [
+                                                  Expanded(
+                                                    child: Row(children: [
+                                                      SizedBox(
+                                                        width: 70.w,
+                                                        child: Image.asset(
+                                                            MyImgs.logo),
+                                                      ),
+                                                      SizedBox(
+                                                        width: 10.w,
+                                                      ),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              plan.title,
+                                                              style: textTheme
+                                                                  .bodyLarge!
+                                                                  .copyWith(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                            Text(
+                                                              plan.shortDescription,
+                                                              style: textTheme
+                                                                  .bodySmall!
+                                                                  .copyWith(),
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+
+                                                            // Text(
+                                                            //   "Duration: ${plan.countries![0].duration![0].days}",
+                                                            //   style: textTheme
+                                                            //       .titleLarge!
+                                                            //       .copyWith(),
+                                                            //   maxLines: 2,
+                                                            //   overflow: TextOverflow
+                                                            //       .ellipsis,
+                                                            // ),
+                                                            // Text(
+                                                            //   "PKR ${plan.countries![0].duration![0].priceAmount}",
+                                                            //   style: textTheme
+                                                            //       .titleLarge!
+                                                            //       .copyWith(
+                                                            //     fontWeight:
+                                                            //         FontWeight.w500,
+                                                            //   ),
+                                                            // ),
+                                                          ],
+                                                        ),
+                                                      )
+                                                    ]),
+                                                  ),
+                                                  Container(
+                                                    height: 30,
+                                                    alignment: Alignment.center,
+                                                    decoration: const BoxDecoration(
+                                                        // border: Border.all(
+                                                        //     color: Colors.black),
+                                                        // color: MyColors
+                                                        //     .textFieldColor,
+                                                        // borderRadius:
+                                                        //     BorderRadius.circular(
+                                                        //         8),
+                                                        ),
+                                                    child:
+                                                        DropdownButtonFormField<
+                                                            DurationPlan>(
+                                                      style: TextStyle(
+                                                          color: MyColors
+                                                              .textColor,
+                                                          fontSize: 16.sp,
+                                                          fontWeight:
+                                                              FontWeight.w600),
+
+                                                      decoration:
+                                                          InputDecoration(
+                                                        contentPadding:
+                                                            EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 5.w,
+                                                        ),
+                                                        border:
+                                                            InputBorder.none,
+                                                      ),
+
+                                                      //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                                      value: plan.selectedDurationId
+                                                                  .value ==
+                                                              0
+                                                          ? plan.countries![0]
+                                                              .duration![0]
+                                                          : plan.countries![0]
+                                                              .duration!
+                                                              .firstWhere((value) =>
+                                                                  value.id ==
+                                                                  plan.selectedDurationId
+                                                                      .value),
+                                                      onChanged: (DurationPlan?
+                                                          newValue) {
+                                                        if (newValue != null) {
+                                                          plan.selectedDurationId
+                                                                  .value =
+                                                              newValue.id!;
+                                                        }
+                                                      },
+                                                      items: plan.countries![0]
+                                                          .duration!
+                                                          .map((DurationPlan
+                                                              cat) {
+                                                        return DropdownMenuItem<
+                                                            DurationPlan>(
+                                                          value: cat,
+                                                          child: SizedBox(
+                                                            // width: 100.w,
+                                                            child: Text(
+                                                              "${cat.id}: ${cat.days} ${cat.priceAmount}",
+                                                              maxLines: 2,
+                                                              style: textTheme
+                                                                  .bodySmall!
+                                                                  .copyWith(
+                                                                      color: Colors
+                                                                          .black,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    height: 5,
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      separatorBuilder:
+                                          (BuildContext context, int index) {
+                                        return SizedBox(
+                                          width: 10.w,
+                                        );
+                                      },
+                                    ))
+                                : const Center(
+                                    child: CircularProgress(),
+                                  )),
+                            SizedBox(
+                              height: 20.h,
+                            ),
+                          ],
+                        ),
                 ],
               )
             ],
@@ -805,7 +480,6 @@ class AddNewUser extends StatelessWidget {
                     if (homeController.firstNameController.text.isEmpty ||
                         homeController.lastNameController.text.isEmpty ||
                         homeController.emailController.text.isEmpty ||
-                        homeController.phoneController.text.isEmpty ||
                         homeController.phoneController.text.isEmpty) {
                       CustomToast.failToast(
                           msg: "Please provide all information");
@@ -815,23 +489,36 @@ class AddNewUser extends StatelessWidget {
                       int id = homeController.addedTeamMember.value == "Trainer"
                           ? homeController.selectedTrainerIdForMember.value
                           : homeController.selectedDietIdForMember.value;
-                      homeController.addTeamMemberFunc(id);
+                      if (homeController.isCustomerSupport.value) {
+                        homeController.addTeamMemberFunc(null);
+                      } else {
+                        homeController.addTeamMemberFunc(null);
+                      }
                     }
                   } else {
                     if (homeController.firstNameController.text.isEmpty ||
                         homeController.lastNameController.text.isEmpty ||
                         homeController.emailController.text.isEmpty ||
-                        homeController.phoneController.text.isEmpty ||
-                        homeController.phoneController.text.isEmpty ||
-                        homeController.selectedPlanId.value == 0 ||
-                        (homeController.selectedTrainerId.value == 0 &&
-                            homeController.selectedPlanIndex.value == 0)) {
+                        homeController.phoneController.text.isEmpty) {
                       CustomToast.failToast(
                           msg: "Please provide all information");
                     } else if (!homeController.emailController.text.isEmail) {
                       CustomToast.failToast(msg: "Please provide valid email");
                     } else {
-                      homeController.addUser();
+                      var plan = homeController.allPlanModel!
+                          .plans[homeController.selectedPlanIndex.value];
+                      var price = plan.countries![0].duration
+                              ?.firstWhere(
+                                  (v) => v.id == plan.selectedDurationId.value)
+                              .priceAmount ??
+                          "N/A";
+                      Get.find<HomeController>().addUser(
+                          status: false,
+                          firstName: homeController.firstNameController.text,
+                          lastName: homeController.lastNameController.text,
+                          email: homeController.emailController.text,
+                          phone: homeController.phoneController.text,
+                          password: homeController.passwordController.text, customerSupportId: homeController.selectCustomerSupport.value);
                     }
                   }
                 }),

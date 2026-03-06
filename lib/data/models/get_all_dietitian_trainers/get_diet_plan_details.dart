@@ -1,179 +1,138 @@
+// To parse this JSON data, do
+//
+//     final getDietPlanDetails = getDietPlanDetailsFromJson(jsonString);
+
 import 'dart:convert';
-
+import 'package:intl/intl.dart';
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
+import 'package:fitness_zone_2/data/models/get_clients_diet.dart';
 
-class GetDietPlanDetails extends Serializable{
-  Details details;
-  DietitionDetails dietitionDetails;
+import '../day_slots_of_diet.dart';
+import "package:get/get.dart";
 
+GetDietPlanDetails getDietPlanDetailsFromJson(String str) => GetDietPlanDetails.fromJson(json.decode(str));
+
+String getDietPlanDetailsToJson(GetDietPlanDetails data) => json.encode(data.toJson());
+
+class GetDietPlanDetails extends Serializable {
+  List<TimeDietition> timeDietition;
+  ClientUser dietDetails;
+  SlotWithTime? bookedSlot;
+  var pdfFile = ''.obs;
+  bool isBooked;
+  String status;
+  DateTime date;
+  int id;
   GetDietPlanDetails({
-    required this.details,
-    required this.dietitionDetails,
+    required this.timeDietition,
+    required this.dietDetails,
+    required this.bookedSlot,
+    required this.isBooked,
+    required this.status,
+    required this.id,
+    required this.date,
   });
-
-  factory GetDietPlanDetails.fromRawJson(String str) => GetDietPlanDetails.fromJson(json.decode(str));
-
-  String toRawJson() => json.encode(toJson());
 
   factory GetDietPlanDetails.fromJson(Map<String, dynamic> json) => GetDietPlanDetails(
-    details: Details.fromJson(json["details"]),
-    dietitionDetails: DietitionDetails.fromJson(json["dietitionDetails"]),
-  );
+      timeDietition: List<TimeDietition>.from(json["TimeDietition"].map((x) => TimeDietition.fromJson(x))),
+      dietDetails: ClientUser.fromJson(json["dietDetails"]),
+      bookedSlot: json["bookedSlot"] == null ? null : SlotWithTime.fromJson(json["bookedSlot"]),
+      isBooked: json["isBooked"] ?? false,
+      status: json["status"] ?? "pending",
+      id: json["id"] ?? 0,
+      date: DateTime.parse(json["date"] ?? DateTime.now().toString())) ;
 
   Map<String, dynamic> toJson() => {
-    "details": details.toJson(),
-    "dietitionDetails": dietitionDetails.toJson(),
-  };
+        "TimeDietition": List<dynamic>.from(timeDietition.map((x) => x.toJson())),
+        "dietDetails": dietDetails.toJson(),
+        "bookedSlot": bookedSlot?.toJson(),
+        "isBooked": isBooked,
+        "status": status,
+        "id": id,
+        "date": date
+      };
 }
 
-class Details {
-  int id;
-  String? dietitionLink;
-  List<DietTime> dietTimes;
-
-  Details({
-    required this.id,
-    required this.dietTimes,
-    required this.dietitionLink,
-  });
-
-  factory Details.fromRawJson(String str) => Details.fromJson(json.decode(str));
-
-  String toRawJson() => json.encode(toJson());
-
-  factory Details.fromJson(Map<String, dynamic> json) => Details(
-    id: json["id"],
-    dietitionLink: json["dietitionLink"],
-    dietTimes: List<DietTime>.from(json["DietTimes"].map((x) => DietTime.fromJson(x))),
-  );
-
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "DietTimes": List<dynamic>.from(dietTimes.map((x) => x.toJson())),
-    "dietitionLink":dietitionLink
-  };
-}
-
-class DietTime {
+class TimeDietition {
   int id;
   String day;
-  int? userPlanId;
-  List<Diet> diets;
+  List<Slot> slots;
 
-  DietTime({
+  TimeDietition({
     required this.id,
     required this.day,
-    this.userPlanId,
-    required this.diets,
+    required this.slots,
   });
 
-  factory DietTime.fromRawJson(String str) => DietTime.fromJson(json.decode(str));
-
-  String toRawJson() => json.encode(toJson());
-
-  factory DietTime.fromJson(Map<String, dynamic> json) => DietTime(
-    id: json["id"],
-    day: json["day"],
-    userPlanId: json["UserPlanId"],
-    diets: List<Diet>.from(json["Diets"].map((x) => Diet.fromJson(x))),
-  );
+  factory TimeDietition.fromJson(Map<String, dynamic> json) => TimeDietition(
+        id: json["id"],
+        day: json["day"],
+        slots: List<Slot>.from(json["slots"].map((x) => Slot.fromJson(x))),
+      );
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "day": day,
-    "UserPlanId": userPlanId,
-    "Diets": List<dynamic>.from(diets.map((x) => x.toJson())),
-  };
+        "id": id,
+        "day": day,
+        "slots": List<dynamic>.from(slots.map((x) => x.toJson())),
+      };
 }
 
-class Diet {
-  int id;
-  String time;
-  String food;
-  String calories;
-  int? dietTimeId;
+class TimeDietitionNot {
+  int? id;
+  String? day;
 
-  Diet({
-    required this.id,
-    required this.time,
-    required this.food,
-    required this.calories,
-    this.dietTimeId,
+  TimeDietitionNot({
+    this.id,
+    this.day,
   });
 
-  factory Diet.fromRawJson(String str) => Diet.fromJson(json.decode(str));
-
-  String toRawJson() => json.encode(toJson());
-
-  factory Diet.fromJson(Map<String, dynamic> json) => Diet(
-    id: json["id"],
-    time: json["time"],
-    food: json["food"],
-    calories: json["calories"],
-    dietTimeId: json["DietTimeId"],
-  );
+  factory TimeDietitionNot.fromJson(Map<String, dynamic> json) => TimeDietitionNot(
+        id: json["id"],
+        day: json["day"],
+      );
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "time": time,
-    "food": food,
-    "calories": calories,
-    "DietTimeId": dietTimeId,
-  };
+        "id": id,
+        "day": day,
+      };
 }
 
-class DietitionDetails {
-  User user;
+class SlotWithTime {
+  int? id;
+  String? start;
+  String? end;
+  dynamic dietitionLink;
+  TimeDietitionNot? timeDietition;
 
-  DietitionDetails({
-    required this.user,
+  SlotWithTime({
+    this.id,
+    this.start,
+    this.end,
+    this.dietitionLink,
+    this.timeDietition,
   });
 
-  factory DietitionDetails.fromRawJson(String str) => DietitionDetails.fromJson(json.decode(str));
-
-  String toRawJson() => json.encode(toJson());
-
-  factory DietitionDetails.fromJson(Map<String, dynamic> json) => DietitionDetails(
-    user: User.fromJson(json["User"]),
-  );
-
-  Map<String, dynamic> toJson() => {
-    "User": user.toJson(),
-  };
-}
-
-class User {
-  int id;
-  String firstName;
-  String lastName;
-  String email;
-  String phone;
-
-  User({
-    required this.id,
-    required this.firstName,
-    required this.lastName,
-    required this.email,
-    required this.phone,
-  });
-
-  factory User.fromRawJson(String str) => User.fromJson(json.decode(str));
-
-  String toRawJson() => json.encode(toJson());
-
-  factory User.fromJson(Map<String, dynamic> json) => User(
-    id: json["id"],
-    firstName: json["firstName"],
-    lastName: json["lastName"],
-    email: json["email"],
-    phone: json["phone"],
-  );
+  factory SlotWithTime.fromJson(Map<String, dynamic> json) => SlotWithTime(
+        id: json["id"],
+        start: json["start"] == "Start Time"
+            ? "Start Time"
+            : (json["start"].toString().contains("AM") || json["start"].toString().contains("PM"))
+                ? json["start"]
+                : DateFormat('hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["start"]))),
+        end: json["end"] == "End Time"
+            ? "End Time"
+            : (json["end"].toString().contains("AM") || json["end"].toString().contains("PM"))
+                ? json["end"]
+                : DateFormat('hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["end"]))),
+        dietitionLink: json["dietitionLink"],
+        timeDietition: json["TimeDietition"] == null ? null : TimeDietitionNot.fromJson(json["TimeDietition"]),
+      );
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "firstName": firstName,
-    "lastName": lastName,
-    "email": email,
-    "phone": phone,
-  };
+        "id": id,
+        "start": start,
+        "end": end,
+        "dietitionLink": dietitionLink,
+        "TimeDietition": timeDietition?.toJson(),
+      };
 }

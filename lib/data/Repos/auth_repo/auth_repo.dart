@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../../../values/constants.dart';
 import '../../api_provider/api_provider.dart';
 
@@ -20,14 +20,51 @@ class AuthRepo extends GetxService {
     required String deviceToken,
     required String userType,
   }) async {
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+
     var body = {
       "email": email,
       "password": password,
       "userType": userType,
       "deviceToken": deviceToken,
+      "timeZone": currentTimeZone,
     };
 
     return await apiProvider.postData(Constants.loginPath, body: body);
+  }
+
+  Future<Response> googleSignIn({
+    required String email,
+    required String deviceToken,
+    required String userType,
+  }) async {
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+
+    var body = {
+      "email": email,
+      "deviceToken": deviceToken,
+      "userType": userType,
+      "timeZone": currentTimeZone,
+    };
+
+    return await apiProvider.postData(Constants.socialLogin, body: body);
+  }
+
+  Future<Response> getSubUserBasedOnUserTypes(
+      {required String accessToken, required String userType}) async {
+    return await apiProvider.getData(
+        "${Constants.getUsersOnUserType}/$userType",
+        headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> logoutUserRepo({
+    required String deviceToken,
+  }) async {
+    var body = {
+      "deviceToken": deviceToken,
+    };
+
+    return await apiProvider.postData(Constants.logout, body: body);
   }
 
   Future<Response> loginGuestRepo({
@@ -44,6 +81,21 @@ class AuthRepo extends GetxService {
     };
 
     return await apiProvider.postData(Constants.guestLogin, body: body);
+  }
+
+  Future<Response> forgotPasswordRepo({required String email}) async {
+    var body = {
+      "email": email,
+    };
+
+    return await apiProvider.postData(Constants.forgotPassword, body: body);
+  }
+
+  Future<Response> resetPasswordRepo(
+      {required String email, required String password}) async {
+    var body = {"email": email, "password": password};
+
+    return await apiProvider.postData(Constants.resetPassword, body: body);
   }
 
   Future<Response> dietitianLogin({
@@ -109,6 +161,7 @@ class AuthRepo extends GetxService {
     return await apiProvider
         .postData(Constants.logout, body: {"accessToken": accessToken});
   }
+
   Future deleteUser({required String id}) async {
     return await apiProvider
         .postData(Constants.deleteUser, body: {"userId": id});
@@ -123,8 +176,6 @@ class AuthRepo extends GetxService {
     return await apiProvider
         .postData(Constants.resendOtpPath, body: {"email": email});
   }
-
-
 
   getHomeData({required String accessToken}) async {
     return await apiProvider

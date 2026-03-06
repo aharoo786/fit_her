@@ -1,5 +1,6 @@
 class MyImgs {
-  static const String logo = "assets/images/logo.png";
+  static const String splashLogo = "assets/images/splashLogo.png";
+  static const String logo = "assets/images/logo.jpeg";
   static const String sendIcon = "assets/icons/send_icon.png";
   static const String logo3 = "assets/images/logo2.png";
   static const String eyeOff = "assets/icons/eyeOff.png";
@@ -178,6 +179,7 @@ class MyImgs {
   static const String yoga2 = "assets/icons/yoga2.png";
   static const String cardio = "assets/icons/cardio.png";
   static const String mediation = "assets/icons/mediation.png";
+  static const String welcomeEmoji = "assets/icons/welcomeEmoji.png";
   static const String payment = "assets/icons/payment.png";
   static const String logOut = "assets/icons/logOut.png";
   static const String aboutUs = "assets/icons/aboutUs.png";
@@ -185,7 +187,6 @@ class MyImgs {
   static const String annoucements = "assets/icons/annoucements.png";
   static const String successStories = "assets/icons/successStories.png";
   static const String zumba = "assets/icons/zumba.png";
-  static const String logoFill = "assets/images/logoFill.jpeg";
   static const String lahorePic = "assets/images/lahorePic.png";
   static const String womanImage = "assets/images/womanImage.png";
   static const String chooseAnyOne = "assets/images/chooseAnyOne.jpeg";
@@ -230,6 +231,8 @@ class MyImgs {
   static const String ourJourney4 = "assets/images/ourJourney2.png";
   static const String ourJourney5 = "assets/images/ourJourney3.png";
   static const String ourJourney6 = "assets/images/ourJourney4.png";
+  static const String girlH = "assets/images/girlH.png";
+  static const String avatarUser = "assets/images/avatarUser.jpeg";
   // static const String facebook = "assets/images/shareimage.png";
   // static const String shareImage = "assets/images/shareimage.png";
 
@@ -251,7 +254,67 @@ class MyImgs {
   static const String progressbar = "assets/svg/Progressbar.svg";
   static const String upload = "assets/svg/upload.svg";
   static const String freeTrial = "assets/svg/freeTrial.svg";
+  static const String googleIcon = "assets/icons/googleicon.png";
+  static const String appleIcon = "assets/icons/apple.png";
   static const String risk = "assets/svg/risk.svg";
+  static const String welcomeImage1 = "assets/svg/welcomeImage1.svg";
+  static const String welcomeImage2 = "assets/svg/welcomeImage2.svg";
+  static const String welcomeImage3 = "assets/svg/welcomeImage3.svg";
+  static const String checkEmail = "assets/svg/checkEmail.svg";
+  static const String sessionNotStarted = "assets/svg/sessionNotStarted.svg";
+  static const String warning = "assets/svg/warning.svg";
+  static const String doneTick = "assets/svg/doneTick.svg";
+  static const String requests = "assets/svg/requests.svg";
+  static const String rescheduleIcon = "assets/svg/reschuleIcon.svg";
+  static const String captureCalorie = "assets/svg/captureCalorie.svg";
+  static const String getImage = "assets/svg/getImage.svg";
+  static const String questionMark = "assets/svg/questionMark.svg";
+
+  ///Questions Images
+  ///Q1
+  static const String q1o1 = "assets/svg/question_images/q1o1.svg";
+  static const String q1o2 = "assets/svg/question_images/q1o2.svg";
+  static const String q1o3 = "assets/svg/question_images/q1o3.svg";
+  static const String q1o4 = "assets/svg/question_images/q1o4.svg";
+  static const String q1o5 = "assets/svg/question_images/q1o5.svg";
+
+  ///Q3
+  static const String q3o1 = "assets/svg/question_images/Pad_2.svg";
+  static const String q3o1Checked =
+      "assets/svg/question_images/Pad_2_checked.svg";
+  static const String q3o2 = "assets/svg/question_images/Pad_3.svg";
+  static const String q3o2Checked =
+      "assets/svg/question_images/Pad_3_checked.svg";
+  static const String q3o3 = "assets/svg/question_images/Pad_4.svg";
+  static const String q3o3Checked =
+      "assets/svg/question_images/Pad_4_checked.svg";
+
+  ///Q4
+  static const String q4o1 = "assets/svg/question_images/Clock_1.svg";
+  static const String q4o2 = "assets/svg/question_images/Clock_2.svg";
+  static const String q4o3 = "assets/svg/question_images/Clock_3.svg";
+  static const String q4o4 = "assets/svg/question_images/Clock_4.svg";
+
+  ///q5
+  static const String q5o1 = "assets/svg/question_images/Skin_1.svg";
+  static const String q5o1Checked =
+      "assets/svg/question_images/Skin_1_checked.svg";
+  static const String q5o2 = "assets/svg/question_images/Skin_2.svg";
+  static const String whatsappIcon = "assets/icons/whatsapp_icon.svg";
+  static const String q5o2Checked =
+      "assets/svg/question_images/Skin_2_checked.svg";
+  static const String q5o3 = "assets/svg/question_images/Skin_3.svg";
+  static const String q5o3Checked =
+      "assets/svg/question_images/Skin_3_checked.svg";
+  static const String q5o4 = "assets/svg/question_images/Skin_4.svg";
+  static const String q5o4Checked =
+      "assets/svg/question_images/Skin_4_checked.svg";
+
+  ///team
+  static const String team1 = "assets/profileImage/1.jpeg";
+  static const String team2 = "assets/profileImage/2.jpeg";
+  static const String team3 = "assets/profileImage/3.jpeg";
+  static const String team4 = "assets/profileImage/4.jpeg";
 
   MyImgs._();
 }

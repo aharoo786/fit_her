@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness_zone_2/UI/chat/widgets/user_widget.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
@@ -14,12 +13,10 @@ class ChatHomeScreen extends StatefulWidget {
   _ChatHomeScreen createState() => _ChatHomeScreen();
 }
 
-class _ChatHomeScreen extends State<ChatHomeScreen>
-    with WidgetsBindingObserver {
+class _ChatHomeScreen extends State<ChatHomeScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? userMap;
   bool isLoading = false;
   final TextEditingController _search = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   AudioController audioController = Get.put(AudioController());
   AuthController authController = Get.find();
@@ -50,7 +47,7 @@ class _ChatHomeScreen extends State<ChatHomeScreen>
                 .collection("users")
                 .doc(authController.logInUser!.id.toString())
                 .collection("myusers")
-                // .orderBy("time", descending: true)
+                .orderBy("time", descending: true)
                 .snapshots(),
             builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
               if (snapshot.hasData) {
@@ -58,28 +55,25 @@ class _ChatHomeScreen extends State<ChatHomeScreen>
                 return ListView.builder(
                   itemBuilder: (context, index) {
                     String roomId =
-                        (authController.logInUser!.id.toString().hashCode +
-                                snapshot.data!.docs[index]['id']
-                                    .toString()
-                                    .hashCode)
-                            .toString();
-                    print(snapshot);
-
-                    // Get.find<AudioController>().  getUnreadMessagesCounter();
-                    return  Column(
+                        (authController.logInUser!.id.toString().hashCode + snapshot.data!.docs[index]['id'].toString().hashCode).toString();
+                    return Column(
                       children: [
                         UserWidget(
-                                roomId: roomId,
-                                index: index,
-                                snapshot: snapshot,
-                              ),
-                        Divider(height: 1,color: Colors.black,)
+                          roomId: roomId,
+                          index: index,
+                          snapshot: snapshot,
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Divider(
+                            height: 1,
+                            color: Colors.grey.withOpacity(0.3),
+                          ),
+                        )
                       ],
                     );
-
                   },
-                  itemCount:
-                      snapshot.data == null ? 0 : snapshot.data!.docs.length,
+                  itemCount: snapshot.data == null ? 0 : snapshot.data!.docs.length,
                 );
               } else {
                 return const Center(child: Text("Nothing to show yet"));

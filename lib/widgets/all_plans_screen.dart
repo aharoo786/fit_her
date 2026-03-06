@@ -1,12 +1,14 @@
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/add_package.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/package_details.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/controllers/plan_controller/plan_controller.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../data/models/get_user_plan/get_user_plan.dart';
+import '../values/constants.dart';
 import '../values/my_colors.dart';
 import '../values/my_imgs.dart';
 
@@ -14,6 +16,7 @@ class AllPlansScreen extends StatelessWidget {
   AllPlansScreen({super.key, this.isHaveAppBar = false});
   final bool isHaveAppBar;
   final HomeController homeController = Get.find();
+  final PlanController planController = Get.find();
 
   @override
   Widget build(BuildContext context) {
@@ -33,19 +36,21 @@ class AllPlansScreen extends StatelessWidget {
                     var index = homeController.selectedPlanIndex.value;
                     Plan selectedPlan =
                         homeController.allPlanModel!.plans[index];
-                    homeController.packageName.text = selectedPlan.title;
-                    homeController.shortDis.text =
+                    planController.packageName.text = selectedPlan.title;
+                    planController.shortDis.text =
                         selectedPlan.shortDescription;
-                    homeController.longDis.text = selectedPlan.longDescription;
-                    homeController.price.text = selectedPlan.price.toString();
-                    homeController.packageDuration.text = selectedPlan.duration;
-                    homeController.selectedId.value = selectedPlan.categoryId;
-                    homeController.selectedId.value = selectedPlan.categoryId;
-                    // homeController.addPackageTimeTable=selectedPlan
-                    homeController.getCategories();
+                    planController.longDis.text = selectedPlan.longDescription;
+                    planController.getCategories(catId: selectedPlan.catId,subCatId: selectedPlan.subId);
+
+                    planController.getAllCountriesFunc(
+                        isFromUpdate: true, plan: selectedPlan);
+                    planController.getAllDurationFunc(isFromUpdate: true);
+                    homeController.selectedDietIdForMember.value = 0;
+                    homeController.getUsersBasedOnUserType(Constants.dietitian);
 
                     Get.to(() => AddPackage(
                           isFromUpdate: true,
+                          id: selectedPlan.id.toString(),
                         ));
                   }),
             )
@@ -67,9 +72,9 @@ class AllPlansScreen extends StatelessWidget {
                         homeController.selectedPlanId.value = plan.id;
                         homeController.selectedPlanIndex.value = index;
                         if (!isHaveAppBar) {
-                          Get.to(() => PackageDetails(
-                                plan: plan,
-                              ));
+                          // Get.to(() => PackageDetails(
+                          //       plan: plan,
+                          //     ));
                           homeController.getAllDietitian();
                         }
                       },
@@ -118,13 +123,13 @@ class AllPlansScreen extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
-                                    "Duration: ${plan.duration}",
+                                    "Duration: ${plan.countries![0].duration![0].days}",
                                     style: textTheme.bodySmall!.copyWith(),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
-                                    "PKR ${plan.price}",
+                                    "PKR ${plan.countries![0].duration![0].priceAmount}",
                                     style: textTheme.bodyLarge!.copyWith(
                                       fontWeight: FontWeight.w500,
                                     ),

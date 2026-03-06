@@ -6,8 +6,8 @@ import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 
-import '../get_user_plan/get_user_plan.dart';
-import "package:get/get.dart";
+import '../get_user_plan/get_workout_user_plan_details.dart';
+import 'package:get/get.dart';
 
 GetAllUsers getAllUsersFromJson(String str) =>
     GetAllUsers.fromJson(json.decode(str));
@@ -15,185 +15,143 @@ GetAllUsers getAllUsersFromJson(String str) =>
 String getAllUsersToJson(GetAllUsers data) => json.encode(data.toJson());
 
 class GetAllUsers extends Serializable {
-  List<UserElement> users;
+  List<User> freeTrialUsers;
+  List<User> otherPlanUsers;
 
   GetAllUsers({
-    required this.users,
+    required this.freeTrialUsers,
+    required this.otherPlanUsers,
   });
 
   factory GetAllUsers.fromJson(Map<String, dynamic> json) => GetAllUsers(
-        users: List<UserElement>.from(
-            json["users"].map((x) => UserElement.fromJson(x))),
+        freeTrialUsers: List<User>.from(
+            json["freeTrialUsers"].map((x) => User.fromJson(x))),
+        otherPlanUsers: List<User>.from(
+            json["otherPlanUsers"].map((x) => User.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
-        "users": List<dynamic>.from(users.map((x) => x.toJson())),
+        "freeTrialUsers":
+            List<dynamic>.from(freeTrialUsers.map((x) => x.toJson())),
+        "otherPlanUsers":
+            List<dynamic>.from(otherPlanUsers.map((x) => x.toJson())),
       };
 }
 
-class UserElement {
-  UserUser user;
+class User {
+  UserClass user;
   Plans? plans;
-  Assigned? assigned;
 
-  UserElement({
+  User({
     required this.user,
     required this.plans,
-    required this.assigned,
   });
 
-  factory UserElement.fromJson(Map<String, dynamic> json) => UserElement(
-        user: UserUser.fromJson(json["user"]),
+  factory User.fromJson(Map<String, dynamic> json) => User(
+        user: UserClass.fromJson(json["user"]),
         plans: json["plans"] == null ? null : Plans.fromJson(json["plans"]),
-        assigned: json["assigned"] == null
-            ? null
-            : Assigned.fromJson(json["assigned"]),
       );
 
   Map<String, dynamic> toJson() => {
         "user": user.toJson(),
         "plans": plans?.toJson(),
-        "assigned": assigned?.toJson(),
-      };
-}
-
-class Assigned {
-  int id;
-  Trainer? user;
-  Trainer? trainer;
-
-  Assigned({
-    required this.id,
-    required this.user,
-    required this.trainer,
-  });
-
-  factory Assigned.fromJson(Map<String, dynamic> json) => Assigned(
-        id: json["id"],
-        user: json["User"] == null ? null : Trainer.fromJson(json["User"]),
-        trainer:
-            json["Trainer"] == null ? null : Trainer.fromJson(json["Trainer"]),
-      );
-
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "User": user?.toJson(),
-        "Trainer": trainer?.toJson(),
-      };
-}
-
-class Trainer {
-  int id;
-  String firstName;
-  String lastName;
-
-  Trainer({
-    required this.id,
-    required this.firstName,
-    required this.lastName,
-  });
-
-  factory Trainer.fromJson(Map<String, dynamic> json) => Trainer(
-        id: json["id"],
-        firstName: json["firstName"],
-        lastName: json["lastName"],
-      );
-
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "firstName": firstName,
-        "lastName": lastName,
       };
 }
 
 class Plans {
   int id;
-  DateTime buyingDate;
   DateTime expireDate;
-  int price;
-  bool status;
-  int planId;
-  int userId;
-  int? trainerId;
-  int? dietitianId;
+  DateTime buyingDate;
   Plan plan;
 
   Plans({
     required this.id,
-    required this.buyingDate,
     required this.expireDate,
-    required this.price,
-    required this.status,
-    required this.planId,
-    required this.userId,
-    required this.trainerId,
-    this.dietitianId,
+    required this.buyingDate,
     required this.plan,
   });
 
   factory Plans.fromJson(Map<String, dynamic> json) => Plans(
         id: json["id"],
-        buyingDate: DateTime.parse(json["buyingDate"]),
         expireDate: DateTime.parse(json["expireDate"]),
-        price: json["price"],
-        status: json["status"],
-        planId: json["PlanId"],
-        userId: json["userId"],
-        trainerId: json["trainerId"],
-        dietitianId: json["dietitianId"],
+        buyingDate: DateTime.parse(json["buyingDate"]),
         plan: Plan.fromJson(json["Plan"]),
       );
 
   Map<String, dynamic> toJson() => {
         "id": id,
-        "buyingDate": buyingDate.toIso8601String(),
         "expireDate": expireDate.toIso8601String(),
-        "price": price,
-        "status": status,
-        "PlanId": planId,
-        "userId": userId,
-        "trainerId": trainerId,
-        "dietitianId": dietitianId,
+        "buyingDate": buyingDate.toIso8601String(),
         "Plan": plan.toJson(),
       };
 }
 
+// class Plan {
+//   int id;
+//   String title;
+//   String shortDescription;
+//   String longDescription;
+//
+//   Plan({
+//     required this.id,
+//     required this.title,
+//     required this.shortDescription,
+//     required this.longDescription,
+//   });
+//
+//   factory Plan.fromJson(Map<String, dynamic> json) => Plan(
+//         id: json["id"],
+//         title: json["title"],
+//         shortDescription: json["shortDescription"],
+//         longDescription: json["longDescription"],
+//       );
+//
+//   Map<String, dynamic> toJson() => {
+//         "id": id,
+//         "title": title,
+//         "shortDescription": shortDescription,
+//         "longDescription": longDescription,
+//       };
+// }
 
-
-class UserUser {
+class UserClass {
   int id;
   String firstName;
   String lastName;
   String email;
   String phone;
+  String? bmiResult;
   bool status;
 
-  RxBool freeze;
+  var freeze;
 
-  UserUser({
+  UserClass({
     required this.id,
     required this.firstName,
     required this.lastName,
+    required this.bmiResult,
     required this.email,
     required this.phone,
     required this.status,
     required this.freeze,
   });
 
-  factory UserUser.fromJson(Map<String, dynamic> json) => UserUser(
+  factory UserClass.fromJson(Map<String, dynamic> json) => UserClass(
         id: json["id"],
         firstName: json["firstName"],
         lastName: json["lastName"],
+        bmiResult: json["bmiResult"],
         email: json["email"],
-        phone: json["phone"]??"",
-        status: json["status"]??false,
-        freeze: RxBool(json["freeze"]??false),
+        phone: json["phone"],
+        status: json["status"],
+        freeze: RxBool(json["freeze"] ?? false),
       );
 
   Map<String, dynamic> toJson() => {
         "id": id,
         "firstName": firstName,
         "lastName": lastName,
+        "bmiResult": bmiResult,
         "email": email,
         "phone": phone,
         "status": status,

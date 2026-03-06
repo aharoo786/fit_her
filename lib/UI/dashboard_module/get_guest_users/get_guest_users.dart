@@ -19,14 +19,15 @@ class AllGuestUsers extends StatelessWidget {
     return Scaffold(
       appBar: HelpingWidgets().appBarWidget(() {
         Get.back();
-      }, text: "All PCOS Results"),
+      }, text: "All BMI Results"),
       body: Column(
         children: [
           Expanded(
               child: Obx(
             () => homeController.guestUserLoad.value
                 ? ListView.separated(
-                   padding: EdgeInsets.symmetric(horizontal: 20.w,vertical: 20.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
                     shrinkWrap: true,
                     physics: const BouncingScrollPhysics(),
                     itemBuilder: (BuildContext context, int reportIndex) {
@@ -42,21 +43,32 @@ class AllGuestUsers extends StatelessWidget {
                                 color: Colors.black.withOpacity(0.6))),
                         child: Column(children: [
                           Text(
-                            "PCOS Result",
-                            style: textTheme.headlineSmall!
-                                .copyWith(fontWeight: FontWeight.w700,),
+                            "BMI Result",
+                            style: textTheme.headlineSmall!.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(
+                            height: 10,
                           ),
                           reportRow("Name", guestUser.name, context),
                           reportRow("Email", guestUser.email, context),
                           reportRow("Phone", guestUser.phone, context),
-                          reportRow("Result", guestUser.result ?? "N/A", context),
-                          reportRow("Date", DateFormat("dd-MM-yyyy").format(guestUser.createdAt), context),
-                          SizedBox(height: 20.h,),
-                          CustomButton(
-                              text: "Chat with us",
-                              onPressed: () {
-                                openWhatsAppChat(guestUser.phone);
-                              }),
+                          reportRow(
+                              "Result", guestUser.result ?? "N/A", context),
+                          reportRow(
+                              "Date",
+                              DateFormat("dd-MM-yyyy")
+                                  .format(guestUser.createdAt),
+                              context),
+                          // SizedBox(
+                          //   height: 20.h,
+                          // ),
+                          // CustomButton(
+                          //     text: "Chat with us",
+                          //     onPressed: () {
+                          //       openWhatsAppChat(guestUser.phone);
+                          //     }),
                         ]),
                       );
                     },

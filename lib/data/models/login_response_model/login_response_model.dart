@@ -6,8 +6,7 @@ import 'dart:convert';
 
 import 'package:fitness_zone_2/data/models/api_response/api_response_model.dart';
 
-LoginModel loginModelFromJson(String str) =>
-    LoginModel.fromJson(json.decode(str));
+LoginModel loginModelFromJson(String str) => LoginModel.fromJson(json.decode(str));
 
 String loginModelToJson(LoginModel data) => json.encode(data.toJson());
 
@@ -21,6 +20,10 @@ class LoginModel extends Serializable {
   bool status;
   String accessToken;
   String userType;
+  String? age;
+  String? height;
+  String? weight;
+  String? bmiResult;
 
   LoginModel({
     required this.id,
@@ -32,6 +35,10 @@ class LoginModel extends Serializable {
     required this.userType,
     required this.adminId,
     required this.status,
+    this.height,
+    this.age,
+    this.weight,
+    this.bmiResult,
   });
 
   factory LoginModel.fromJson(Map<String, dynamic> json) => LoginModel(
@@ -44,6 +51,10 @@ class LoginModel extends Serializable {
         status: json["status"],
         userType: json["userType"],
         adminId: json["adminId"],
+        age: json["age"],
+        weight: json["weight"],
+        height: json["height"],
+        bmiResult: json["bmiResult"],
       );
 
   @override
@@ -58,4 +69,6 @@ class LoginModel extends Serializable {
         "adminId": adminId,
         "accessToken": accessToken,
       };
+
+  String get fullName => "${firstName} ${lastName}";
 }

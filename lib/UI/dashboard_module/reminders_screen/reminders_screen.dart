@@ -21,7 +21,7 @@ class RemindersScreen extends StatelessWidget {
       appBar: HelpingWidgets().appBarWidget(() {
         //onBack();
         Get.back();
-      }, text: "Reminders"),
+      }, text: isAnnouncement ? "Announcement" : "Reminders"),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: isAnnouncement
@@ -35,11 +35,9 @@ class RemindersScreen extends StatelessWidget {
                     text: "Reminder Title",
                     length: 500,
                     controller: reminderTitle,
-                    validator: (value) =>
-                        Validators.firstNameValidation(value!.toString()),
+                    validator: (value) => Validators.firstNameValidation(value!.toString()),
                     keyboardType: TextInputType.emailAddress,
-                    inputFormatters:
-                        FilteringTextInputFormatter.singleLineFormatter,
+                    inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
                   ),
                   SizedBox(
                     height: 16.h,
@@ -48,11 +46,9 @@ class RemindersScreen extends StatelessWidget {
                     text: "Reminder Message",
                     controller: reminderBody,
                     length: 500,
-                    validator: (value) =>
-                        Validators.emailValidator(value!.toString()),
+                    validator: (value) => Validators.emailValidator(value!.toString()),
                     keyboardType: TextInputType.emailAddress,
-                    inputFormatters:
-                        FilteringTextInputFormatter.singleLineFormatter,
+                    inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
                   ),
                 ],
               )
@@ -63,16 +59,14 @@ class RemindersScreen extends StatelessWidget {
                   ),
                   Text(
                     "Package Expiry Reminder",
-                    style:
-                        TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w500),
                   ),
                   SizedBox(
                     height: 10.h,
                   ),
                   Text(
                     "This is a friendly reminder regarding the impending expiration of certain packages within our system. It's crucial to take action to ensure smooth operations and prevent any disruptions",
-                    style:
-                        TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
+                    style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
                   )
                 ],
               ),
@@ -86,16 +80,12 @@ class RemindersScreen extends StatelessWidget {
                 text: "Send".tr,
                 onPressed: () async {
                   if (isAnnouncement) {
-                    if (reminderTitle.text.isEmpty ||
-                        reminderBody.text.isEmpty) {
-                      CustomToast.failToast(
-                          msg: "Please provide all information");
+                    if (reminderTitle.text.isEmpty || reminderBody.text.isEmpty) {
+                      CustomToast.failToast(msg: "Please provide all information");
                     } else {
-                      Get.find<HomeController>()
-                          .addAnnouncement(reminderTitle, reminderBody);
+                      Get.find<HomeController>().addAnnouncement(reminderTitle, reminderBody);
                     }
-                  }
-                  else{
+                  } else {
                     Get.find<HomeController>().synchronization();
                   }
                 }),

@@ -1,5 +1,4 @@
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
-import 'package:fitness_zone_2/UI/dashboard_module/add_new_user/add_new_user.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -27,7 +26,10 @@ class ChooseAnyOne extends StatelessWidget {
         children: [
           Stack(
             children: [
-              Image.asset(MyImgs.chooseAnyOne,scale: 3,),
+              Image.asset(
+                MyImgs.chooseAnyOne,
+                scale: 3,
+              ),
               Positioned(
                 left: 0.w,
                 top: 30.h,
@@ -58,8 +60,7 @@ class ChooseAnyOne extends StatelessWidget {
                 ),
                 Text(
                   "Select your account type",
-                  style: textTheme.titleLarge!.copyWith(
-                      fontSize: 11.sp, color: MyColors.black.withOpacity(0.6)),
+                  style: textTheme.titleLarge!.copyWith(fontSize: 11.sp, color: MyColors.black.withOpacity(0.6)),
                 ),
                 SizedBox(
                   height: 30.h,
@@ -89,37 +90,35 @@ class ChooseAnyOne extends StatelessWidget {
                       //     }),
                       //   ],
                       // ),
-                      containerWidget(context, "I am a User",
-                          MyImgs.userIcon, Constants.user, () {
-                            cont.loginAsA.value = Constants.user;
-                            cont.update();
-                          }),
+                      containerWidget(context, "I am a User", MyImgs.userIcon, Constants.user, () {
+                        cont.loginAsA.value = Constants.user;
+                        cont.update();
+                      }),
                       SizedBox(
                         height: 10.h,
                       ),
-                      containerWidget(context, "Team Member",
-                          MyImgs.adminIcon, Constants.trainer, () {
+                      containerWidget(context, "Team Member", MyImgs.adminIcon, Constants.trainer, () {
                         cont.loginAsA.value = Constants.trainer;
                         cont.update();
                       }),
                     ],
                   );
                 }),
-
                 SizedBox(
                   height: 30.h,
                 ),
                 ElevatedButton(
                     onPressed: () {
-                      Get.to(() => Login(showDropDown: authController.loginAsA.value!=Constants.user,));
+                      Get.to(() => Login(
+                            showDropDown: authController.loginAsA.value != Constants.user,
+                          ));
                     },
                     style: ElevatedButton.styleFrom(
                       fixedSize: const Size(50, 50),
                       // Foreground (icon) color
                       backgroundColor: MyColors.buttonColor,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(20), // Rounded corners
+                        borderRadius: BorderRadius.circular(20), // Rounded corners
                       ),
                     ),
                     child: const Icon(
@@ -132,16 +131,14 @@ class ChooseAnyOne extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                     Text("Does not have an account? ", style:textTheme.titleLarge!
-                        .copyWith(fontWeight: FontWeight.w500)),
+                    Text("Does not have an account? ", style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w500)),
                     GestureDetector(
-                      onTap: (){
-                        Get.to(()=>SignUpNewUser());
+                      onTap: () {
+                        Get.to(() => SignUpNewUser());
                       },
                       child: Text(
                         "Create Account",
-                        style: textTheme.titleLarge!
-                            .copyWith(color: MyColors.buttonColor,fontWeight: FontWeight.w500),
+                        style: textTheme.titleLarge!.copyWith(color: MyColors.buttonColor, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -157,8 +154,7 @@ class ChooseAnyOne extends StatelessWidget {
     );
   }
 
-  containerWidget(BuildContext context, String text, String image, String user,
-      VoidCallback onTap) {
+  containerWidget(BuildContext context, String text, String image, String user, VoidCallback onTap) {
     var theme = Theme.of(context);
     var textTheme = theme.textTheme;
     return GestureDetector(
@@ -173,30 +169,23 @@ class ChooseAnyOne extends StatelessWidget {
             child: Container(
               height: 100.h,
               alignment: Alignment.center,
-              padding: EdgeInsets.only(
-                  top: 30.h, left: 25.w, right: 25.w, bottom: 10.h),
+              padding: EdgeInsets.only(top: 30.h, left: 25.w, right: 25.w, bottom: 10.h),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: authController.loginAsA.value == user
-                    ? Colors.white
-                    : const Color.fromRGBO(211, 211, 214, 0.4),
+                color: authController.loginAsA.value == user ? Colors.white : const Color.fromRGBO(211, 211, 214, 0.4),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.4),
                     blurRadius: 33.0,
                     spreadRadius: 0.0,
-                    offset: const Offset(
-                        0.0, 2.0), // shadow direction: bottom right
+                    offset: const Offset(0.0, 2.0), // shadow direction: bottom right
                   )
                 ],
               ),
               child: Text(
                 text,
                 style: textTheme.bodyLarge!.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: authController.loginAsA.value == user
-                        ? Colors.black
-                        : Colors.black.withOpacity(0.33)),
+                    fontWeight: FontWeight.w500, color: authController.loginAsA.value == user ? Colors.black : Colors.black.withOpacity(0.33)),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -206,17 +195,11 @@ class ChooseAnyOne extends StatelessWidget {
             width: 50.h,
             alignment: Alignment.center,
             //  margin: EdgeInsets.only(bottom: 30),
-            decoration: BoxDecoration(
-                color: authController.loginAsA.value == user
-                    ? MyColors.buttonColor
-                    : Colors.white,
-                shape: BoxShape.circle),
+            decoration: BoxDecoration(color: authController.loginAsA.value == user ? MyColors.buttonColor : Colors.white, shape: BoxShape.circle),
             child: Image.asset(
               image,
               scale: 4,
-              color: authController.loginAsA.value == user
-                  ? Colors.white
-                  : const Color.fromRGBO(211, 211, 214, 0.6),
+              color: authController.loginAsA.value == user ? Colors.white : const Color.fromRGBO(211, 211, 214, 0.6),
             ),
           ),
         ],

@@ -1,416 +1,320 @@
-import 'package:fitness_zone_2/UI/plans_module/all_plans.dart';
-import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
+import 'package:fitness_zone_2/data/controllers/zoom_controller.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
-import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
+import '../../../data/models/get_user_plan/get_workout_user_plan_details.dart';
 import '../../../helper/custom_print.dart';
+import '../../../values/constants.dart';
 import '../../../values/my_imgs.dart';
+import '../../../widgets/review_bottom_sheet.dart';
 import '../../../widgets/toasts.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import '../call_screen/call_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation_controller.dart';
 
 class WorkOutBottomScreen extends StatelessWidget {
-  WorkOutBottomScreen({super.key});
+  WorkOutBottomScreen({super.key, required this.planId});
+  final String planId;
 
-  final List workoutText = ["Cardo", "Face", "Yoga"];
-  AuthController authController = Get.find();
   HomeController homeController = Get.find();
+
   WorkOutController workOutController = Get.find();
+  MotivationController motivationController = Get.find();
+  bool showBottomSheet = false;
+
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-        appBar: HelpingWidgets().appBarWidget(null, text: "Workout Schedule"),
+        resizeToAvoidBottomInset: false,
+        appBar: HelpingWidgets().appBarWidget(() {
+          Get.back();
+        }, text: "Workout Schedule"),
         body: Obx(
           () => !workOutController.workOutPlanDetailsLoad.value
-              ? CircularProgress()
-              : ListView(
-                  children: [
-                    Center(
-                      child: Text(
-                        "We provide you with flexible timeslots\nthroughout the day so that you can\njoin according to your feasibility",
-                        style: textTheme.bodySmall!
-                            .copyWith(fontWeight: FontWeight.w400),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20.h,
-                    ),
-                    Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                          primary: Colors.green, // Header background color
-                          onPrimary: Colors.white, // Header text color
-                          onSurface: Colors.black, // Body text color
-                        ),
-                        textButtonTheme: TextButtonThemeData(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.green, // Button text color
-                          ),
+              ? const CircularProgress()
+              : RefreshIndicator(
+                  onRefresh: () {
+                    workOutController.getDietPlanDetailsFunc(planId);
+                    return Future.value();
+                  },
+                  child: ListView(
+                    children: [
+                      Center(
+                        child: Text(
+                          "We provide you with flexible timeslots\nthroughout the day so that you can\njoin according to your feasibility",
+                          style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w400),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                      child: CalendarDatePicker(
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2090),
-                          selectableDayPredicate: (DateTime value) {
-                            return true;
-                          },
-                          onDateChanged: (DateTime date) {}),
-                    ),
-                    // Container(
-                    //   decoration: BoxDecoration(
-                    //       borderRadius: BorderRadius.circular(15),
-                    //       color: MyColors.planColor),
-                    //   margin: EdgeInsets.symmetric(horizontal: 20.w),
-                    //   padding: EdgeInsets.symmetric(
-                    //       horizontal: 10.w, vertical: 5.h),
-                    //   child: Row(
-                    //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //     children: [
-                    //       Text(
-                    //         "Monday",
-                    //         style: textTheme.bodySmall!
-                    //             .copyWith(fontWeight: FontWeight.w600),
-                    //       ),
-                    //       Row(
-                    //         children: [
-                    //           Text(
-                    //             "View All",
-                    //             style: textTheme.bodySmall!
-                    //                 .copyWith(fontWeight: FontWeight.w600),
-                    //           ),
-                    //           const Icon(Icons.arrow_drop_down_sharp)
-                    //         ],
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    // SizedBox(
-                    //   height: 10.h,
-                    // ),
-                    // Wrap(
-                    //   children: workoutText.map((i) {
-                    //     return Row(
-                    //       mainAxisSize: MainAxisSize.min,
-                    //       crossAxisAlignment: CrossAxisAlignment.start,
-                    //       children: [
-                    //         Container(
-                    //           decoration: BoxDecoration(
-                    //               borderRadius: BorderRadius.circular(15),
-                    //               color: MyColors.primaryGradient1),
-                    //           margin: EdgeInsets.only(left: 20.w),
-                    //           padding: EdgeInsets.symmetric(
-                    //               horizontal: 10.w, vertical: 5.h),
-                    //           child: Row(
-                    //             mainAxisAlignment:
-                    //                 MainAxisAlignment.spaceBetween,
-                    //             children: [
-                    //               Text(
-                    //                 i,
-                    //                 style: textTheme.bodySmall!.copyWith(
-                    //                     fontWeight: FontWeight.w600,
-                    //                     color: Colors.white),
-                    //               ),
-                    //             ],
-                    //           ),
-                    //         ),
-                    //       ],
-                    //     );
-                    //   }).toList(),
-                    // ),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                      itemBuilder: (BuildContext context, int timeIndex) {
-                        var time = workOutController
-                            .getUserWorkoutPlanDetailsPlan!
-                            .plan
-                            .times[timeIndex];
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
+                      SizedBox(
+                        height: 20.h,
+                      ),
+                      Builder(builder: (context) {
+                        if (motivationController.motivationStats.value == null && !motivationController.isLoadingStats.value) {
+                          motivationController.fetchMotivationStats();
+                        }
+
+                        DateTime today = DateTime.now();
+                        DateTime firstDate = today.subtract(const Duration(days: 29));
+                        DateTime lastDate = today;
+
+                        // Pick most recent attended date, fallback to today
+                        DateTime initialDate = today;
+                        final stats = motivationController.motivationStats.value;
+                        if (stats != null) {
+                          final attendedDates = stats.attendanceHistory
+                              .where((e) => e.attended == 1)
+                              .map((e) => DateTime.tryParse(e.date))
+                              .whereType<DateTime>()
+                              .toList()
+                            ..sort((a, b) => a.compareTo(b));
+                          if (attendedDates.isNotEmpty) {
+                            initialDate = attendedDates.last;
+                          }
+                        }
+
+                        return Obx(() {
+                          if (motivationController.isLoadingStats.value) {
+                            // Show shimmer loading
+                            return Column(
+                              children: [
+                                Container(
+                                  height: 20,
+                                  width: 160,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: 7,
+                                  children: List.generate(
+                                      42,
+                                      (index) => Container(
+                                            margin: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[300],
+                                              shape: BoxShape.circle,
+                                            ),
+                                          )),
+                                ),
+                              ],
+                            );
+                          }
+
+                          final s = motivationController.motivationStats.value;
+                          if (s == null) {
+                            return const SizedBox.shrink();
+                          }
+
+                          // Build current month grid
+                          final DateTime now = DateTime.now();
+                          final DateTime firstOfMonth = DateTime(now.year, now.month, 1);
+                          final int daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+                          final DateTime lastOfMonth = DateTime(now.year, now.month, daysInMonth);
+
+                          // Align grid start to the beginning of the week (Sunday=0)
+                          final int startOffset = firstOfMonth.weekday % 7;
+                          final DateTime gridStart = firstOfMonth.subtract(Duration(days: startOffset));
+
+                          final Set<String> attendedSet = s.attendanceHistory.where((e) => e.attended == 1).map((e) => e.date).toSet();
+
+                          List<Widget> buildGrid() {
+                            final List<Widget> cells = [];
+                            for (int i = 0; i < 42; i++) {
+                              final DateTime date = gridStart.add(Duration(days: i));
+                              final bool isCurrentMonth = date.month == now.month && date.year == now.year;
+                              if (!isCurrentMonth) {
+                                cells.add(const SizedBox.shrink());
+                                continue;
+                              }
+
+                              final String dateStr = DateFormat('yyyy-MM-dd').format(date);
+                              final bool isAttended = attendedSet.contains(dateStr);
+                              cells.add(Center(
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: isAttended ? MyColors.buttonColor : Colors.transparent,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.black12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${date.day}',
+                                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                                          color: isAttended ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
+                                ),
+                              ));
+                            }
+                            return cells;
+                          }
+
+                          final daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Text(
+                                  DateFormat('MMMM yyyy').format(now),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: daysOfWeek
+                                    .map((d) => SizedBox(
+                                          width: 36,
+                                          child: Center(
+                                            child: Text(
+                                              d,
+                                              style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 6),
+                              GridView.count(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisCount: 7,
+                                mainAxisSpacing: 2,
+                                crossAxisSpacing: 2,
+                                children: buildGrid(),
+                              ),
+                            ],
+                          );
+                        });
+                      }),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 5),
+                        itemBuilder: (BuildContext context, int timeIndex) {
+                          var time = workOutController.getUserWorkoutPlanDetailsPlan!.trainerSlots[timeIndex];
+                          return ExpansionTile(
+                            iconColor: Colors.black,
+                            initiallyExpanded: DateFormat('EEEE').format(DateTime.now()) == time.day,
+                            collapsedIconColor: Colors.black,
+                            title: Text(
                               time.day,
                               style: textTheme.headlineSmall,
                             ),
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10.h,
-                              ),
-                              itemCount: time.slots
-                                  .length, // Number of stars (you can make this dynamic)
-                              itemBuilder: (context, index) {
-                                var slot = time.slots[index];
-                                return GestureDetector(
-                                  onTap: () async {
-                                    showModalBottomSheet(
-                                      context: context,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(20),
-                                        ),
+                            children: [
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10),
+                                itemCount: time.slots.length, // Number of stars (you can make this dynamic)
+                                itemBuilder: (context, index) {
+                                  var slot = time.slots[index];
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      HelpingWidgets.showWorkoutBottomSheet(context: context, slot: slot, homeController: homeController);
+                                    },
+                                    child: Container(
+                                      height: 90,
+                                      width: double.maxFinite,
+                                      padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 6.h),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: Colors.black),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                      isScrollControlled: true,
-                                      builder: (BuildContext context) {
-                                        return Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.keyboard_arrow_down,
-                                              size: 32,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            const Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: [
-                                                Column(
-                                                  children: [
-                                                    Icon(Icons.access_time,
-                                                        color: Colors.green,
-                                                        size: 32),
-                                                    SizedBox(height: 8),
-                                                    Text(
-                                                      '50 Min',
-                                                      style: TextStyle(
-                                                        fontSize: 24,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                    Text('Time'),
-                                                  ],
-                                                ),
-                                                Column(
-                                                  children: [
-                                                    Icon(
-                                                        Icons
-                                                            .local_fire_department,
-                                                        color: Colors.green,
-                                                        size: 32),
-                                                    SizedBox(height: 8),
-                                                    Text(
-                                                      '254',
-                                                      style: TextStyle(
-                                                        fontSize: 24,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                    Text('Calories'),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 16),
-                                            const Divider(),
-                                            ListTile(
-                                              leading: const Icon(
-                                                  Icons.access_time_sharp),
-                                              title: Text(
-                                                '${slot.start}-${slot.end}',
-                                                style: textTheme.bodySmall,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                slot.type ?? "N/A",
+                                                style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
                                               ),
-                                              visualDensity:
-                                                  VisualDensity(vertical: -4),
-                                            ),
-                                            ListTile(
-                                              leading:
-                                                  Icon(Icons.fitness_center),
-                                              title: Text(
-                                                  'High Intensity Workout Session',
-                                                  style: textTheme.bodySmall),
-                                              visualDensity:
-                                                  VisualDensity(vertical: -4),
-                                            ),
-                                            ListTile(
-                                              leading: const CircleAvatar(
-                                                backgroundImage: AssetImage(
-                                                    MyImgs.profilePicture),
-                                                maxRadius: 10,
+                                              const SizedBox(
+                                                height: 3,
                                               ),
-                                              title: Text(
-                                                  'with ${workOutController.getUserWorkoutPlanDetailsPlan!.plan.title}',
-                                                  style: textTheme.bodySmall),
-                                              visualDensity:
-                                                  VisualDensity(vertical: -4),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            ElevatedButton.icon(
-                                              onPressed: () async {
-                                                if (homeController
-                                                        .userHomeData!.freeze ==
-                                                    1) {
-                                                  CustomToast.failToast(
-                                                      msg:
-                                                          "Your account is freezed please contact admin for further help");
-                                                } else {
-                                                  if (slot.trainerLink ==
-                                                      null) {
-                                                    CustomToast.failToast(
-                                                        msg:
-                                                            "Trainer did not add link yet");
-                                                  } else {
-                                                    if (isValidUrl(
-                                                        slot.trainerLink ??
-                                                            "")) {
-                                                      await launchUrl(Uri.parse(
-                                                          slot.trainerLink ??
-                                                              ""));
-                                                    } else {
-                                                      await handleCameraAndMic(
-                                                          Permission.camera);
-                                                      await handleCameraAndMic(
-                                                          Permission
-                                                              .microphone);
-                                                      var token =
-                                                          await homeController
-                                                              .getAgoraToken(
-                                                                  slot.trainerLink ??
-                                                                      "");
+                                              Text(
+                                                "${slot.start} - ${slot.end}",
+                                                style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                              ),
+                                              const Spacer(),
+                                              Row(
+                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                children: [
+                                                  const CircleAvatar(
+                                                    radius: 12,
+                                                    backgroundColor: MyColors.buttonColor,
 
-                                                      Get.to(() => CallScreen(
-                                                            channelName:
-                                                                slot.trainerLink ??
-                                                                    "",
-                                                            token: token!,
-                                                            userId: Get.find<
-                                                                    AuthController>()
-                                                                .logInUser!
-                                                                .id
-                                                                .toString(),
-                                                            // camera: firstCamera,
-                                                          ));
-                                                    }
-                                                  }
-                                                }
-                                              },
-                                              icon:
-                                                  const Icon(Icons.video_call),
-                                              label: const Text('Join Session'),
-                                              style: ElevatedButton.styleFrom(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 12,
-                                                        horizontal: 24),
-                                                backgroundColor: Colors.green,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          30.0),
-                                                ),
+                                                    backgroundImage: AssetImage(MyImgs.logo), // Replace with your image asset
+                                                  ),
+                                                  SizedBox(
+                                                    width: 10.w,
+                                                  ),
+                                                  Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        "${slot.trainer?.firstName} ${slot.trainer?.lastName}",
+                                                        style: textTheme.bodySmall!
+                                                            .copyWith(fontWeight: FontWeight.w400, color: const Color(0xff7F7F7F)),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Container(
-                                    height: 65.h,
-                                    width: double.maxFinite,
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 13.w, vertical: 6.h),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: Colors.black),
-                                      borderRadius: BorderRadius.circular(10),
+                                            ],
+                                          ),
+                                          Text(
+                                            slot.status ?? "",
+                                            style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                          ),
+                                          // SvgPicture.asset(MyImgs.progressbar)
+                                        ],
+                                      ),
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "${slot.start} - ${slot.end}",
-                                              style: textTheme.bodySmall!
-                                                  .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w500),
-                                            ),
-                                            const Spacer(),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                const CircleAvatar(
-                                                  radius: 12,
-
-                                                  backgroundImage: AssetImage(MyImgs
-                                                      .profilePicture1), // Replace with your image asset
-                                                ),
-                                                SizedBox(
-                                                  width: 10.w,
-                                                ),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      workOutController
-                                                          .getUserWorkoutPlanDetailsPlan!
-                                                          .plan
-                                                          .title,
-                                                      style: textTheme
-                                                          .bodySmall!
-                                                          .copyWith(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w400,
-                                                              color: const Color(
-                                                                  0xff7F7F7F)),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        SvgPicture.asset(MyImgs.progressbar)
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                              separatorBuilder:
-                                  (BuildContext context, int index) {
-                                return SizedBox(
-                                  height: 15.h,
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                      separatorBuilder: (BuildContext context, int index) {
-                        return SizedBox(
-                          height: 10.h,
-                        );
-                      },
-                      itemCount: workOutController
-                          .getUserWorkoutPlanDetailsPlan!.plan.times.length,
-                    )
-                  ],
+                                  );
+                                },
+                                separatorBuilder: (BuildContext context, int index) {
+                                  return SizedBox(
+                                    height: 15.h,
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                        separatorBuilder: (BuildContext context, int index) {
+                          return SizedBox(
+                            height: 10.h,
+                          );
+                        },
+                        itemCount: workOutController.getUserWorkoutPlanDetailsPlan!.trainerSlots.length,
+                      )
+                    ],
+                  ),
                 ),
         ));
   }

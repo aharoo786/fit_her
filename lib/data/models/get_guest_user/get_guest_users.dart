@@ -48,10 +48,10 @@ class Datum {
 
   factory Datum.fromJson(Map<String, dynamic> json) => Datum(
         id: json["id"],
-        name: json["name"],
+        name: json["firstName"]+" "+json["lastName"],
         email: json["email"],
         phone: json["phone"],
-        result: json["result"],
+        result: json["bmiResult"],
         createdAt: DateTime.parse(json["createdAt"]),
         updatedAt: DateTime.parse(json["updatedAt"]),
       );

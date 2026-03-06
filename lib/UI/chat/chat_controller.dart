@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -37,7 +36,6 @@ class AudioController extends GetxController {
   bool isLoadingContacts = true;
   bool currentUserMessage = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   // late FirebaseStorage firebaseStorage;
 
   bool get isRecordPlaying => _isRecordPlaying.value;
@@ -64,53 +62,53 @@ class AudioController extends GetxController {
 
 
 
-  Future<void> updateLastMessage(String text, String userUid) async {
-    await _firestore
-        .collection("users")
-        .doc(_auth.currentUser!.uid)
-        .collection("myusers")
-        .doc(userUid)
-        .update({"time": FieldValue.serverTimestamp(), "lastMessage": text});
-    await _firestore
-        .collection("users")
-        .doc(userUid)
-        .collection("myusers")
-        .doc(_auth.currentUser!.uid)
-        .update({"time": FieldValue.serverTimestamp(), "lastMessage": text});
-  }
+  // Future<void> updateLastMessage(String text, String userUid) async {
+  //   await _firestore
+  //       .collection("users")
+  //       .doc(_auth.currentUser!.uid)
+  //       .collection("myusers")
+  //       .doc(userUid)
+  //       .update({"time": FieldValue.serverTimestamp(), "lastMessage": text});
+  //   await _firestore
+  //       .collection("users")
+  //       .doc(userUid)
+  //       .collection("myusers")
+  //       .doc(_auth.currentUser!.uid)
+  //       .update({"time": FieldValue.serverTimestamp(), "lastMessage": text});
+  // }
 
 
-  updateUnreadMessages(String roomId, dynamic userMap, dynamic myMap) async {
-    // Get.dialog(Center(
-    //   child: CircularProgressIndicator(),
-    // ));
-    try {
-      final CollectionReference collection = _firestore
-          .collection("chatroom")
-          .doc(roomId)
-          .collection("chatusers")
-          .doc(userMap["uid"])
-          .collection("chats");
-      await collection
-          .where("isRead", isEqualTo: false)
-          .get()
-          .then((snapshot) async {
-        for (DocumentSnapshot doc in snapshot.docs) {
-          await doc.reference.update({"isRead": true});
-        }
-      });
-      await _firestore
-          .collection("users")
-          .doc(_auth.currentUser!.uid)
-          .collection("myusers")
-          .doc(userMap["uid"])
-          .update({"unReadMessagesCounter": ""});
-      // Get.back();
-
-    } catch (e) {
-      // Get.back();
-      Get.snackbar("Alert", "Something went wrong");
-    }
+  // updateUnreadMessages(String roomId, dynamic userMap, dynamic myMap) async {
+  //   // Get.dialog(Center(
+  //   //   child: CircularProgressIndicator(),
+  //   // ));
+  //   try {
+  //     final CollectionReference collection = _firestore
+  //         .collection("chatroom")
+  //         .doc(roomId)
+  //         .collection("chatusers")
+  //         .doc(userMap["uid"])
+  //         .collection("chats");
+  //     await collection
+  //         .where("isRead", isEqualTo: false)
+  //         .get()
+  //         .then((snapshot) async {
+  //       for (DocumentSnapshot doc in snapshot.docs) {
+  //         await doc.reference.update({"isRead": true});
+  //       }
+  //     });
+  //     await _firestore
+  //         .collection("users")
+  //         .doc(_auth.currentUser!.uid)
+  //         .collection("myusers")
+  //         .doc(userMap["uid"])
+  //         .update({"unReadMessagesCounter": ""});
+  //     // Get.back();
+  //
+  //   } catch (e) {
+  //     // Get.back();
+  //     Get.snackbar("Alert", "Something went wrong");
+  //   }
     // Navigator.of(context).push(
     //   MaterialPageRoute(
     //     builder: (_) => ChatRoom(
@@ -121,8 +119,8 @@ class AudioController extends GetxController {
     //   ),
     // );
 
-    print("updation");
-  }
+  //   print("updation");
+  // }
 
   var lastDoc = null;
 
@@ -144,23 +142,23 @@ class AudioController extends GetxController {
 
 
 
-  Stream<QuerySnapshot<Object?>> getAllMessagesByPagination(
-      int limit, String chatRoomId) {
-    CollectionReference collectionRef = _firestore
-        .collection('chatroom')
-        .doc(chatRoomId)
-        .collection("chatusers")
-        .doc(_auth.currentUser!.uid)
-        .collection('chats');
-    Query query = collectionRef.orderBy("time", descending: true).limit(limit);
-
-    if (lastDoc != null) {
-      query = query.startAfterDocument(lastDoc);
-      update();
-    }
-
-    return query.snapshots();
-  }
+  // Stream<QuerySnapshot<Object?>> getAllMessagesByPagination(
+  //     int limit, String chatRoomId) {
+  //   CollectionReference collectionRef = _firestore
+  //       .collection('chatroom')
+  //       .doc(chatRoomId)
+  //       .collection("chatusers")
+  //       .doc(_auth.currentUser!.uid)
+  //       .collection('chats');
+  //   Query query = collectionRef.orderBy("time", descending: true).limit(limit);
+  //
+  //   if (lastDoc != null) {
+  //     query = query.startAfterDocument(lastDoc);
+  //     update();
+  //   }
+  //
+  //   return query.snapshots();
+  // }
 
 
   String getFileName(String url) {

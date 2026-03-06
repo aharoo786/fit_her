@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
@@ -25,43 +26,47 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       options: ['Under 18', '18-25', '26-35', '36-45', 'Over 45'],
     ),
     Question(
-      text: "How regular are your menstrual cycles?",
+      text: "How often do you get your periods?",
       options: [
-        'Regular (28-35 days)',
-        'Somewhat irregular (36-45 days)',
-        'Highly irregular (46 days or longer)'
+        'My periods are regular (Every 21-34 days)',
+        'I get my periods every 20 days or less',
+        'I get my periods every 35 days or longer',
+        'I go months without a period',
+        'I am on birth control so I don\'t know',
+      ],
+    ),
+    Question(
+      text: "For how many days do you bleed when you are on your periods?",
+      options: [
+        '1-2\nDays',
+        '3-10\nDays',
+        '10+\nDays',
       ],
     ),
     Question(
       text: "How heavy is your bleeding during your period?",
       options: [
-        'Light',
-        'Normal; change pad/tampon every 3-4 hours',
-        'Very heavy during period',
-        'Notice clots of blood during period',
-        'Both very heavy bleeding and clots of blood',
+        'Light Bleeding',
+        'Normal Bleeding',
+        'Heavy Bleeding/Clots of blood'
       ],
     ),
     Question(
-      text:
-          "Do you experience acne that doesn't seem to respond well to treatment?",
-      options: ['Yes, significantly', 'Yes, moderately', 'No, not noticeable'],
-    ),
-    Question(
-      text:
-          "Have you experienced unexplained weight gain, especially around your midsection",
+      text: "How often do you change your pad?",
       options: [
-        'Yes, significant weight gain',
-        'Yes, moderate weight gain',
-        'No, weight has remained stable'
+        'I change my pad every 1-2 hours',
+        'I change my pad every 2-3 hours',
+        'I change my pad every 3-5 hours',
+        "I change my pad every 8 hours"
       ],
     ),
     Question(
-      text: "Do you often feel fatigued or have low energy levels?",
+      text: "Do you notice any of the following on any part of your body?",
       options: [
-        'Yes, frequently exhausted',
-        'Yes, occasionally fatigued',
-        'No, generally have good energy levels'
+        'none',
+        'I notice dark and thick hair growth on various parts of my body',
+        'I notice acne on various parts of my body (Face, back)',
+        'I notice oil on my skin',
       ],
     ),
     Question(
@@ -100,6 +105,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   void initState() {
     _answers = List.filled(_questions.length, "");
     super.initState();
+
+    // Track hormone test questionnaire started
+    AnalyticsHelper.trackScreenView('hormone_test_questionnaire_screen');
+    AnalyticsHelper.trackQuestionnaireEvent('started',
+        questionnaireType: 'hormone_test');
   }
 
   String answer = "";
@@ -154,6 +164,10 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                       CustomToast.failToast(
                           msg: "Please fill up all the questions");
                     } else {
+                      // Track questionnaire completed
+                      AnalyticsHelper.trackQuestionnaireEvent('completed',
+                          questionnaireType: 'hormone_test');
+
                       var low = _answers!
                           .where((element) => element == "0")
                           .toList()
@@ -173,6 +187,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                       } else {
                         result = "High Risk of PCOS";
                       }
+
+                      // Track test result
+                      AnalyticsHelper.trackQuestionnaireEvent('test_result',
+                          questionnaireType: 'hormone_test', answer: result);
+
                       Get.find<AuthController>().guestLogin(result);
                     }
                   }
@@ -212,7 +231,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                   question.options!.length,
                   (optionIndex) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 7, horizontal: 10),
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: const BoxDecoration(
                         color: MyColors.planColor,
@@ -221,19 +241,18 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                                 color:Colors.white,
+                                color: Colors.white,
                                 border: Border.all(color: Colors.black),
                                 borderRadius: BorderRadius.circular(4)),
                             child: Checkbox(
-                              visualDensity:
-                                  const VisualDensity(horizontal: -4, vertical: -4),
-                              value: question.selectedIndex==optionIndex,
-                             hoverColor: Colors.white,
-
+                              visualDensity: const VisualDensity(
+                                  horizontal: -4, vertical: -4),
+                              value: question.selectedIndex == optionIndex,
+                              hoverColor: Colors.white,
                               onChanged: (value) {
                                 setState(() {
-
-                                  _answers![index] = question.options![optionIndex];
+                                  _answers![index] =
+                                      question.options![optionIndex];
 
                                   if (value == true) {
                                     question.selectedIndex = optionIndex;
@@ -243,7 +262,6 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                                 });
                               },
                               side: BorderSide.none,
-
                               checkColor: MyColors.primaryGradient1,
                             ),
                           ),
@@ -253,15 +271,16 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                           Expanded(
                             child: Text(
                               question.options![optionIndex],
-                              style: textTheme.titleLarge!
-                                  .copyWith(fontWeight: FontWeight.w400,),
+                              style: textTheme.titleLarge!.copyWith(
+                                fontWeight: FontWeight.w400,
+                              ),
                               maxLines: null,
                             ),
                           )
                         ],
                       ),
                     );
-              
+
                     // return RadioListTile(
                     //   shape: RoundedRectangleBorder(
                     //     borderRadius: BorderRadius.circular(
@@ -306,9 +325,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 class Question {
   final String text;
   final List<String>? options;
-   int? selectedIndex;
+  int? selectedIndex;
 
-  Question( {
+  Question({
     required this.text,
     this.options,
     this.selectedIndex,

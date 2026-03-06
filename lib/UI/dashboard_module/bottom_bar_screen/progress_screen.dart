@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:fitness_zone_2/UI/dashboard_module/measurement_screen/measurement_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/data/controllers/progress_controller/progress_controller.dart';
 import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
@@ -30,7 +32,7 @@ class ProgressScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return DefaultTabController(
-      length: 1,
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -56,15 +58,99 @@ class ProgressScreen extends StatelessWidget {
                 textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
             tabs: const [
               Tab(
+                text: "Weekly Progress",
+              ),
+              Tab(
                 text: "Photo Library",
               ),
-              // Tab(
-              //   text: "Client Stories",
-              // ),
+
             ],
           ),
         ),
         body: TabBarView(children: [
+
+          authController.logInUser!.status
+              ? _WeeklyProgressWithTracking(child: MeasureMentScreen())
+
+          // ListView.separated(
+          //         shrinkWrap: true,
+          //         padding:
+          //             EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+          //         itemCount: 5, // Number of stars (you can make this dynamic)
+          //         itemBuilder: (context, index) {
+          //           return Container(
+          //             height: 185.h,
+          //             width: double.maxFinite,
+          //             decoration: BoxDecoration(
+          //               color: Colors.white,
+          //               borderRadius: BorderRadius.circular(25),
+          //             ),
+          //             child: Column(
+          //               children: [
+          //                 Row(
+          //                   crossAxisAlignment: CrossAxisAlignment.end,
+          //                   children: [
+          //                     const CircleAvatar(
+          //                       radius: 20,
+          //
+          //                       backgroundImage: AssetImage(MyImgs
+          //                           .profilePicture1), // Replace with your image asset
+          //                     ),
+          //                     SizedBox(
+          //                       width: 10.w,
+          //                     ),
+          //                     Column(
+          //                       crossAxisAlignment: CrossAxisAlignment.start,
+          //                       children: [
+          //                         Text(
+          //                           "Fatima Almas",
+          //                           style: textTheme.bodyMedium!
+          //                               .copyWith(fontWeight: FontWeight.w500),
+          //                         ),
+          //                         Row(
+          //                           children: List.generate(5, (index) {
+          //                             return Icon(
+          //                               index < 4
+          //                                   ? Icons.star
+          //                                   : Icons
+          //                                       .star_border, // 4 filled stars and 1 empty star
+          //                               color: Colors.amber,
+          //                               size: 14,
+          //                             );
+          //                           }),
+          //                         ),
+          //                       ],
+          //                     ),
+          //                   ],
+          //                 ),
+          //                 SizedBox(
+          //                   height: 20.h,
+          //                 ),
+          //                 Expanded(
+          //                   child: Text(
+          //                     "Working with Fit Her has been a transformative experience. Their innovative health and wellness app, designed with user-centric features like workout schedules and diet consultations, truly stands out. The team's attention to detail and commitment to improving user experience is evident in every aspect of the app.",
+          //                     style: textTheme.titleLarge!
+          //                         .copyWith(fontWeight: FontWeight.w500),
+          //                   ),
+          //                 ),
+          //                 SizedBox(
+          //                   height: 20.h,
+          //                 ),
+          //                 Divider(
+          //                   height: 2.h,
+          //                   color: Color(0xffE2E1E1),
+          //                 )
+          //               ],
+          //             ),
+          //           );
+          //         },
+          //         separatorBuilder: (BuildContext context, int index) {
+          //           return SizedBox(
+          //             height: 25.h,
+          //           );
+          //         },
+          //       )
+              : HelpingWidgets().notSubscribed(),
           authController.logInUser!.status
               ? Obx(() => progressController.imagesProgressOfUser.value
                   ? GetBuilder<ProgressController>(builder: (con) {
@@ -149,86 +235,7 @@ class ProgressScreen extends StatelessWidget {
                     })
                   : const CircularProgress())
               : HelpingWidgets().notSubscribed(),
-          // authController.logInUser!.status
-          //     ? ListView.separated(
-          //         shrinkWrap: true,
-          //         padding:
-          //             EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
-          //         itemCount: 5, // Number of stars (you can make this dynamic)
-          //         itemBuilder: (context, index) {
-          //           return Container(
-          //             height: 185.h,
-          //             width: double.maxFinite,
-          //             decoration: BoxDecoration(
-          //               color: Colors.white,
-          //               borderRadius: BorderRadius.circular(25),
-          //             ),
-          //             child: Column(
-          //               children: [
-          //                 Row(
-          //                   crossAxisAlignment: CrossAxisAlignment.end,
-          //                   children: [
-          //                     const CircleAvatar(
-          //                       radius: 20,
-          //
-          //                       backgroundImage: AssetImage(MyImgs
-          //                           .profilePicture1), // Replace with your image asset
-          //                     ),
-          //                     SizedBox(
-          //                       width: 10.w,
-          //                     ),
-          //                     Column(
-          //                       crossAxisAlignment: CrossAxisAlignment.start,
-          //                       children: [
-          //                         Text(
-          //                           "Fatima Almas",
-          //                           style: textTheme.bodyMedium!
-          //                               .copyWith(fontWeight: FontWeight.w500),
-          //                         ),
-          //                         Row(
-          //                           children: List.generate(5, (index) {
-          //                             return Icon(
-          //                               index < 4
-          //                                   ? Icons.star
-          //                                   : Icons
-          //                                       .star_border, // 4 filled stars and 1 empty star
-          //                               color: Colors.amber,
-          //                               size: 14,
-          //                             );
-          //                           }),
-          //                         ),
-          //                       ],
-          //                     ),
-          //                   ],
-          //                 ),
-          //                 SizedBox(
-          //                   height: 20.h,
-          //                 ),
-          //                 Expanded(
-          //                   child: Text(
-          //                     "Working with Fit Her has been a transformative experience. Their innovative health and wellness app, designed with user-centric features like workout schedules and diet consultations, truly stands out. The team's attention to detail and commitment to improving user experience is evident in every aspect of the app.",
-          //                     style: textTheme.titleLarge!
-          //                         .copyWith(fontWeight: FontWeight.w500),
-          //                   ),
-          //                 ),
-          //                 SizedBox(
-          //                   height: 20.h,
-          //                 ),
-          //                 Divider(
-          //                   height: 2.h,
-          //                   color: Color(0xffE2E1E1),
-          //                 )
-          //               ],
-          //             ),
-          //           );
-          //         },
-          //         separatorBuilder: (BuildContext context, int index) {
-          //           return SizedBox(
-          //             height: 25.h,
-          //           );
-          //         },
-          //       )
-          //     : HelpingWidgets().notSubscribed(),
+
         ]),
         bottomNavigationBar: GetBuilder<ProgressController>(builder: (con) {
           var length = con.progressImagesList.length;
@@ -248,6 +255,28 @@ class ProgressScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Wrapper to track weekly progress report view
+class _WeeklyProgressWithTracking extends StatefulWidget {
+  final Widget child;
+
+  const _WeeklyProgressWithTracking({required this.child});
+
+  @override
+  State<_WeeklyProgressWithTracking> createState() =>
+      _WeeklyProgressWithTrackingState();
+}
+
+class _WeeklyProgressWithTrackingState extends State<_WeeklyProgressWithTracking> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.trackWeeklyProgressReport();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 selectMediaBottomSheet(Function gallery, Function camera, BuildContext context,

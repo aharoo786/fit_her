@@ -1,260 +1,130 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:get/get_connect/http/src/request/request.dart';
-import '../../values/constants.dart';
 import 'package:http/http.dart' as http;
+import '../../values/constants.dart';
 
-class ApiProvider extends GetConnect implements GetxService {
-  ApiProvider() {
-    httpClient.baseUrl = Constants.baseUrl;
-    httpClient.timeout = const Duration(seconds: 40);
-  }
+class ApiProvider extends GetxService {
+  final String baseUrl = Constants.baseUrl;
 
-  Future<Response> postData(String url,
-      {required Map<String, dynamic> body,
-      Map<String, String>? headers}) async {
-    debugPrint(
-        '====> API Call: [${Constants.baseUrl + url}]\n$body  \n $headers');
+  Future<Response> postData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
+    debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
 
-    var response = await post(url, body, headers: headers ?? {});
-    print("body  ${response.body}");
-    return handleData(url, response);
-  }
-
-  Future<Response> putData(String url,
-      {required Map<String, dynamic> body,
-      Map<String, String>? headers}) async {
-    Get.log("in api client");
-    debugPrint(
-        '====> API Call: [${Constants.baseUrl + url}]\n$body  \n $headers');
-
-    var response = await put(url, body, headers: headers ?? {});
-    print(response.statusCode);
-    return handleData(url, response);
-  }
-
-  Future<Response> postFormData(String url,
-      {required FormData body, Map<String, String>? headers}) async {
-    Get.log("form data ${body.fields} ");
-    debugPrint(
-        '====> API Call: [${Constants.baseUrl + url}]\n$body  \n $headers');
-    dynamic _body;
-    Response _response;
-    ReceivePort p = ReceivePort();
-    try {
-      Get.log("isolates start");
-      _body = await Isolate.spawn(
-          _sendDataInBackGround, [p.sendPort, body, post, url, headers]);
-    } catch (e) {}
-    var resp = await p.first;
-    // p.listen((data) {
-    //   print("Printed data" + data.toString());
-    //   _response = data;
-    // });
-    _response = Response(
-        body: resp[0],
-        bodyString: resp[0].toString(),
-        statusCode: resp[1],
-        request: resp[2],
-        headers: resp[3],
-        statusText: resp[4]);
-    Get.log("Response: outside Isolate: ${_response.toString()}");
-    // return _response;
-    return handleData(url, _response);
-  }
-
-  Future<Response> putFormData(String url,
-      {required FormData body, Map<String, String>? headers}) async {
-    debugPrint(
-        '====> API Call: [${Constants.baseUrl + url}]\n$body  \n $headers');
-    dynamic _body;
-    Response _response;
-    Response response = await put(url, body, headers: headers ?? {});
-    // ReceivePort p = ReceivePort();
-    // try {
-    //   _body = await Isolate.spawn(
-    //       _putDataInBackGround, [p.sendPort, body, put, url, headers]);
-    // } catch (e) {}
-    // var resp = [
-    //   response.body,
-    //   response.statusCode,
-    //   response.request,
-    //   response.headers,
-    //   response.statusText
-    // ];
-    // p.listen((data) {
-    //   print("Printed data" + data.toString());
-    //   _response = data;
-    // });
-    _response = Response(
-        body: response.body,
-        statusCode: response.statusCode,
-        request: response.request,
-        headers: response.headers,
-        statusText: response.statusText);
-    debugPrint("Response: outside Isolate: ${_response.toString()}");
-    // return _response;
-    return handleData(url, _response);
-  }
-
-  Future<Response<dynamic>> getData(String url,
-      {Map<String, dynamic>? query, Map<String, String>? headers}) async {
-    debugPrint(
-        '====> API Call: [${Constants.baseUrl + url}]\n$query  \n $headers');
-    var response = await get(url, query: query, headers: headers ?? {});
-    return handleData(url, response);
-  }
-
-  Future<Response<dynamic>> handleData(url, response) async {
-    dynamic _body;
-    Response _response;
-
-    debugPrint(
-        '====> API Response: [${response.statusCode}] ${Constants.baseUrl + url}\n${response.body}');
-
-    try {
-      final p = ReceivePort();
-      _body = await Isolate.spawn(
-          _decodeDataInBackground, [p.sendPort, response.body, jsonDecode]);
-    } catch (e) {}
-    if (response.statusCode != 200) {
-      _response = Response(
-        body: {
-          "status": "0",
-          "message": "Some Error has occured\n",
-          "data": {},
-          "error": "Please try again later"
-        },
-        bodyString: "{}",
-        request: Request(
-            headers: response.request!.headers,
-            method: response.request!.method,
-            url: response.request!.url),
-        headers: response.headers,
-        statusCode: response.statusCode,
-        statusText: response.statusText,
-      );
-    } else {
-      _response = Response(
-        body: response.body,
-        bodyString: response.body.toString(),
-        request: Request(
-            headers: response.request!.headers,
-            method: response.request!.method,
-            url: response.request!.url),
-        headers: response.headers,
-        statusCode: response.statusCode,
-        statusText: response.statusText,
-      );
-    }
-
-    debugPrint(
-        '====>After Decoding API Response: [${_response.statusCode}] ${Constants.baseUrl + url}\n====>After Decoding _Body ${_response.body}');
-    return _response;
-  }
-
-  _decodeDataInBackground(List<dynamic> args) {
-    SendPort responsePort = args[0];
-    dynamic data = args[1];
-    dynamic jsonDecodeMethod = args[2];
-
-    try {
-      final decodedData = jsonDecodeMethod(data);
-      Isolate.exit(responsePort, decodedData);
-    } catch (e) {
-      debugPrint(e.toString());
-      Isolate.exit(responsePort, null);
-    }
-  }
-
-  _sendDataInBackGround(List<dynamic> args) async {
-    SendPort responsePort = args[0];
-    FormData data = args[1];
-    dynamic func = args[2];
-    dynamic url = args[3];
-    dynamic headers = args[4];
-    try {
-      Get.log("isolates ");
-      print(data.fields);
-      Response response = await post(url, data, headers: headers ?? {});
-      print("Response in Isolate: ${response.body}");
-      // responsePort.send(response.body);
-      Isolate.exit(responsePort, [
-        response.body,
-        response.statusCode,
-        response.request,
-        response.headers,
-        response.statusText
-      ]);
-    } catch (e) {
-      Get.log("isolates erroer ");
-      debugPrint(e.toString());
-      Isolate.exit(responsePort, null);
-    }
-  }
-
-  _putDataInBackGround(List<dynamic> args) async {
-    SendPort responsePort = args[0];
-    FormData data = args[1];
-    dynamic func = args[2];
-    dynamic url = args[3];
-    dynamic headers = args[4];
-    try {
-      print(data.fields);
-      Response response = await put(url, data, headers: headers ?? {});
-      print("Response in Isolate: ${response.body}");
-      // responsePort.send(response.body);
-      Isolate.exit(responsePort, [
-        response.body,
-        response.statusCode,
-        response.request,
-        response.headers,
-        response.statusText
-      ]);
-    } catch (e) {
-      debugPrint(e.toString());
-      Isolate.exit(responsePort, null);
-    }
-  }
-
-  Future<Response> setFormData(
-      {required String url,
-      required Map<String, dynamic> formData,
-      bool isProgress = false,
-      Map<String, String>? headers}) async {
-    debugPrint(
-        '====> API Call: [${Constants.baseUrl + url}]\n$query  \n $headers');
-    http.MultipartRequest request = http.MultipartRequest(
-      'POST',
-      Uri.parse("${Constants.baseUrl}$url"),
+    var response = await http.post(
+      Uri.parse(baseUrl + url),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
     );
+    return handleData(url, response);
+  }
 
-    formData.forEach((key, value) {
-      request.fields.addIf(
-          key != "image" && key != "before" && key != "after", key, value);
-    });
-    if (isProgress) {
-      request.files.add(await http.MultipartFile.fromPath(
-        'after',
-        formData["after"],
-      ));
-      request.files.add(await http.MultipartFile.fromPath(
-        'before',
-        formData["before"],
-      ));
-    } else {
-      request.files.add(await http.MultipartFile.fromPath(
-        'image',
-        formData["image"],
-      ));
+  Future<Response> putData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
+    debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
+    final defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...?headers,
+    };
+    var response = await http.put(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders ?? {});
+    return handleData(url, response);
+  }
+
+  Future<Response<dynamic>> getData(String url, {Map<String, dynamic>? query, Map<String, String>? headers}) async {
+    debugPrint('====> API Call: [$baseUrl$url]\n$query  \n $headers');
+    var uri = Uri.parse(baseUrl + url).replace(queryParameters: query);
+    var response = await http.get(uri, headers: headers ?? {});
+    return handleData(url, response);
+  }
+
+  Future<Response<dynamic>> deleteData(String url, {Map<String, dynamic>? query, Map<String, String>? headers}) async {
+    debugPrint('====> API Call: [$baseUrl$url]\n$query  \n $headers');
+    var uri = Uri.parse(baseUrl + url).replace(queryParameters: query);
+    var response = await http.delete(uri, headers: headers ?? {});
+    return handleData(url, response);
+  }
+
+  Future<Response<dynamic>> handleData(String url, http.Response response) async {
+    debugPrint('====> API Response: [${response.statusCode}] $baseUrl$url\n${response.body}');
+
+    dynamic _body;
+    try {
+      _body = jsonDecode(response.body);
+    } catch (e) {
+      _body = {};
     }
 
-    var response = await http.Response.fromStream(await request.send());
-    debugPrint(
-        '====> API Response: [${response.statusCode}] ${Constants.baseUrl + url}\n${response.body}');
-    return Response(statusCode: response.statusCode, bodyString: response.body);
+    return Response(
+      body: _body,
+      bodyString: response.body,
+      headers: response.headers,
+      statusCode: response.statusCode,
+      statusText: response.reasonPhrase,
+    );
+  }
+
+  Future<Response> setFormData({
+    required String url,
+    required Map<String, dynamic> formData,
+    bool isProgress = false,
+    Map<String, String>? headers,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final fullUrl = Uri.parse('$baseUrl$url');
+    debugPrint('====> API Call: [$fullUrl]\n$formData\n$headers');
+
+    final request = http.MultipartRequest('POST', fullUrl);
+
+    // Add headers if available
+    if (headers != null) {
+      request.headers.addAll(headers);
+    }
+
+    // Add non-file fields
+    formData.forEach((key, value) {
+      if (!['image', 'before', 'after'].contains(key)) {
+        request.fields[key] = value.toString();
+      }
+    });
+
+    try {
+      // Add files based on the isProgress flag
+      if (isProgress) {
+        if (formData['before'] != null && formData['after'] != null) {
+          request.files.add(await http.MultipartFile.fromPath('before', formData['before']));
+          request.files.add(await http.MultipartFile.fromPath('after', formData['after']));
+        } else {
+          throw Exception("Missing 'before' or 'after' file for progress upload.");
+        }
+      } else {
+        if (formData['image'] != null) {
+          request.files.add(await http.MultipartFile.fromPath('image', formData['image']));
+        } else {
+          throw Exception("Missing 'image' file for upload.");
+        }
+      }
+
+      // Send request with timeout
+      final streamedResponse = await request.send().timeout(timeout);
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('====> API Response: [${response.statusCode}] $fullUrl\n${response.body}');
+
+      return Response(
+        statusCode: response.statusCode,
+        bodyString: response.body,
+      );
+    } on TimeoutException {
+      debugPrint('====> API Timeout: Request to $fullUrl timed out.');
+      return Response(
+        statusCode: 408,
+        bodyString: 'Request timed out. Please try again.',
+      );
+    } catch (e, stack) {
+      debugPrint('====> API ERROR: $e\n$stack');
+      return Response(
+        statusCode: 500,
+        bodyString: 'Error: ${e.toString()}',
+      );
+    }
   }
 }

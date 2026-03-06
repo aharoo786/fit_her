@@ -31,9 +31,15 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+ios/Pods
+ios/.symlinks
+ios/Podfile.lock
 
 # Symbolication related
 app.*.symbols
+.idea
+build
+pubspec.lock
 
 # Obfuscation related
 app.*.map.json
@@ -45,3 +51,11 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+lib/data/api_provider/chat_api_provider.dart
+
+android/app/libs/mobilertc.aar
+ios/Runner/MobileRTC.xcframework
+ios/Runner/MobileRTCResources.bundle
+ios/Runner/MobileRTCScreenShare.xcframework
+ios/Runner/zoomcml.xcframework

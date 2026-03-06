@@ -5,6 +5,7 @@ import 'package:fitness_zone_2/helper/get_di.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
@@ -69,12 +70,12 @@ class ProfileScreen extends StatelessWidget {
                 SizedBox(
                   height: 10.h,
                 ),
-                fromWelcomeScreen
-                    ? const SizedBox.shrink()
-                    : rowWidget(MyImgs.package, "Add Plan", () {
-                        Get.to(() => AddPlanDiet());
-                        homeController.getSubCatBasedOnUserType(Get.find<AuthController>().loginAsA.value);
-                      }),
+                // fromWelcomeScreen
+                //     ? const SizedBox.shrink()
+                //     : rowWidget(MyImgs.package, "Add Plan", () {
+                //         Get.to(() => AddPlanDiet());
+                //         homeController.getSubCatBasedOnUserType(Get.find<AuthController>().loginAsA.value);
+                //       }),
 
                 fromWelcomeScreen
                     ? const SizedBox.shrink()
@@ -111,9 +112,9 @@ class ProfileScreen extends StatelessWidget {
                                       )),
                                   TextButton(
                                       onPressed: () async {
-                                        // Get.find<AuthController>().logout();
-                                        await init();
-                                        Get.offAll(() => ChooseAnyOne());
+                                        Get.find<AuthController>().logout();
+
+
                                       },
                                       child: Text(
                                         "Logout",
