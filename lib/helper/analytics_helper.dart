@@ -286,4 +286,70 @@ class AnalyticsHelper {
   static Future<void> setUserProperty(String name, String value) async {
     await _analyticsService.setUserProperty(name: name, value: value);
   }
+
+  // ========== Key Business Events ==========
+
+  /// Track weekly attendance (motivation)
+  static Future<void> trackWeeklyAttendance({String? slotId}) async {
+    await _analyticsService.logWeeklyAttendance(slotId: slotId);
+  }
+
+  /// Track free trial key event
+  static Future<void> trackFreeTrial(String action,
+      {String? step, Map<String, Object>? additionalParams}) async {
+    await _analyticsService.logFreeTrial(
+      action: action,
+      step: step,
+      additionalParams: additionalParams,
+    );
+  }
+
+  /// Track review submitted
+  static Future<void> trackReview(String planId, double rating,
+      String trainerOrDiet, {String? classReview, bool hasComment = false}) async {
+    await _analyticsService.logReview(
+      planId: planId,
+      rating: rating,
+      trainerOrDiet: trainerOrDiet,
+      classReview: classReview,
+      hasComment: hasComment,
+    );
+  }
+
+  /// Track consultation booked
+  static Future<void> trackConsultationBooked(
+      int planId, int dietitianId, String date,
+      {int? timeSlotId}) async {
+    await _analyticsService.logConsultationBooked(
+      planId: planId,
+      dietitianId: dietitianId,
+      date: date,
+      timeSlotId: timeSlotId,
+    );
+  }
+
+  /// Track consultation done/completed
+  static Future<void> trackConsultationDone(int appointmentId,
+      {String? status}) async {
+    await _analyticsService.logConsultationDone(
+      appointmentId: appointmentId,
+      status: status,
+    );
+  }
+
+  /// Track diet plan delivered (period: day, week, month)
+  static Future<void> trackDietPlanDelivered(String period,
+      {int? userPlanId, int? dietitianId, String? date}) async {
+    await _analyticsService.logDietPlanDelivered(
+      period: period,
+      userPlanId: userPlanId,
+      dietitianId: dietitianId,
+      date: date,
+    );
+  }
+
+  /// Track weekly progress report viewed
+  static Future<void> trackWeeklyProgressReport() async {
+    await _analyticsService.logWeeklyProgressReport();
+  }
 }

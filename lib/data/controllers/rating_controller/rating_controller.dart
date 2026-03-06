@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../helper/analytics_helper.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
 import '../../GetServices/CheckConnectionService.dart';
@@ -20,8 +21,9 @@ class RatingController extends GetxController implements GetxService {
 
 
   addClassReview(String planId, String comment, double value,String trainerOrDiet) {
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
+    final rating = value;
+    connectionService.checkConnection().then((hasConnection) async {
+      if (!hasConnection) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
@@ -33,7 +35,7 @@ class RatingController extends GetxController implements GetxService {
                 sharedPreferences.getString(Constants.accessToken) ?? "",
             map: {
               "comment": comment,
-              "value": value,
+              "value": rating,
               "classReview": classReview.value,
               "trainerOrDiet": trainerOrDiet,
               "PlanId": planId,
@@ -49,7 +51,10 @@ class RatingController extends GetxController implements GetxService {
             if (model.status == "1") {
               CustomToast.successToast(msg: model.message);
               sharedPreferences.setString(Constants.reviewDate, DateTime.now().toString());
-
+              // Track review in Mixpanel
+              AnalyticsHelper.trackReview(planId, rating, trainerOrDiet,
+                  classReview: classReview.value,
+                  hasComment: comment.trim().isNotEmpty);
               Get.back();
             }
           } else {

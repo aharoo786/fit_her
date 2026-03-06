@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helper/analytics_helper.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
 import '../../Repos/home_repo/home_repo.dart';
@@ -77,8 +78,8 @@ class MotivationController extends GetxController implements GetxService {
         // CustomToast.failToast(
         //     msg: response.body["message"] ?? "Attendance not marked");
       } else {
-        // CustomToast.successToast(
-        //     msg: response.body["message"] ?? "Attendance marked successfully");
+        // Track weekly attendance in Mixpanel
+        await AnalyticsHelper.trackWeeklyAttendance(slotId: slotId);
         // Refresh stats after marking attendance
         //  await fetchMotivationStats();
       }

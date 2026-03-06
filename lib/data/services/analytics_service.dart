@@ -463,4 +463,96 @@ class AnalyticsService extends GetxService {
     _mixpanel?.getPeople().set(name, value);
     print('User property set: $name = $value');
   }
+
+  // ========== Key Business Events ==========
+
+  // Track weekly attendance (motivation)
+  Future<void> logWeeklyAttendance({
+    String? slotId,
+  }) async {
+    await _mixpanel?.track('Weekly Attendance', properties: {
+      if (slotId != null) 'slot_id': slotId,
+    });
+  }
+
+  // Sign Up - already exists as logSignUp above
+
+  // Track free trial (dedicated key event)
+  Future<void> logFreeTrial({
+    required String action, // 'started', 'completed', 'slots_selected'
+    String? step,
+    Map<String, Object>? additionalParams,
+  }) async {
+    final Map<String, dynamic> params = {
+      'action': action,
+      if (step != null) 'step': step,
+    };
+    if (additionalParams != null) {
+      params.addAll(additionalParams);
+    }
+    await _mixpanel?.track('Free Trial', properties: params);
+  }
+
+  // Track review submitted
+  Future<void> logReview({
+    required String planId,
+    required double rating,
+    required String trainerOrDiet,
+    String? classReview,
+    bool hasComment = false,
+  }) async {
+    await _mixpanel?.track('Review', properties: {
+      'plan_id': planId,
+      'rating': rating,
+      'trainer_or_diet': trainerOrDiet,
+      if (classReview != null) 'class_review': classReview,
+      'has_comment': hasComment,
+    });
+  }
+
+  // Track consultation booked
+  Future<void> logConsultationBooked({
+    required int planId,
+    required int dietitianId,
+    required String date,
+    int? timeSlotId,
+  }) async {
+    await _mixpanel?.track('Consultation Booked', properties: {
+      'plan_id': planId,
+      'dietitian_id': dietitianId,
+      'date': date,
+      if (timeSlotId != null) 'time_slot_id': timeSlotId,
+    });
+  }
+
+  // Track consultation done/completed
+  Future<void> logConsultationDone({
+    required int appointmentId,
+    String? status,
+  }) async {
+    await _mixpanel?.track('Consultation Done', properties: {
+      'appointment_id': appointmentId,
+      if (status != null) 'status': status,
+    });
+  }
+
+  // Track diet plan delivered (period: day, week, month)
+  Future<void> logDietPlanDelivered({
+    required String period, // 'day', 'week', 'month'
+    int? userPlanId,
+    int? dietitianId,
+    String? date,
+  }) async {
+    await _mixpanel?.track('Diet Plan Delivered', properties: {
+      'period': period,
+      if (userPlanId != null) 'user_plan_id': userPlanId,
+      if (dietitianId != null) 'dietitian_id': dietitianId,
+      if (date != null) 'date': date,
+    });
+  }
+
+  // Track weekly progress report viewed
+  Future<void> logWeeklyProgressReport() async {
+    await _mixpanel?.track('Weekly Progress Report');
+  }
 }

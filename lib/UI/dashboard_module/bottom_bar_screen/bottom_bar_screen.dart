@@ -52,8 +52,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         : authController.loginAsA.value == Constants.user
             ? [
                 HomeScreen(),
-                WorkPlansOfUser(),
-                DietPlansOfUser(),
+                WorkPlansOfUser(showBackButton: false,),
+                DietPlansOfUser(showBackButton: false,),
                 ProgressScreen(),
                 FeedScreen()
                 // ChatRoom(

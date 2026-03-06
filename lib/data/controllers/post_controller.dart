@@ -16,7 +16,7 @@ class PostController extends GetxController implements GetxService {
 
   /// Rx Variables
   var allPostsLoad = false.obs;
-  var createPostLoad = false.obs;
+  var createPostLoad = true.obs; // true = idle, false = creating post
   var approvePostLoad = false.obs;
   var deletePostLoad = false.obs;
   var replySendLoad = false.obs;

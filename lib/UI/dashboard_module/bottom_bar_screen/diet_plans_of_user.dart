@@ -11,7 +11,8 @@ import '../../../widgets/app_bar_widget.dart';
 import '../../../widgets/circular_progress.dart';
 
 class DietPlansOfUser extends StatefulWidget {
-  DietPlansOfUser({super.key});
+  DietPlansOfUser({super.key, this.showBackButton = true});
+  bool showBackButton;
 
   @override
   State<DietPlansOfUser> createState() => _DietPlansOfUserState();
@@ -29,7 +30,13 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(null, text: "Your Plans"),
+      appBar: HelpingWidgets().appBarWidget(
+          widget.showBackButton
+              ? () {
+                  Get.back();
+                }
+              : null,
+          text: "Your Plans"),
       body:
           //Center(child: Text("Coming Soon. Stay Awaited!"),)
 
@@ -37,24 +44,18 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
               ? dietController.getDietAllPlans!.userPlans.isEmpty
                   ? HelpingWidgets().getOurPlans(context, textTheme)
                   : ListView.separated(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 20.h, vertical: 20.h),
-                      itemCount:
-                          dietController.getDietAllPlans!.userPlans.length,
+                      padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
+                      itemCount: dietController.getDietAllPlans!.userPlans.length,
                       itemBuilder: (BuildContext context, int index) {
-                        var plan = dietController
-                            .getDietAllPlans!.userPlans[index].dietPlanOfUser;
+                        var plan = dietController.getDietAllPlans!.userPlans[index].dietPlanOfUser;
                         return GestureDetector(
                           onTap: () {
                             // CustomToast.successToast(
                             //     msg: "Stay Awaited! Coming soon");
                             Get.to(() => DietBottomBarScreen(
-                                  userPlanId: dietController
-                                      .getDietAllPlans!.userPlans[index].id,
+                                  userPlanId: dietController.getDietAllPlans!.userPlans[index].id,
                                 ));
-                            dietController.getDietPlanDetailsFunc(dietController
-                                .getDietAllPlans!.userPlans[index].id
-                                .toString());
+                            dietController.getDietPlanDetailsFunc(dietController.getDietAllPlans!.userPlans[index].id.toString());
                           },
                           child: Container(
                             // height: 200,
@@ -62,12 +63,7 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
                             decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                      color: Colors.black.withOpacity(0.1))
-                                ]),
+                                boxShadow: [BoxShadow(offset: Offset(0, 2), blurRadius: 4, color: Colors.black.withOpacity(0.1))]),
                             child: Row(children: [
                               SizedBox(
                                 width: 70.w,

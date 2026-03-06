@@ -43,9 +43,9 @@ class Constants {
   static String weeklyReports = "weeklyReports";
 
   ///base url
-  static String baseUrl = "https://test.thefither.com";
+  // static String baseUrl = "https://test.thefither.com";
   // static String baseUrl = "http://192.168.1.31:9005";
-  // static String baseUrl = "https://backend.thefither.com";
+  static String baseUrl = "https://backend.thefither.com";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =

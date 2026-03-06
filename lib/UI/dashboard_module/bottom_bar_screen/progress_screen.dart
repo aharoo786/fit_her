@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fitness_zone_2/UI/dashboard_module/measurement_screen/measurement_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/data/controllers/progress_controller/progress_controller.dart';
 import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
@@ -69,7 +70,7 @@ class ProgressScreen extends StatelessWidget {
         body: TabBarView(children: [
 
           authController.logInUser!.status
-              ? MeasureMentScreen()
+              ? _WeeklyProgressWithTracking(child: MeasureMentScreen())
 
           // ListView.separated(
           //         shrinkWrap: true,
@@ -254,6 +255,28 @@ class ProgressScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Wrapper to track weekly progress report view
+class _WeeklyProgressWithTracking extends StatefulWidget {
+  final Widget child;
+
+  const _WeeklyProgressWithTracking({required this.child});
+
+  @override
+  State<_WeeklyProgressWithTracking> createState() =>
+      _WeeklyProgressWithTrackingState();
+}
+
+class _WeeklyProgressWithTrackingState extends State<_WeeklyProgressWithTracking> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsHelper.trackWeeklyProgressReport();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 selectMediaBottomSheet(Function gallery, Function camera, BuildContext context,

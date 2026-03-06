@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../UI/diet_screen/calerie_info.dart';
+import '../../../helper/analytics_helper.dart';
 import '../../../helper/permissions.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
@@ -403,7 +404,13 @@ class DietController extends GetxController implements GetxService {
               getDietPlanDetails?.isBooked = true;
               getDietPlanDetails?.status = response.body["data"]["appointment"]['status'] ?? "pending";
               getDietPlanDetails?.id = response.body["data"]["appointment"]["id"] ?? 0;
-              // update(["dietBottomScreen"]);
+              // Track consultation booked in Mixpanel
+              AnalyticsHelper.trackConsultationBooked(
+                planId,
+                dietId,
+                date.toIso8601String(),
+                timeSlotId: bookAppointmentSlotId.value,
+              );
               getDietPlanDetailsFunc(planId.toString());
               //  Get.back();
             }
@@ -479,8 +486,7 @@ class DietController extends GetxController implements GetxService {
             // jsonData will be a List, so you may need a new model
             // Example format: [{ "name": "apple", "id": 9003, "image": "apple.png" }, ...]
 
-            foodSuggestionResponse =
-                FoodSuggestionResponse.fromJson(jsonData);
+            foodSuggestionResponse = FoodSuggestionResponse.fromJson(jsonData);
 
             foodSuggestionLoad.value = true;
           } else {
@@ -516,7 +522,10 @@ class DietController extends GetxController implements GetxService {
             }
             if (model.status == "1") {
               CustomToast.successToast(msg: model.message);
-
+              // Track consultation done in Mixpanel when status is completed/done
+              if (status.toLowerCase() == 'completed' || status.toLowerCase() == 'done') {
+                AnalyticsHelper.trackConsultationDone(id, status: status);
+              }
               if (isFromAppointment) {
                 appointmentLoad.value = false;
                 var value = dietAppointmentsModel!.appointments.firstWhereOrNull((v) => v.id == id);

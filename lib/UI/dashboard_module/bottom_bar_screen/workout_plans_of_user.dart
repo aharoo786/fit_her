@@ -13,7 +13,8 @@ import '../../../widgets/app_bar_widget.dart';
 import '../../../widgets/circular_progress.dart';
 
 class WorkPlansOfUser extends StatefulWidget {
-  WorkPlansOfUser({super.key});
+  WorkPlansOfUser({super.key, this.showBackButton = true});
+  bool showBackButton;
 
   @override
   State<WorkPlansOfUser> createState() => _WorkPlansOfUserState();
@@ -31,13 +32,18 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(null, text: "Your Plans"),
+      appBar: HelpingWidgets().appBarWidget(
+          widget.showBackButton
+              ? () {
+                  Get.back();
+                }
+              : null,
+          text: "Your Plans"),
       body: Obx(() => workOutController.workOutOfUserLoad.value
           ? workOutController.workoutPlans!.plans.isEmpty
               ? HelpingWidgets().getOurPlans(context, textTheme)
               : ListView.separated(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
+                  padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
                   itemCount: workOutController.workoutPlans!.plans.length,
                   itemBuilder: (BuildContext context, int index) {
                     var plan = workOutController.workoutPlans!.plans[index];
@@ -47,8 +53,7 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
                               planId: plan.id.toString(),
                             ));
                         selectedPlan = plan.id.toString();
-                        workOutController
-                            .getDietPlanDetailsFunc(plan.id.toString());
+                        workOutController.getDietPlanDetailsFunc(plan.id.toString());
                       },
                       child: Container(
                         // height: 200,
@@ -56,12 +61,7 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
                         decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                  offset: const Offset(0, 2),
-                                  blurRadius: 4,
-                                  color: Colors.black.withOpacity(0.1))
-                            ]),
+                            boxShadow: [BoxShadow(offset: const Offset(0, 2), blurRadius: 4, color: Colors.black.withOpacity(0.1))]),
                         child: Row(children: [
                           SizedBox(
                             width: 70.w,

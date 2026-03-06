@@ -576,7 +576,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9BDW3F8A65;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 22.0.0;
+				FLUTTER_BUILD_NAME = 23.0.0;
 				FLUTTER_BUILD_NUMBER = 1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FitHer;
@@ -585,7 +585,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 22.0.0;
+				MARKETING_VERSION = 23.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abtechnologies.fitHer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -772,7 +772,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9BDW3F8A65;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 22.0.0;
+				FLUTTER_BUILD_NAME = 23.0.0;
 				FLUTTER_BUILD_NUMBER = 1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FitHer;
@@ -781,7 +781,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 22.0.0;
+				MARKETING_VERSION = 23.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abtechnologies.fitHer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -809,7 +809,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9BDW3F8A65;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 22.0.0;
+				FLUTTER_BUILD_NAME = 23.0.0;
 				FLUTTER_BUILD_NUMBER = 1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FitHer;
@@ -818,7 +818,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 22.0.0;
+				MARKETING_VERSION = 23.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abtechnologies.fitHer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

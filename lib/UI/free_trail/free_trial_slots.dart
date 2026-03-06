@@ -33,6 +33,8 @@ class _FreeTrialSlotsState extends State<FreeTrialSlots> {
     // Track free trial slots screen view
     AnalyticsHelper.trackScreenView('free_trial_slots_screen');
     AnalyticsHelper.trackFreeTrialEvent('slots_viewed', step: 'slots');
+    // Track free trial started (key event) - when user enters free trial flow
+    AnalyticsHelper.trackFreeTrial('started', step: 'slots');
   }
 
   @override

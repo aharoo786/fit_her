@@ -17,7 +17,7 @@ class SocketController extends GetxController {
   HomeController homeController = Get.find();
 
   socketInit() {
-    socket = IO.io('https://test.thefither.com', <String, dynamic>{
+    socket = IO.io('https://backend.thefither.com', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
       'reconnection': true,
@@ -36,7 +36,6 @@ class SocketController extends GetxController {
       }
     });
     socket?.on("newPost", (message) {
-      print('SocketController.socketInit ${message}');
       if (message != null) {
         var post = Post.fromJson(message);
         if (post.approved) {

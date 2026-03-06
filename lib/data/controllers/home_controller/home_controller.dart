@@ -75,6 +75,10 @@ class HomeController extends GetxController implements GetxService {
 
   bool get isFrozen => (userHomeData?.freeze.value == 1);
 
+  /// True if user has at least one active plan (remaining days > 0). Used to restrict posts/messages.
+  bool get hasActivePackage =>
+      userHomeData != null && userHomeData!.userAllPlans.isNotEmpty && userHomeData!.userAllPlans.any((p) => p.remainingDays > 0);
+
   ///Notifcation listern
 
   ///adding team member
@@ -1009,8 +1013,8 @@ class HomeController extends GetxController implements GetxService {
   }
 
   /// Direct Pay (Payin PWA): JazzCash / EasyPaisa. Backend returns payment URL.
-  /// Redirect URLs use fither:// so WebView can intercept success/fail and update plan.
-  void getDirectPayPaymentLink(String amount, String planId) {
+  /// [msisdn] if provided is used (e.g. from phone confirmation dialog); otherwise uses profile phone.
+  void getDirectPayPaymentLink(String amount, String planId, {String? msisdn}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
@@ -1027,9 +1031,9 @@ class HomeController extends GetxController implements GetxService {
         CustomToast.failToast(msg: "Please complete your profile (name and email) before paying.");
         return;
       }
-      final msisdn = _normalizeMsisdn(user.phone);
-      if (msisdn == null || msisdn.length != 11) {
-        CustomToast.failToast(msg: "Please add a valid Pakistan mobile number (03xxxxxxxxx) in your profile.");
+      final phoneToUse = msisdn ?? normalizeMsisdn(user.phone);
+      if (phoneToUse == null || phoneToUse.length != 11) {
+        CustomToast.failToast(msg: "Please provide a valid Pakistan mobile number (03xxxxxxxxx).");
         return;
       }
       final successRedirectUrl = "fither://payment/success?planId=$planId";
@@ -1039,19 +1043,18 @@ class HomeController extends GetxController implements GetxService {
         accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
         map: {
           "planId": planId,
-          "userId": sharedPreferences.getString(Constants.userId),
-          "amount": "10",
+          "amount": amount,
           "payerName": payerName,
           "email": email,
-          "msisdn": msisdn,
+          "userId": sharedPreferences.getString(Constants.userId),
+          "msisdn": phoneToUse,
           "successRedirectUrl": successRedirectUrl,
           "failedRedirectUrl": failedRedirectUrl,
         },
       ).then((response) async {
         Get.back();
         if (response.statusCode == 200 && response.body["status"] != "0") {
-          ApiResponse<DirectPayUrlResponse> model =
-              ApiResponse.fromJson(response.body, DirectPayUrlResponse.fromJson);
+          ApiResponse<DirectPayUrlResponse> model = ApiResponse.fromJson(response.body, DirectPayUrlResponse.fromJson);
           if (model.status == "1" && model.data != null && model.data!.url.isNotEmpty) {
             Get.to(() => WebViewScreen(
                   url: model.data!.url,
@@ -1067,8 +1070,8 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  /// Normalize Pakistan mobile to 03xxxxxxxxx (11 digits) for Direct Pay.
-  static String? _normalizeMsisdn(String? phone) {
+  /// Normalize Pakistan mobile to 03xxxxxxxxx (11 digits) for Direct Pay. Public for prefilling UI.
+  static String? normalizeMsisdn(String? phone) {
     if (phone == null || phone.isEmpty) return null;
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     if (digits.length == 10 && digits.startsWith('3')) return '0$digits';
@@ -1076,6 +1079,13 @@ class HomeController extends GetxController implements GetxService {
     if (digits.length == 11 && digits.startsWith('03')) return digits;
     if (digits.length == 11 && digits.startsWith('0')) return digits;
     return null;
+  }
+
+  /// Validate Pakistan mobile for Direct Pay: 03 + 9 digits (11 total).
+  static bool isValidMsisdn(String? value) {
+    if (value == null || value.isEmpty) return false;
+    final normalized = normalizeMsisdn(value);
+    return normalized != null && normalized.length == 11 && RegExp(r'^03\d{9}$').hasMatch(normalized);
   }
 
   addWorkoutAndTrainerApp() {

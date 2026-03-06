@@ -39,11 +39,13 @@ Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
 
   WidgetsFlutterBinding.ensureInitialized();
-
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
+  );
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  // SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp();
@@ -125,6 +127,7 @@ class _MyAppState extends State<MyApp> {
     return ScreenUtilInit(
       designSize: const Size(414, 896),
       builder: (context, Widget) => GetMaterialApp(
+
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: Styles.appTheme,

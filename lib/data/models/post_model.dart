@@ -96,14 +96,17 @@ class Post {
 
   factory Post.fromJson(Map<String, dynamic> json) {
     print('Post.fromJson');
+    // Use only Post-level createdAt (never User.createdAt) for grouping/display
+    final postCreatedAt = json['createdAt'] ?? json['created_at'];
+    final postUpdatedAt = json['updatedAt'] ?? json['updated_at'];
     return Post(
       id: json['id'],
       imageUrl: json['imageUrl'],
       text: json['text'] ?? '',
       isPost: json['isPost'] ?? false,
       approved: json['approved'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      createdAt: postCreatedAt != null ? DateTime.parse(postCreatedAt.toString()) : DateTime.now(),
+      updatedAt: postUpdatedAt != null ? DateTime.parse(postUpdatedAt.toString()) : DateTime.now(),
       userId: json['userId'].toString(),
       likes: json['likes'] == null ? [] : (json['likes'] as List).map((e) => Like.fromJson(e)).toList(),
       user: json['User'] == null ? null : ClientUser.fromJson(json['User']),

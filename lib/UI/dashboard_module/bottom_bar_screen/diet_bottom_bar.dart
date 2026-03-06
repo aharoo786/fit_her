@@ -1,6 +1,7 @@
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/dietry_module/widgets/calory_widget.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
+import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/services/youtube_tutorial_service.dart';
 import 'package:fitness_zone_2/widgets/border_titlle_widget.dart';
@@ -157,7 +158,7 @@ class DietBottomBarScreen extends StatelessWidget {
                                     if (dietController.getDietPlanDetails!.pdfFile.value.isNotEmpty) {
                                       return Column(
                                         children: [
-                                          const CaloryWidget(),
+                                          // const CaloryWidget(),
                                           const SizedBox(
                                             height: 10,
                                           ),
@@ -173,6 +174,12 @@ class DietBottomBarScreen extends StatelessWidget {
                                             ),
                                             child: SfPdfViewer.network(
                                               dietController.getDietPlanDetails!.pdfFile.value,
+                                              onDocumentLoaded: (details) {
+                                                // Track diet plan delivered when user views PDF
+                                                AnalyticsHelper.trackDietPlanDelivered('day',
+                                                    userPlanId: userPlanId,
+                                                    dietitianId: dietController.getDietPlanDetails?.dietDetails.id);
+                                              },
                                               onDocumentLoadFailed: (details) {},
                                             ),
                                           ),
@@ -248,9 +255,9 @@ class DietBottomBarScreen extends StatelessWidget {
                                                 ],
                                               ),
                                             ),
-                                          if (!(dietController.getDietPlanDetails?.isBooked ?? false))
-                                            const BorderTitleWidget(text: "Daily Diet Plan"),
-                                          const CaloryWidget(),
+                                         //  if (!(dietController.getDietPlanDetails?.isBooked ?? false))
+                                         //    const BorderTitleWidget(text: "Daily Diet Plan"),
+                                         // // const CaloryWidget(),
                                           if (!(dietController.getDietPlanDetails?.isBooked ?? false))
                                             ListView.separated(
                                                 shrinkWrap: true,

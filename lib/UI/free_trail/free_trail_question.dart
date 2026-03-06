@@ -81,9 +81,9 @@ class _FreeTrialPersonalizationScreenState
     // Preallocate space for each question
     answers = List.filled(pagesData.length, null);
 
-    // Track free trial started
-    AnalyticsHelper.trackFreeTrialEvent('started', step: 'personalization');
+    // Track free trial personalization screen view
     AnalyticsHelper.trackScreenView('free_trial_personalization_screen');
+    AnalyticsHelper.trackFreeTrialEvent('started', step: 'personalization');
   }
 
   Future<bool> saveCurrentAnswer() async {
@@ -165,6 +165,8 @@ class _FreeTrialPersonalizationScreenState
         // Track free trial personalization completed
         await AnalyticsHelper.trackFreeTrialEvent('questionnaire_completed',
             step: 'personalization');
+        // Track free trial completed (key event)
+        await AnalyticsHelper.trackFreeTrial('completed', step: 'personalization');
         Get.find<WorkOutController>().updateFreeTrialData(
             answers.whereType<Map<String, dynamic>>().toList());
       }
