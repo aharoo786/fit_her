@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ Splash Screen Theme -->
+    <style name="Theme.SplashScreen" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+</resources>
