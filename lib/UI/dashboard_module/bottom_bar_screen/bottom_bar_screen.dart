@@ -18,6 +18,11 @@ import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
 import '../../../widgets/review_bottom_sheet.dart';
+import 'package:fitness_zone_2/data/Repos/checkin_repo/checkin_repository.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/data/api_provider/api_provider.dart';
+import 'package:fitness_zone_2/data/services/notification_scheduler.dart';
+import 'package:fitness_zone_2/UI/auth_module/whats_new_screen.dart';
 import '../../chat/chat_home_screen.dart';
 import '../home_screen/home_screen.dart';
 import '../profile_screen/profile_screen.dart';
@@ -38,11 +43,12 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
   @override
   void initState() {
     super.initState();
-    if (authController.loginAsA.value == Constants.user) {
-      Get.find<HomeController>().getPlansUser();
-    }
-
-    authController.showDot.value = authController.sharedPreferences.getBool("showDot") ?? false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (authController.loginAsA.value == Constants.user) {
+        Get.find<HomeController>().getPlansUser();
+      }
+      authController.showDot.value = authController.sharedPreferences.getBool("showDot") ?? false;
+    });
     _widgetOption = authController.loginAsA.value == Constants.admin
         ? [
             HomeScreen(),
@@ -96,6 +102,79 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         Get.bottomSheet(isScrollControlled: true, FeedbackBottomSheet("0", "0"));
       });
     }
+
+    // Cycle data migration check — only for regular users
+    if (authController.loginAsA.value == Constants.user) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkCycleMigration();
+        _rescheduleNotifications();
+      });
+    }
+  }
+
+  void _checkCycleMigration() async {
+    final repo = Get.find<CycleDataRepository>();
+    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final response = await repo.getCycleData(accessToken: token);
+    if (response.body != null && response.body['status'] == '1') {
+      if (response.body['data'] == null) {
+        Get.to(() => const WhatsNewScreen());
+      } else {
+        authController.sharedPreferences.setInt(
+          'cycle_data_provided',
+          response.body['data']['dataProvided'] ?? 0,
+        );
+      }
+    }
+  }
+
+  void _rescheduleNotifications() async {
+    debugPrint('🔔 _rescheduleNotifications called');
+    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final apiProvider = Get.find<ApiProvider>();
+
+    // 1. Fetch notification preferences
+    final prefsResponse = await apiProvider.getData(
+      '/users/notification_preferences',
+      headers: {'accessToken': token},
+    );
+
+    Map<String, dynamic> prefs = {
+      'morningNudge': 1,
+      'weeklyCheckin': 1,
+    };
+    if (prefsResponse.body != null &&
+        prefsResponse.body['status'] == '1' &&
+        prefsResponse.body['data'] != null) {
+      prefs = Map<String, dynamic>.from(prefsResponse.body['data']);
+    }
+
+    // 2. Check if weekly check-in already done this week
+    bool weeklyDone = false;
+    final checkinRepo = Get.find<CheckinRepository>();
+    final weeklyResponse = await checkinRepo.getWeeklyCheckinsRecent(accessToken: token);
+    if (weeklyResponse.body != null &&
+        weeklyResponse.body['status'] == '1' &&
+        weeklyResponse.body['data'] is List) {
+      final checkins = weeklyResponse.body['data'] as List;
+      if (checkins.isNotEmpty) {
+        final latest = checkins.first;
+        final weekDate = latest['weekDate'] as String?;
+        if (weekDate != null) {
+          final now = DateTime.now();
+          final monday = now.subtract(Duration(days: now.weekday - 1));
+          final mondayStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+          weeklyDone = weekDate == mondayStr;
+        }
+      }
+    }
+
+    // 3. Reschedule
+    await NotificationScheduler.rescheduleAll(
+      prefs: prefs,
+      weeklyCheckinDone: weeklyDone,
+    );
+    debugPrint('🔔 rescheduleAll completed');
   }
 
   // int _currentIndex = wi;

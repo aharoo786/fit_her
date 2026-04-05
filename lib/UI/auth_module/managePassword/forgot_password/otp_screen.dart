@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/managePassword/forgot_password/resetPassword.dart';
+import 'package:fitness_zone_2/theme/app_colors.dart';
+import 'package:fitness_zone_2/theme/app_typography.dart';
+import 'package:fitness_zone_2/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -28,14 +32,33 @@ class _EmailVerificationState extends State<OtpScreen> {
   // final CountDownController timerController = CountDownController();
   FocusNode focusNode = FocusNode();
   TextEditingController otpController = TextEditingController();
+  int _remainingSeconds = 600;
+  Timer? _timer;
+  bool get _isExpired => _remainingSeconds <= 0;
+
+  String get _timerText {
+    final minutes = _remainingSeconds ~/ 60;
+    final seconds = _remainingSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
     super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -199,54 +222,32 @@ class _EmailVerificationState extends State<OtpScreen> {
                 SizedBox(
                   height: Dimens.size20.h,
                 ),
-                // Visibility(
-                //   visible: true,
-                //   child: GestureDetector(
-                //     onTap: () {
-                //       Get.find<AuthController>().resendOtp(email: widget.email);
-                //     },
-                //     child: Text(
-                //       "Resend OTP".tr,
-                //       style: textTheme.headline3!.copyWith(
-                //           color: MyColors.textColor,
-                //           fontWeight: FontWeight.w500),
-                //     ),
-                //   ),
-                // ),
-                // Container(
-                //   child: Visibility(
-                //     visible: false,
-                //     child: CircularCountDownTimer(
-                //       duration: 60,
-                //       initialDuration: 0,
-                //       controller: timerController,
-                //       width: 40.w,
-                //       height: 40.h,
-                //       ringColor: MyColors.primaryColor,
-                //       fillColor: MyColors.textColor2,
-                //       backgroundColor: MyColors.grey,
-                //       strokeWidth: 5.0,
-                //       strokeCap: StrokeCap.round,
-                //       textStyle: TextStyle(
-                //           fontSize: 12.sp,
-                //           color: MyColors.textColor2,
-                //           fontWeight: FontWeight.bold),
-                //       textFormat: CountdownTextFormat.S,
-                //       isReverse: true,
-                //       isReverseAnimation: true,
-                //       isTimerTextShown: true,
-                //       autoStart: true,
-                //       onComplete: () {},
-                //     ),
-                //   ),
-                // ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Text(
+                    _isExpired
+                        ? 'OTP expired. Please request a new one.'
+                        : 'OTP expires in $_timerText',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: _isExpired || _remainingSeconds < 120
+                          ? AppColors.error
+                          : AppColors.textTertiary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 SizedBox(
                   height: Dimens.size50.h,
                 ),
                 Center(
                   child: CustomButton(
                       text: 'Next'.tr,
+                      color: _isExpired ? AppColors.textHint : null,
                       onPressed: () {
+                        if (_isExpired) {
+                          CustomToast.failToast(msg: "OTP has expired. Please request a new one.");
+                          return;
+                        }
                         if (otpController.text.length < 4) {
                           CustomToast.failToast(msg: "Invalid otp");
                         } else {

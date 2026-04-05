@@ -1,9 +1,14 @@
+import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/data/controllers/zoom_controller.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/data/services/cycle_engine.dart';
+import 'package:fitness_zone_2/data/services/recommendation_service.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
+import 'package:fitness_zone_2/widgets/recommended_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -19,15 +24,51 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation_controller.dart';
 
-class WorkOutBottomScreen extends StatelessWidget {
+class WorkOutBottomScreen extends StatefulWidget {
   WorkOutBottomScreen({super.key, required this.planId});
   final String planId;
 
-  HomeController homeController = Get.find();
+  @override
+  State<WorkOutBottomScreen> createState() => _WorkOutBottomScreenState();
+}
 
+class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
+  HomeController homeController = Get.find();
   WorkOutController workOutController = Get.find();
   MotivationController motivationController = Get.find();
   bool showBottomSheet = false;
+
+  String? _currentPhase;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCyclePhase();
+  }
+
+  Future<void> _loadCyclePhase() async {
+    final authController = Get.find<AuthController>();
+    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final cycleRepo = Get.find<CycleDataRepository>();
+    final response = await cycleRepo.getCycleData(accessToken: token);
+
+    if (response.body != null &&
+        response.body['status'] == '1' &&
+        response.body['data'] != null &&
+        response.body['data']['dataProvided'] == 1 &&
+        response.body['data']['lastPeriodDate'] != null) {
+      final data = response.body['data'];
+      final cycleInfo = CycleEngine.calculate(
+        lastPeriodDate: DateTime.parse(data['lastPeriodDate']),
+        cycleLength: data['averageCycleLength'] ?? 28,
+      );
+      if (cycleInfo != null && mounted) {
+        setState(() {
+          _currentPhase = cycleInfo.phase;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +84,7 @@ class WorkOutBottomScreen extends StatelessWidget {
               ? const CircularProgress()
               : RefreshIndicator(
                   onRefresh: () {
-                    workOutController.getDietPlanDetailsFunc(planId);
+                    workOutController.getDietPlanDetailsFunc(widget.planId);
                     return Future.value();
                   },
                   child: ListView(
@@ -227,7 +268,7 @@ class WorkOutBottomScreen extends StatelessWidget {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10),
-                                itemCount: time.slots.length, // Number of stars (you can make this dynamic)
+                                itemCount: time.slots.length,
                                 itemBuilder: (context, index) {
                                   var slot = time.slots[index];
                                   return GestureDetector(
@@ -246,46 +287,53 @@ class WorkOutBottomScreen extends StatelessWidget {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                slot.type ?? "N/A",
-                                                style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
-                                              ),
-                                              const SizedBox(
-                                                height: 3,
-                                              ),
-                                              Text(
-                                                "${slot.start} - ${slot.end}",
-                                                style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
-                                              ),
-                                              const Spacer(),
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.end,
-                                                children: [
-                                                  const CircleAvatar(
-                                                    radius: 12,
-                                                    backgroundColor: MyColors.buttonColor,
-
-                                                    backgroundImage: AssetImage(MyImgs.logo), // Replace with your image asset
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                if (_currentPhase != null &&
+                                                    RecommendationService.isRecommended(slot.type, _currentPhase))
+                                                  Padding(
+                                                    padding: EdgeInsets.only(bottom: 2.h),
+                                                    child: const RecommendedBadge(),
                                                   ),
-                                                  SizedBox(
-                                                    width: 10.w,
-                                                  ),
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        "${slot.trainer?.firstName} ${slot.trainer?.lastName}",
-                                                        style: textTheme.bodySmall!
-                                                            .copyWith(fontWeight: FontWeight.w400, color: const Color(0xff7F7F7F)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
+                                                Text(
+                                                  slot.type ?? "N/A",
+                                                  style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                                ),
+                                                const SizedBox(
+                                                  height: 3,
+                                                ),
+                                                Text(
+                                                  "${slot.start} - ${slot.end}",
+                                                  style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                                ),
+                                                SizedBox(height: 4.h),
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    const CircleAvatar(
+                                                      radius: 12,
+                                                      backgroundColor: MyColors.buttonColor,
+                                                      backgroundImage: AssetImage(MyImgs.logo),
+                                                    ),
+                                                    SizedBox(
+                                                      width: 10.w,
+                                                    ),
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          "${slot.trainer?.firstName} ${slot.trainer?.lastName}",
+                                                          style: textTheme.bodySmall!
+                                                              .copyWith(fontWeight: FontWeight.w400, color: const Color(0xff7F7F7F)),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                           Text(
                                             slot.status ?? "",

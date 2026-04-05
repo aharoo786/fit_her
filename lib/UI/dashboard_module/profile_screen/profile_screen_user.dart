@@ -9,6 +9,10 @@ import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:fitness_zone_2/widgets/custom_textfield.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/data/services/cycle_engine.dart';
+import 'package:fitness_zone_2/values/constants.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileScreenUser extends StatelessWidget {
   ProfileScreenUser({super.key});
@@ -67,6 +71,105 @@ class ProfileScreenUser extends StatelessWidget {
         authController.deleteUser();
       },
       onCancel: () {},
+    );
+  }
+
+  Future<Map<String, dynamic>?> _fetchCyclePhase() async {
+    final repo = Get.find<CycleDataRepository>();
+    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final response = await repo.getCycleData(accessToken: token);
+    if (response.body != null &&
+        response.body['status'] == '1' &&
+        response.body['data'] != null &&
+        response.body['data']['dataProvided'] == 1 &&
+        response.body['data']['lastPeriodDate'] != null) {
+      final data = response.body['data'];
+      final cycleInfo = CycleEngine.calculate(
+        lastPeriodDate: DateTime.parse(data['lastPeriodDate']),
+        cycleLength: data['averageCycleLength'] ?? 28,
+      );
+      if (cycleInfo != null) {
+        return {'phase': cycleInfo.phase, 'day': cycleInfo.cycleDay};
+      }
+    }
+    return null;
+  }
+
+  static const Map<String, Map<String, String>> _phaseDisplay = {
+    'menstrual': {
+      'emoji': '\u{1F30A}',
+      'title': 'Menstrual Phase',
+      'subtitle': 'Rest and recover. Your body is renewing itself.',
+    },
+    'follicular': {
+      'emoji': '\u{1F331}',
+      'title': 'Follicular Phase',
+      'subtitle': 'Energy is rising. Great time to be active.',
+    },
+    'ovulatory': {
+      'emoji': '\u{2600}\u{FE0F}',
+      'title': 'Ovulatory Phase',
+      'subtitle': 'You are at your peak. Go all out today.',
+    },
+    'luteal': {
+      'emoji': '\u{1F319}',
+      'title': 'Luteal Phase',
+      'subtitle': 'Wind down gently. Listen to your body.',
+    },
+  };
+
+  Widget _buildCyclePhaseCard() {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _fetchCyclePhase(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        final phase = snapshot.data!['phase'] as String;
+        final day = snapshot.data!['day'] as int;
+        final display = _phaseDisplay[phase];
+        if (display == null) return const SizedBox.shrink();
+        final textTheme = Theme.of(context).textTheme;
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            color: MyColors.buttonColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: const Border(
+              left: BorderSide(color: MyColors.buttonColor, width: 3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Text(display['emoji']!, style: TextStyle(fontSize: 28.sp)),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${display['title']} \u2022 Day $day',
+                      style: textTheme.bodyMedium!.copyWith(
+                        color: MyColors.textColor3,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      display['subtitle']!,
+                      style: textTheme.bodySmall!.copyWith(
+                        color: MyColors.textColorLow,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -141,6 +244,8 @@ class ProfileScreenUser extends StatelessWidget {
                             controller: authController.editBmi,
                             keyboardType: TextInputType.emailAddress,
                           ),
+                          const SizedBox(height: 20),
+                          _buildCyclePhaseCard(),
                           const SizedBox(height: 40),
                           CustomButton(
                             text: "Update Details",

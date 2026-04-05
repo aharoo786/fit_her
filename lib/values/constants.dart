@@ -1,12 +1,13 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 
 class Constants {
   static const String robotoFamily = "Roboto";
   static const String RobotoFamily = "Roboto";
   static const String isGuest = "isGuest";
-  static const appID = '4babf557757745deb4176da00b193310';
-  static const appCertificate = '94b22af90adb429e8a88e32f7e475e78';
-  static const chatAppKey = '411039298#1214303';
+  static String appID = dotenv.env['AGORA_APP_ID'] ?? '';
+  static String appCertificate = dotenv.env['AGORA_APP_CERTIFICATE'] ?? '';
+  static String chatAppKey = dotenv.env['AGORA_CHAT_APP_KEY'] ?? '';
   static const String chatRoom = "chatRoom";
   static const String allMessages = "allMessages";
   static const String reviewDate = "reviewDate";
@@ -46,7 +47,8 @@ class Constants {
   ///base url
   // static String baseUrl = "https://test.thefither.com";
   // static String baseUrl = "http://192.168.1.31:9005";
-  static String baseUrl = "https://backend.thefither.com";
+//   static String baseUrl = "https://backend.thefither.com";
+static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =
@@ -58,8 +60,7 @@ class Constants {
   static String members = "members";
   static String deviceToken = "deviceToken";
   static String announcementNotification = "announcementNotification";
-  static const serverKey =
-      "AAAAY1XRUEo:APA91bHjQM7SlZ0Yj9rSCJzJoLfatUhOJkye1HfBQsJkw8c8p92-L44E5t7jAc0FJy-sFzcYprNQWmutMifd2DVUhZQF08qRl1IePncuPLWoh-0V1aTEbQgEm74BHlHCkucRDHsWGNJu";
+  static String serverKey = dotenv.env['FCM_SERVER_KEY'] ?? '';
 
   /// Apis end points
 
@@ -137,7 +138,7 @@ class Constants {
   static String updateUserDietOfWeek = "/admin/addDiet";
   static String addPlanImage = "/admin/addImage";
   static String addProgressImages = "/admin/addProgressImages";
-  static String resendOtpPath = "/users/login";
+  static String resendOtpPath = "/users/resend_otp";
   static String home = "/users/home";
   static String getDietitianUsers = "/users/dietition_get_all_users";
   static String getUserPlan = "/users/get_user_plans";
@@ -145,7 +146,7 @@ class Constants {
   /// Direct Pay (Payin PWA) - backend returns payment URL; client_secret stays on server
   static String directPayUrl = "/pay/directpay_payment";
   static String logout = "/users/logout";
-  static String deleteUser = "/users/delete_user";
+  static String deleteUser = "/admin/delete_user";
   static String updateSlotTrainer = "/admin/update_slot_trainer";
   static String addFreeTrailUser = "/admin/createFreeTrialUser";
 
@@ -167,6 +168,18 @@ class Constants {
 
   ///Duration
   static String timeDuration = "/duration/create";
+
+  /// CYCLE DATA
+  static const String getCycleData = "/users/cycle_data";
+  static const String saveCycleData = "/users/cycle_data";
+
+  /// CHECK-INS
+  static const String saveDailyCheckin = "/users/daily_checkin";
+  static const String getDailyCheckin = "/users/daily_checkin";
+  static const String getDailyCheckinsWeek = "/users/daily_checkins/week";
+  static const String getDailyCheckinsRecent = "/users/daily_checkins/recent";
+  static const String saveWeeklyCheckin = "/users/weekly_checkin";
+  static const String getWeeklyCheckinsRecent = "/users/weekly_checkins/recent";
 
   /// POSTS MODULE
   static const String getAllPosts = "/posts/";

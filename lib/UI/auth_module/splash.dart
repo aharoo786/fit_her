@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/UI/auth_module/welcom_screen.dart';
+import 'package:fitness_zone_2/data/services/notification_scheduler.dart';
 import 'package:fitness_zone_2/helper/notification_services.dart';
 import 'package:fitness_zone_2/values/values.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with WidgetsBindingObserver
     super.initState();
     NotificationServices().requestNotificationPermission();
     NotificationServices().firebaseInit(Get.context!);
+    NotificationScheduler.initialize();
     WidgetsFlutterBinding.ensureInitialized();
 
     WidgetsBinding.instance.addObserver(this);

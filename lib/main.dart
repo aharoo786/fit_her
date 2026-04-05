@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:fitness_zone_2/helper/notification_services.dart';
 import 'package:fitness_zone_2/values/constants.dart';
-import 'package:fitness_zone_2/values/styles.dart';
+import 'package:fitness_zone_2/theme/app_theme.dart';
 import 'package:fitness_zone_2/widgets/zoom_meeting_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +24,7 @@ import 'firebase_options.dart';
 import 'get_food_kcal_details.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -46,6 +47,8 @@ Future<void> main() async {
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  await dotenv.load(fileName: ".env");
 
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp();
@@ -130,7 +133,7 @@ class _MyAppState extends State<MyApp> {
 
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
-        theme: Styles.appTheme,
+        theme: AppTheme.light,
         getPages: [
           GetPage<void>(page: () => SplashScreen(), name: '/'),
         ],
@@ -140,3 +143,4 @@ class _MyAppState extends State<MyApp> {
     // });
   }
 }
+

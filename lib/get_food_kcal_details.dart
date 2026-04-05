@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
@@ -39,7 +40,7 @@ class _SpoonacularFoodAnalyzerState extends State<SpoonacularFoodAnalyzer> {
 
   Future<void> analyzeImageFile(File imageFile) async {
     final uri = Uri.parse(
-        'https://api.spoonacular.com/food/images/analyze?apiKey=a2291fd5db7543429f91495c0654f28f'
+        'https://api.spoonacular.com/food/images/analyze?apiKey=${dotenv.env['SPOONACULAR_API_KEY'] ?? ''}'
     );
     final request = http.MultipartRequest('POST', uri)
       ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
@@ -64,7 +65,7 @@ class _SpoonacularFoodAnalyzerState extends State<SpoonacularFoodAnalyzer> {
     final uri = Uri.https(
       'api.spoonacular.com',
       '/food/images/analyze',
-      {'apiKey': 'a2291fd5db7543429f91495c0654f28f', 'imageUrl': imageUrl},
+      {'apiKey': dotenv.env['SPOONACULAR_API_KEY'] ?? '', 'imageUrl': imageUrl},
     );
 
     try {

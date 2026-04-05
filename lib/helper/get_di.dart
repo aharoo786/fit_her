@@ -1,5 +1,7 @@
 import 'package:fitness_zone_2/data/Repos/auth_repo/auth_repo.dart';
 import 'package:fitness_zone_2/data/Repos/home_repo/home_repo.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/data/Repos/checkin_repo/checkin_repository.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
 import 'package:fitness_zone_2/data/controllers/plan_controller/plan_controller.dart';
@@ -30,6 +32,8 @@ Future init() async {
   ///Repos
   Get.lazyPut(() => AuthRepo(apiProvider: Get.find()));
   Get.lazyPut(() => HomeRepo(apiProvider: Get.find()));
+  Get.lazyPut(() => CycleDataRepository(apiProvider: Get.find()));
+  Get.lazyPut(() => CheckinRepository(apiProvider: Get.find()));
 
   ///Services
   Get.lazyPut(() => YouTubeTutorialService());

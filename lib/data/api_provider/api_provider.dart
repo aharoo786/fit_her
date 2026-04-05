@@ -11,9 +11,13 @@ class ApiProvider extends GetxService {
   Future<Response> postData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
     debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
 
+    final defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...?headers,
+    };
     var response = await http.post(
       Uri.parse(baseUrl + url),
-      headers: {"Content-Type": "application/json"},
+      headers: defaultHeaders,
       body: jsonEncode(body),
     );
     return handleData(url, response);

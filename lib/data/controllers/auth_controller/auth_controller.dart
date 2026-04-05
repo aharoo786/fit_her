@@ -40,6 +40,7 @@ class AuthController extends GetxController implements GetxService {
   ///Generating unique id
   var uuid = const Uuid();
   var showDot = false.obs;
+  var isLoggingIn = false.obs;
 
   ///TextEditing Controller for Adding User
   TextEditingController firstNameController = TextEditingController();
@@ -160,6 +161,7 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
+        isLoggingIn.value = true;
         Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         if (userType != null) {
           loginAsA.value = userType;
@@ -173,6 +175,7 @@ class AuthController extends GetxController implements GetxService {
         )
             .then((response) async {
           Get.back();
+          isLoggingIn.value = false;
           print('AuthController.login ${response}}');
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
@@ -212,6 +215,7 @@ class AuthController extends GetxController implements GetxService {
               }
             }
           } else {
+            isLoggingIn.value = false;
             CustomToast.failToast(msg: response.body["message"]);
           }
         });

@@ -213,9 +213,11 @@ class _LoginState extends State<Login> {
                         SizedBox(
                           height: 20.h,
                         ),
-                        ElevatedButton(
-                            onPressed: () async {
-                              await AnalyticsHelper.trackButtonClick('continue_button', screenName: 'login_screen');
+                        Obx(() => ElevatedButton(
+                            onPressed: authController.isLoggingIn.value
+                                ? null
+                                : () async {
+                                    await AnalyticsHelper.trackButtonClick('continue_button', screenName: 'login_screen');
 
                               if (authController.loginUserPhone.text.isEmpty || authController.loginUserPassword.text.isEmpty) {
                                 CustomToast.failToast(msg: "Please provide all information");
@@ -237,14 +239,24 @@ class _LoginState extends State<Login> {
                               fixedSize: const Size(50, 50),
                               // Foreground (icon) color
                               backgroundColor: MyColors.buttonColor,
+                              disabledBackgroundColor: MyColors.buttonColor.withOpacity(0.5),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20), // Rounded corners
+                                borderRadius: BorderRadius.circular(20),
                               ),
                             ),
-                            child: const Icon(
-                              Icons.arrow_forward,
-                              color: Colors.white,
-                            )),
+                            child: authController.isLoggingIn.value
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.white,
+                                  ))),
 
                         SizedBox(
                           height: 20.h,

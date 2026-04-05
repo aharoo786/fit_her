@@ -17,20 +17,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   final List<Map<String, String>> walkthroughData = [
     {
-      "title": "Train Anytime,\nAnywhere!",
-      "subtitle": "Join live workout sessions tailored to your fitness goals.",
+      "title": "Know Your Body",
+      "subtitle": "Track your cycle, understand your energy, and discover your body's rhythm - every single day. Your insights start here.",
       "icon": MyImgs.welcomeImage1, // icon for demo
     },
     {
-      "title": "Personalized Diet\nJust for You",
+      "title": "Move With Your Rhythm",
       "subtitle":
-          "Get meal plans customized to your health needs and preferences.",
+          "Live group sessions for every energy level. We suggest the right workout for your body today - you pick the time that works.",
       "icon": MyImgs.welcomeImage2 // icon for demo
     },
     {
-      "title": "Mental Wellness\nSupport",
+      "title": "Eat What Your\nBody Needs",
       "subtitle":
-          "Talk to certified psychologists for emotional and mental health guidance.",
+          "A diet plan built around your cycle - through real consultation, backed by what your body is actually telling you.",
       "icon":MyImgs.welcomeImage3// icon for demo
     },
   ];
