@@ -17,7 +17,6 @@ class ApiProvider extends GetxService {
     };
     var response = await http.post(
       Uri.parse(baseUrl + url),
-      headers: {"Content-Type": "application/json"},
       headers: defaultHeaders,
       body: jsonEncode(body),
     );
