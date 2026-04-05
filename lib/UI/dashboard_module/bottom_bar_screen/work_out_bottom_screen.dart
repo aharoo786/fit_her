@@ -276,6 +276,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
                                       HelpingWidgets.showWorkoutBottomSheet(context: context, slot: slot, homeController: homeController);
                                     },
                                     child: Container(
+                                      height: 90,
                                       width: double.maxFinite,
                                       padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 6.h),
                                       decoration: BoxDecoration(
@@ -338,6 +339,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
                                             slot.status ?? "",
                                             style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
                                           ),
+                                          // SvgPicture.asset(MyImgs.progressbar)
                                         ],
                                       ),
                                     ),

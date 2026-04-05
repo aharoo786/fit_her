@@ -29,6 +29,7 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _EmailVerificationState extends State<OtpScreen> {
+  // final CountDownController timerController = CountDownController();
   FocusNode focusNode = FocusNode();
   TextEditingController otpController = TextEditingController();
   int _remainingSeconds = 600;

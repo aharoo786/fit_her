@@ -219,24 +219,25 @@ class _LoginState extends State<Login> {
                                 : () async {
                                     await AnalyticsHelper.trackButtonClick('continue_button', screenName: 'login_screen');
 
-                                    if (authController.loginUserPhone.text.isEmpty || authController.loginUserPassword.text.isEmpty) {
-                                      CustomToast.failToast(msg: "Please provide all information");
-                                      // Track error
-                                      await AnalyticsHelper.trackError('validation_error',
-                                          errorMessage: 'Missing required fields', screenName: 'login_screen');
-                                    } else if (!authController.loginUserPhone.text.removeAllWhitespace.isEmail) {
-                                      CustomToast.failToast(msg: "Please provide valid email");
-                                      // Track error
-                                      await AnalyticsHelper.trackError('validation_error',
-                                          errorMessage: 'Invalid email format', screenName: 'login_screen');
-                                    } else {
-                                      // Track login attempt
-                                      await AnalyticsHelper.trackLogin('email');
-                                      authController.login();
-                                    }
-                                  },
+                              if (authController.loginUserPhone.text.isEmpty || authController.loginUserPassword.text.isEmpty) {
+                                CustomToast.failToast(msg: "Please provide all information");
+                                // Track error
+                                await AnalyticsHelper.trackError('validation_error',
+                                    errorMessage: 'Missing required fields', screenName: 'login_screen');
+                              } else if (!authController.loginUserPhone.text.removeAllWhitespace.isEmail) {
+                                CustomToast.failToast(msg: "Please provide valid email");
+                                // Track error
+                                await AnalyticsHelper.trackError('validation_error',
+                                    errorMessage: 'Invalid email format', screenName: 'login_screen');
+                              } else {
+                                // Track login attempt
+                                await AnalyticsHelper.trackLogin('email');
+                                authController.login();
+                              }
+                            },
                             style: ElevatedButton.styleFrom(
                               fixedSize: const Size(50, 50),
+                              // Foreground (icon) color
                               backgroundColor: MyColors.buttonColor,
                               disabledBackgroundColor: MyColors.buttonColor.withOpacity(0.5),
                               shape: RoundedRectangleBorder(
