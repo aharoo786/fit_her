@@ -23,6 +23,7 @@ class Constants {
   static String fullName = "fullName";
   static String packageState = "packageState";
   static String userId = "userId";
+  static String trialToken = "trialToken";
 
   static String email = "email";
   static String password = "p";
@@ -147,6 +148,14 @@ class Constants {
   static String deleteUser = "/users/delete_user";
   static String updateSlotTrainer = "/admin/update_slot_trainer";
   static String addFreeTrailUser = "/admin/createFreeTrialUser";
+
+  /// 3-Day Trial MVP
+  static String trialValidateToken = "/trial/validate-token";
+  static String trialStart = "/trial/start";
+  static String trialMe = "/trial/me";
+  static String trialBookDay = "/trial/book-day";
+  static String trialAttendance = "/trial/attendance";
+  static String trialConvert = "/trial/convert";
 
   /// Motivation module
   static String getMotivationStats = "/attendance/motivation";

@@ -324,6 +324,62 @@ class HomeRepo extends GetxService {
     });
   }
 
+  Future<Response> validateTrialToken({required String token}) async {
+    return await apiProvider.postData(
+      Constants.trialValidateToken,
+      body: {"token": token},
+    );
+  }
+
+  Future<Response> startTrial({required String accessToken, String? token}) async {
+    return await apiProvider.postData(
+      Constants.trialStart,
+      body: {"token": token ?? ""},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  Future<Response> getMyTrial({required String accessToken}) async {
+    return await apiProvider.getData(
+      Constants.trialMe,
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  Future<Response> bookTrialDay({
+    required String accessToken,
+    required int day,
+    required int slotId,
+  }) async {
+    return await apiProvider.postData(
+      Constants.trialBookDay,
+      body: {"day": day, "slotId": slotId},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  Future<Response> markTrialAttendance({
+    required String accessToken,
+    required int day,
+    int attendedMinutes = 0,
+  }) async {
+    return await apiProvider.postData(
+      Constants.trialAttendance,
+      body: {"day": day, "attendedMinutes": attendedMinutes},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  Future<Response> markTrialConverted({
+    required String accessToken,
+  }) async {
+    return await apiProvider.postData(
+      Constants.trialConvert,
+      body: {},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
   Future<Response> updateUserProfile({required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.setFormData(url: Constants.updateUserProfile, formData: map, headers: {"accessToken": accessToken});
   }

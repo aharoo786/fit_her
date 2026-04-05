@@ -5,6 +5,7 @@ import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_users/get_all_dietitian_users.dart';
@@ -186,6 +187,7 @@ class AuthController extends GetxController implements GetxService {
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, password ?? loginUserPassword.text);
+                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.trainer) {
                   //  Get.find<HomeController>().getTrainerHomeFunc();
@@ -204,6 +206,9 @@ class AuthController extends GetxController implements GetxService {
                 loginUserPhone.clear();
                 loginUserPassword.clear();
                 updateUserDetails();
+                if (trialStarted && loginAsA.value == Constants.user) {
+                  Get.to(() => const TrialJourneyScreen());
+                }
               }
             }
           } else {
@@ -242,6 +247,7 @@ class AuthController extends GetxController implements GetxService {
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, signedFrom);
+                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.user) {
                   if (!logInUser!.status) {
@@ -254,6 +260,9 @@ class AuthController extends GetxController implements GetxService {
                 loginUserPhone.clear();
                 loginUserPassword.clear();
                 updateUserDetails();
+                if (trialStarted && loginAsA.value == Constants.user) {
+                  Get.to(() => const TrialJourneyScreen());
+                }
               } else if (response.body["status"] == "2") {
                 print('AuthController.signInUsingGoogle}');
                 emailNameController.text = userEmail;
