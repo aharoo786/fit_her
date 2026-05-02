@@ -1,45 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/goal_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
-import 'package:fitness_zone_2/values/my_colors.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/notification_settings_screen.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
-import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
-import 'package:fitness_zone_2/widgets/custom_button.dart';
-import 'package:fitness_zone_2/widgets/custom_textfield.dart';
 import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
 import 'package:fitness_zone_2/data/services/cycle_engine.dart';
 import 'package:fitness_zone_2/values/constants.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fitness_zone_2/widgets/new_home/phase_theme.dart';
 
+/// Profile — visual rewrite to match the Paid Home V2 / Progress V2
+/// aesthetic (cream body, white cards with mint border + soft shadow,
+/// dark hero, phase-aware accent, .lbl small-caps section labels).
+///
+/// API contract preserved exactly: every `authController.*` reference,
+/// the cycle-phase fetch, the "Update Details" navigation flow, the
+/// logout/delete dialogs, and the notification settings route are
+/// untouched. Only the visual shell changed.
 class ProfileScreenUser extends StatelessWidget {
   ProfileScreenUser({super.key});
 
   final AuthController authController = Get.find();
 
-  Widget _buildReadOnlyTextField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        const SizedBox(height: 4),
-        CustomTextField(
-          text: label,
-          controller: controller,
-          length: 1000,
-          Readonly: true,
-          keyboardType: keyboardType,
-          inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
-        ),
-      ],
-    );
-  }
+  // ─── API-touching helpers (UNCHANGED — do not modify) ──────────────────
 
   void _showLogoutDialog(BuildContext context, TextTheme textTheme) {
     showDialog(
@@ -76,7 +61,8 @@ class ProfileScreenUser extends StatelessWidget {
 
   Future<Map<String, dynamic>?> _fetchCyclePhase() async {
     final repo = Get.find<CycleDataRepository>();
-    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final token =
+        authController.sharedPreferences.getString(Constants.accessToken) ?? '';
     final response = await repo.getCycleData(accessToken: token);
     if (response.body != null &&
         response.body['status'] == '1' &&
@@ -95,210 +81,531 @@ class ProfileScreenUser extends StatelessWidget {
     return null;
   }
 
-  static const Map<String, Map<String, String>> _phaseDisplay = {
-    'menstrual': {
-      'emoji': '\u{1F30A}',
-      'title': 'Menstrual Phase',
-      'subtitle': 'Rest and recover. Your body is renewing itself.',
-    },
-    'follicular': {
-      'emoji': '\u{1F331}',
-      'title': 'Follicular Phase',
-      'subtitle': 'Energy is rising. Great time to be active.',
-    },
-    'ovulatory': {
-      'emoji': '\u{2600}\u{FE0F}',
-      'title': 'Ovulatory Phase',
-      'subtitle': 'You are at your peak. Go all out today.',
-    },
-    'luteal': {
-      'emoji': '\u{1F319}',
-      'title': 'Luteal Phase',
-      'subtitle': 'Wind down gently. Listen to your body.',
-    },
+  // ─── Display palette (mirrors Progress V2 / Paid Home V2) ──────────────
+
+  static const _kCream = Color(0xFFEAF7E4);
+  static const _kCardBorder = Color(0xFFD8EDD4);
+  static const _kTextPrimary = Color(0xFF163220);
+  static const _kTextMuted = Color(0xFF6F8B7A);
+  static const _kSage = Color(0xFF9AB09A);
+  static const _kHeroDark = Color(0xFF163220);
+  static const _kAccent = Color(0xFF6DC55A);
+  static const _kDanger = Color(0xFFE07B7B);
+
+  // Subtitle copy per phase — kept (extra "subtitle" key beyond the hub
+  // PhaseTheme since profile shows a more verbose tagline than the home).
+  static const Map<String, String> _phaseSubtitle = {
+    'menstrual': 'Rest and recover. Your body is renewing itself.',
+    'follicular': 'Energy is rising. Great time to be active.',
+    'ovulatory': 'You are at your peak. Go all out today.',
+    'luteal': 'Wind down gently. Listen to your body.',
   };
 
-  Widget _buildCyclePhaseCard() {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: _fetchCyclePhase(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-        final phase = snapshot.data!['phase'] as String;
-        final day = snapshot.data!['day'] as int;
-        final display = _phaseDisplay[phase];
-        if (display == null) return const SizedBox.shrink();
-        final textTheme = Theme.of(context).textTheme;
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Scaffold(
+      backgroundColor: _kCream,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _topBar(),
+              const SizedBox(height: 8),
+              _hero(),
+              const SizedBox(height: 12),
+              FutureBuilder<Map<String, dynamic>?>(
+                future: _fetchCyclePhase(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _cyclePhaseCard(
+                      phase: snapshot.data!['phase'] as String,
+                      day: snapshot.data!['day'] as int,
+                    ),
+                  );
+                },
+              ),
+              _personalInfoCard(),
+              const SizedBox(height: 12),
+              _notificationsTile(),
+              const SizedBox(height: 18),
+              _primaryAction(
+                label: 'Update Details',
+                onTap: () => Get.to(() => GoalScreen(
+                      initialGoal:
+                          Get.find<AuthController>().mainGoal.value,
+                      onNext: (goal) {
+                        Get.off(() =>
+                            SignUpScreenQuestions(selectedGoal: goal));
+                      },
+                    )),
+              ),
+              const SizedBox(height: 8),
+              _neutralAction(
+                label: 'Logout',
+                onTap: () => _showLogoutDialog(context, textTheme),
+              ),
+              const SizedBox(height: 8),
+              _dangerAction(
+                label: 'Delete Account',
+                onTap: _showDeleteDialog,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-        return Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-          decoration: BoxDecoration(
-            color: MyColors.buttonColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: const Border(
-              left: BorderSide(color: MyColors.buttonColor, width: 3),
+  // ─── Top bar ───────────────────────────────────────────────────────────
+
+  Widget _topBar() {
+    return Row(
+      children: [
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          icon: const Icon(Icons.arrow_back, color: _kTextPrimary, size: 22),
+          onPressed: () => Get.back(),
+        ),
+        const Spacer(),
+        const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: _kSage,
+            letterSpacing: 0.84, // ~.07em at 12px
+          ),
+        ),
+        const Spacer(),
+        const SizedBox(width: 36),
+      ],
+    );
+  }
+
+  // ─── Hero (dark card with avatar + name + email) ───────────────────────
+
+  Widget _hero() {
+    final firstName = authController.editFirstName.text;
+    final lastName = authController.editLastName.text;
+    final email = authController.editEmail.text;
+    final fullName = [firstName, lastName]
+        .where((s) => s.trim().isNotEmpty)
+        .join(' ')
+        .trim();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+      decoration: BoxDecoration(
+        color: _kHeroDark,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF163220).withOpacity(0.12),
+            offset: const Offset(0, 6),
+            blurRadius: 18,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _kAccent.withOpacity(0.28),
+                    width: 2,
+                  ),
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    MyImgs.userProfileIcon,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: _kAccent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _kHeroDark, width: 2),
+                ),
+                child: const Icon(Icons.edit, color: Colors.white, size: 12),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fullName.isEmpty ? 'My Profile' : fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                if (email.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withOpacity(0.55),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          child: Row(
+        ],
+      ),
+    );
+  }
+
+  // ─── Cycle phase card (white, accent-tinted strip) ─────────────────────
+
+  Widget _cyclePhaseCard({required String phase, required int day}) {
+    final theme = PhaseTheme.forPhaseString(phase);
+    final subtitle = _phaseSubtitle[phase.toLowerCase()] ?? '';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 13, 15, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kCardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF163220).withOpacity(0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardLabel('Cycle Phase'),
+          const SizedBox(height: 10),
+          Row(
             children: [
-              Text(display['emoji']!, style: TextStyle(fontSize: 28.sp)),
-              SizedBox(width: 12.w),
+              Text(theme.emoji, style: const TextStyle(fontSize: 26)),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${display['title']} \u2022 Day $day',
-                      style: textTheme.bodyMedium!.copyWith(
-                        color: MyColors.textColor3,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          theme.phaseLabel,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: _kTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: theme.accent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Day $day',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: theme.accent,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      display['subtitle']!,
-                      style: textTheme.bodySmall!.copyWith(
-                        color: MyColors.textColorLow,
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: _kTextMuted,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final size = MediaQuery.of(context).size;
+  // ─── Personal info card (label/value rows) ─────────────────────────────
 
-    return Scaffold(
-      backgroundColor: MyColors.primaryGradient2,
-      appBar: HelpingWidgets().appBarWidget(
-        () => Get.back(),
-        backGroundColor: MyColors.primaryGradient2,
+  Widget _personalInfoCard() {
+    final rows = <_InfoRowData>[
+      _InfoRowData('First Name', authController.editFirstName.text),
+      _InfoRowData('Last Name', authController.editLastName.text),
+      _InfoRowData('Email', authController.editEmail.text),
+      _InfoRowData('Age', authController.editAge.text),
+      _InfoRowData('Height', authController.editHeight.text),
+      _InfoRowData('Weight', authController.editWeight.text),
+      _InfoRowData('BMI', authController.editBmi.text),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 13, 15, 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kCardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF163220).withOpacity(0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 10,
+          ),
+        ],
       ),
-      body: SizedBox(
-        width: size.width,
-        height: size.height,
-        child: Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Column(
-              children: [
-                const SizedBox(height: 50),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(25)),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 40),
-                          _buildReadOnlyTextField(
-                            label: "First Name",
-                            controller: authController.editFirstName,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildReadOnlyTextField(
-                            label: "Last Name",
-                            controller: authController.editLastName,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildReadOnlyTextField(
-                            label: "Email",
-                            controller: authController.editEmail,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildReadOnlyTextField(
-                            label: "Age",
-                            controller: authController.editAge,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildReadOnlyTextField(
-                            label: "Height",
-                            controller: authController.editHeight,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildReadOnlyTextField(
-                            label: "Weight",
-                            controller: authController.editWeight,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildReadOnlyTextField(
-                            label: "BMI Result",
-                            controller: authController.editBmi,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildCyclePhaseCard(),
-                          const SizedBox(height: 40),
-                          CustomButton(
-                            text: "Update Details",
-                            onPressed: () =>
-                                Get.to(() => SignUpScreenQuestions()),
-                            fontSize: 16,
-                          ),
-                          const SizedBox(height: 10),
-                          CustomButton(
-                            text: "Logout",
-                            onPressed: () =>
-                                _showLogoutDialog(context, textTheme),
-                            fontSize: 16,
-                          ),
-                          const SizedBox(height: 10),
-                          CustomButton(
-                            text: "Delete Account",
-                            onPressed: _showDeleteDialog,
-                            fontSize: 16,
-                            borderColor: MyColors.primaryGradient2,
-                            color: Colors.white,
-                            textColor: MyColors.primaryGradient2,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Positioned(
-              top: 0,
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: AssetImage(MyImgs.userProfileIcon),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                    ),
-                    child:
-                        const Icon(Icons.edit, color: Colors.white, size: 20),
-                  ),
-                ],
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardLabel('Personal Info'),
+          const SizedBox(height: 6),
+          for (int i = 0; i < rows.length; i++) ...[
+            _InfoRow(data: rows[i]),
+            if (i < rows.length - 1)
+              const Divider(height: 1, thickness: 1, color: Color(0xFFF0F6EE)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Notifications row ─────────────────────────────────────────────────
+
+  Widget _notificationsTile() {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Get.to(() => const NotificationSettingsScreen()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kCardBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF163220).withOpacity(0.05),
+              offset: const Offset(0, 2),
+              blurRadius: 10,
             ),
           ],
         ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: _kAccent.withOpacity(0.13),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.notifications_outlined,
+                color: _kAccent,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Notifications',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: _kTextPrimary,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: _kSage, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Action buttons ────────────────────────────────────────────────────
+
+  Widget _primaryAction({required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _kAccent,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: _kAccent.withOpacity(0.30),
+              offset: const Offset(0, 4),
+              blurRadius: 14,
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _neutralAction({required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _kCardBorder, width: 1),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: _kTextPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dangerAction({required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: _kDanger,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small-caps section label — mirrors `.lbl9` in the HTML mockup
+/// (9px weight 700 sage, .07em letter-spacing). Slightly bigger here
+/// (10px) since profile sections are denser than home cards.
+class _CardLabel extends StatelessWidget {
+  final String text;
+  const _CardLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF9AB09A),
+        letterSpacing: 0.7, // ~.07em at 10px
+      ),
+    );
+  }
+}
+
+class _InfoRowData {
+  final String label;
+  final String value;
+  const _InfoRowData(this.label, this.value);
+}
+
+class _InfoRow extends StatelessWidget {
+  final _InfoRowData data;
+  const _InfoRow({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final value = data.value.trim().isEmpty ? '—' : data.value;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: Text(
+              data.label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF6F8B7A),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF163220),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

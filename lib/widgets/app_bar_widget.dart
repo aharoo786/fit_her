@@ -6,6 +6,8 @@ import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/data/controllers/zoom_controller.dart';
 import 'package:fitness_zone_2/data/services/youtube_tutorial_service.dart';
+import 'package:fitness_zone_2/utils/slot_input_builder.dart';
+import 'package:fitness_zone_2/utils/slot_ui_state.dart';
 import 'package:fitness_zone_2/widgets/review_bottom_sheet.dart';
 import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/cupertino.dart';
@@ -351,8 +353,40 @@ class HelpingWidgets {
             ));
   }
 
-  static showWorkoutBottomSheet({required BuildContext context, required Slot? slot, required HomeController homeController}) {
-    var textTheme = Theme.of(context).textTheme;
+  /// Bottom-sheet popup. Opens for ANY slot tap (per UX spec). The Join
+  /// button inside is rendered straight from [presentationForState] —
+  /// this widget makes no decisions of its own about color, label, or
+  /// action. Add a state in the resolver, this surface follows.
+  ///
+  /// [anchorDate] is the calendar date the slot's wall-clock times
+  /// belong to (today by default; the workout schedule passes its
+  /// selected date). Without it, tomorrow's 8am would be misclassified
+  /// as today's 8am.
+  static showWorkoutBottomSheet({
+    required BuildContext context,
+    required Slot? slot,
+    required HomeController homeController,
+    DateTime? anchorDate,
+  }) {
+    final anchor = anchorDate ?? DateTime.now();
+    final access = buildUserAccess(homeController);
+    final input = slot != null ? buildSlotInput(slot, anchor) : null;
+    final state = input != null
+        ? resolveSlotUIState(
+            slot: input,
+            now: DateTime.now(),
+            user: access,
+          )
+        : SlotUIState.upcomingFar;
+    final mins = (state == SlotUIState.upcomingSoon && input != null)
+        ? minutesUntilStart(input.start, DateTime.now())
+        : null;
+    final presentation = presentationForState(
+      state,
+      minutesUntilStart: mins,
+      blockReason: blockReasonFor(access),
+    );
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -361,14 +395,27 @@ class HelpingWidgets {
         ),
       ),
       isScrollControlled: true,
-      builder: (BuildContext context) {
+      builder: (BuildContext sheetContext) {
+        final textTheme = Theme.of(sheetContext).textTheme;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.keyboard_arrow_down,
-              size: 32,
-            ),
+            const Icon(Icons.keyboard_arrow_down, size: 32),
+            if (state == SlotUIState.cancelled)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Text('This class was cancelled.',
+                    style: TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w600)),
+              ),
+            if (state == SlotUIState.endedNotAttended)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Text('You missed this session.',
+                    style: TextStyle(
+                        color: Colors.grey, fontWeight: FontWeight.w600)),
+              ),
             const SizedBox(height: 16),
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -435,65 +482,88 @@ class HelpingWidgets {
               visualDensity: const VisualDensity(vertical: -4),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  if (slot == null) {
-                    return showError("Trainer has not added a link yet.");
-                  }
-                  if (slot.status != "In Progress") {
-                    return;
-                  }
-                  if (homeController.userHomeData?.userData.freeze.value == true) {
-                    return showError("Your account is frozen, please unfreeze first.");
-                  }
-
-                  if (homeController.userHomeData!.userAllPlans.first.remainingDays <= 0) {
-                    return showError("Please renew your plan.");
-                  }
-                  // if (!isSessionValid(slot!, homeController)) {
-                  //   showCustomDialog(context, () {
-                  //     Navigator.of(context).pop();
-                  //   }, "Session Not Started Yet!", "You're a little early!  Please wait or come back closer to the start time.",
-                  //       MyImgs.sessionNotStarted,
-                  //       buttonText: "Okay, Got it!");
-                  //   return;
-                  // }
-                  if (slot.trainerLink == null || slot.trainerLink!.isEmpty) {
-                    showCustomDialog(context, () {
-                      Navigator.of(context).pop();
-                    }, "Session Not Started Yet!", "You're a little early! Please wait or come back closer to the start time.",
-                        MyImgs.sessionNotStarted,
-                        buttonText: "Okay, Got it!");
-                    return;
-                  }
-                  Future.delayed(Duration(seconds: 1));
-                  if (slot.trainerLink!.contains("https")) {
-                    await launchUrl(Uri.parse(slot.trainerLink!));
-                  } else {
-                    await startMeeting(slot.trainerLink!, slot!.id.toString());
-                  }
-
-                  homeController.sharedPreferences.setBool(Constants.giveReview, true);
-                } catch (e) {
-                  return showError("Trainer has not added a link yet.");
-                }
-              },
-              icon: const Icon(Icons.video_call),
-              label: const Text('Join Session'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                backgroundColor: slot?.status != "In Progress" ? Colors.grey : Colors.green,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                ),
+            if (presentation.appearance != SlotButtonAppearance.hidden)
+              _buildPopupActionButton(
+                context: sheetContext,
+                slot: slot,
+                presentation: presentation,
+                homeController: homeController,
               ),
-            ),
             const SizedBox(height: 16),
           ],
         );
       },
     );
+  }
+
+  static Widget _buildPopupActionButton({
+    required BuildContext context,
+    required Slot? slot,
+    required SlotPresentation presentation,
+    required HomeController homeController,
+  }) {
+    final bg = switch (presentation.buttonColor) {
+      SlotButtonColor.accent => Colors.green,
+      SlotButtonColor.grey => Colors.grey,
+      SlotButtonColor.none => Colors.transparent,
+    };
+    return ElevatedButton.icon(
+      onPressed: slot == null
+          ? null
+          : () => dispatchSlotAction(
+                context: context,
+                homeController: homeController,
+                presentation: presentation,
+                slot: slot,
+              ),
+      icon: const Icon(Icons.video_call),
+      label: Text(presentation.buttonLabel ?? ''),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+        backgroundColor: bg,
+        disabledBackgroundColor: bg,
+        foregroundColor: Colors.white,
+        disabledForegroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+      ),
+    );
+  }
+
+  /// Single dispatch path used by the schedule live card and the popup
+  /// button. Switches purely on [SlotPresentation.action] — no slot
+  /// inspection, no status checks. Both surfaces share this so they
+  /// can never disagree on what a tap means.
+  static Future<void> dispatchSlotAction({
+    required BuildContext context,
+    required HomeController homeController,
+    required SlotPresentation presentation,
+    required Slot slot,
+  }) async {
+    switch (presentation.action) {
+      case SlotButtonAction.joinClass:
+        final link = slot.trainerLink ?? '';
+        if (link.isEmpty) return;
+        try {
+          if (link.contains('https')) {
+            await launchUrl(Uri.parse(link));
+          } else {
+            await startMeeting(link, slot.id.toString());
+          }
+          homeController.sharedPreferences
+              .setBool(Constants.giveReview, true);
+        } catch (_) {
+          showError('Could not start the session. Please try again.');
+        }
+        break;
+      case SlotButtonAction.showToast:
+        final msg = presentation.toastMessage;
+        if (msg != null && msg.isNotEmpty) showError(msg);
+        break;
+      case SlotButtonAction.none:
+        break;
+    }
   }
 
   static startMeeting(

@@ -555,4 +555,60 @@ class AnalyticsService extends GetxService {
   Future<void> logWeeklyProgressReport() async {
     await _mixpanel?.track('Weekly Progress Report');
   }
+
+  // ─── Phase E3 — Progress Hub V2 events ──────────────────────────────────
+  // 5 explicit events per the rollout brief. Event names use the
+  // `progress_v2_*` prefix so they're easy to filter in Mixpanel and
+  // distinguish from any future v3 work.
+
+  /// E3 — Hub screen view. Fired when ProgressScreenV2 mounts.
+  Future<void> logProgressV2HubView() async {
+    await _mixpanel?.track('progress_v2_hub_view');
+  }
+
+  /// E3 — User changed the period chip selector. `from` may be null on
+  /// the first auto-fire from controller.onInit so the funnel can tell
+  /// active toggles from the initial state.
+  Future<void> logProgressV2PeriodChanged({
+    required String to,
+    String? from,
+  }) async {
+    await _mixpanel?.track('progress_v2_period_changed', properties: {
+      'period_to': to,
+      if (from != null) 'period_from': from,
+    });
+  }
+
+  /// E3 — PDF generation succeeded. Captured before the share sheet opens
+  /// so we can measure how often users abandon at the share step.
+  Future<void> logProgressV2PdfDownloaded({
+    int? bytes,
+    int? pageCount,
+    String? period,
+  }) async {
+    await _mixpanel?.track('progress_v2_pdf_downloaded', properties: {
+      if (bytes != null) 'bytes': bytes,
+      if (pageCount != null) 'page_count': pageCount,
+      if (period != null) 'period': period,
+    });
+  }
+
+  /// E3 — Share sheet completed (user picked a destination, or dismissed).
+  /// `status` is the share_plus result: 'success' | 'dismissed' | 'unavailable'
+  /// | 'unknown'.
+  Future<void> logProgressV2PdfShareCompleted({
+    required String status,
+    String? period,
+  }) async {
+    await _mixpanel?.track('progress_v2_pdf_share_completed', properties: {
+      'status': status,
+      if (period != null) 'period': period,
+    });
+  }
+
+  /// E3 — Locked Doctor Share button tapped. Logged even though no action
+  /// fires — the click count signals demand for the unlocked feature.
+  Future<void> logProgressV2DoctorShareClicked() async {
+    await _mixpanel?.track('progress_v2_doctor_share_clicked');
+  }
 }

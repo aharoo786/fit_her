@@ -229,45 +229,57 @@ class WorkOutController extends GetxController implements GetxService {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
-      } else {
-        homeRepo
-            .getAllTimesWithSlotsTrainer(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-        )
-            .then((response) async {
-          // Get.back();
-          if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
-          } else if (response.body["status"] != "0") {
-            // ApiResponse model = ApiResponse.fromJson(
-            //     response.body,(p0){});
-
-            if (response.body["status"] == "1") {
-              addPackageTimeTable = List<addPackage.Time>.from(response
-                  .body["data"]["times"]
-                  .map((x) => addPackage.Time.fromJson(x)));
-              for (var time in addPackageTimeTable) {
-                if (time.slots.isEmpty) {
-                  time.slots.add(addPackage.Slot(
-                      start: 'Start Time',
-                      end: 'End Time',
-                      id: null,
-                      dayId: time.id,
-                      trainerId: null));
-                }
-              }
-              // for (var time in addPackageTimeTable) {
-              //   time.slots.forEach((slot) {
-              //     print("slot ${slot.toJson()}");
-              //   });
-              // }
-
-              getAllTimesSlotsLoad.value = true;
-              update();
-            }
-          }
-        });
+        return;
       }
+      homeRepo
+          .getAllTimesWithSlotsTrainer(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      )
+          .then((response) async {
+        // Get.back();
+        if (response.body["status"] == "0") {
+          CustomToast.failToast(msg: response.body["message"]);
+        } else if (response.body["status"] != "0") {
+          // ApiResponse model = ApiResponse.fromJson(
+          //     response.body,(p0){});
+
+          if (response.body["status"] == "1") {
+            addPackageTimeTable = List<addPackage.Time>.from(response
+                .body["data"]["times"]
+                .map((x) => addPackage.Time.fromJson(x)));
+            for (var time in addPackageTimeTable) {
+              if (time.slots.isEmpty) {
+                time.slots.add(addPackage.Slot(
+                    start: 'Start Time',
+                    end: 'End Time',
+                    id: null,
+                    dayId: time.id,
+                    trainerId: null));
+              }
+            }
+            // for (var time in addPackageTimeTable) {
+            //   time.slots.forEach((slot) {
+            //     print("slot ${slot.toJson()}");
+            //   });
+            // }
+
+            getAllTimesSlotsLoad.value = true;
+            update();
+          }
+        }
+      }).catchError((error, stackTrace) {
+        // Surfacing async failures (network, parse, etc) instead of dying
+        // silently inside the .then chain — which previously left the
+        // screen on a perpetual spinner.
+        print('getAllTimesSlotsTrainerFunc failed: $error\n$stackTrace');
+        CustomToast.failToast(
+            msg: "Couldn't load slots. Please try again.");
+        update();
+      });
+    }).catchError((error, stackTrace) {
+      print('getAllTimesSlotsTrainerFunc connection check failed: $error');
+      CustomToast.failToast(msg: "Couldn't load slots. Please try again.");
+      update();
     });
   }
 
