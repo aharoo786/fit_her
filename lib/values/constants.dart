@@ -38,6 +38,32 @@ class Constants {
 
   static String user = "User";
   static String accessToken = "accessToken";
+  // Option-C feature flags persisted across sessions. Saved in addLocalStorage
+  // so the cached values survive app restart before a fresh login response
+  // refreshes them.
+  static const String useNewPaidHomeKey = 'useNewPaidHome';
+  static const String useNewUnpaidHomeKey = 'useNewUnpaidHome';
+  // Phase A — Progress Screen rebuild. Routes between progress_screen_v1.dart
+  // (legacy) and progress_screen_v2.dart (new hub). Default false; opt-in
+  // per-user via the backend flag.
+  static const String useNewProgressHubKey = 'useNewProgressHub';
+  // Progress hub endpoints (Phase B). All accept ?period and ?asOf.
+  static const String progressSummary = '/users/progress/summary';
+  static const String progressWeight = '/users/progress/weight';
+  static const String progressGlance = '/users/progress/glance';
+  static const String progressHydration = '/users/progress/hydration';
+  static const String progressSymptoms = '/users/progress/symptoms';
+  static const String progressInsightsHub = '/users/progress/insights/hub';
+  // Phase E — minimal feature-flag toggle endpoint (POST). Only flags in
+  // the backend allow-list can be flipped from the client.
+  static const String setFeatureFlag = '/users/profile/feature_flag';
+  // PaidHomeScreenV2 data layer. Leading slash required — ApiProvider
+  // concatenates `baseUrl + url` without adding separators.
+  static const String paidHomeDashboard = "/users/home/dashboard";
+  static const String waterLog = "/users/water_log";
+  // PaidHomeScreenV2 — Phase B2.7. Weekly weight upsert + target weight set.
+  static const String weightLog = "/users/weekly_checkin/weight";
+  static const String targetWeight = "/users/profile/target_weight";
   static String login = "login";
   static String weeklyReports = "weeklyReports";
 
@@ -168,6 +194,9 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   /// CYCLE DATA
   static const String getCycleData = "/users/cycle_data";
   static const String saveCycleData = "/users/cycle_data";
+  static const String savePcosScreening = "/users/pcos_screening";
+  static const String saveHealthScreening = "/users/health_screening";
+  static const String getHealthScreening = "/users/health_screening";
 
   /// CHECK-INS
   static const String saveDailyCheckin = "/users/daily_checkin";

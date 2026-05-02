@@ -63,6 +63,8 @@ class AuthController extends GetxController implements GetxService {
   TextEditingController editWeight = TextEditingController();
   TextEditingController editHeight = TextEditingController();
   TextEditingController editBmi = TextEditingController();
+  var mainGoal = ''.obs;
+  var healthConditions = ''.obs;
 
   ///countryCode
   var countryCode = Constants.countryCode;
@@ -153,6 +155,14 @@ class AuthController extends GetxController implements GetxService {
     sharedPreferences.setString(Constants.loginAsa, loginAsA.value);
 
     sharedPreferences.setBool(Constants.isGuest, false);
+    // Persist Option-C feature flags so the router can honor them on cold
+    // start before a fresh login response is available.
+    sharedPreferences.setBool(
+        Constants.useNewPaidHomeKey, model.useNewPaidHome);
+    sharedPreferences.setBool(
+        Constants.useNewUnpaidHomeKey, model.useNewUnpaidHome);
+    sharedPreferences.setBool(
+        Constants.useNewProgressHubKey, model.useNewProgressHub);
   }
 
   login({String? userType, String? email, String? password}) {
@@ -434,6 +444,8 @@ class AuthController extends GetxController implements GetxService {
       editAge.text = logInUser?.age ?? "";
       editWeight.text = logInUser?.weight ?? "";
       editHeight.text = logInUser?.height ?? "";
+      mainGoal.value = logInUser?.mainGoal ?? "";
+      healthConditions.value = logInUser?.healthConditions ?? "";
     }
     Get.find<HomeController>().getUserHomeFunc();
     Get.offAll(() => BottomBarScreen());

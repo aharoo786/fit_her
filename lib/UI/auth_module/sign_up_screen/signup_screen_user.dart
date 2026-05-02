@@ -1,25 +1,21 @@
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
-import 'package:fitness_zone_2/data/models/get_all_users/get_all_users_based_on_type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
-import '../../../values/dimens.dart';
-import '../../../values/my_colors.dart';
-import '../../../widgets/app_bar_widget.dart';
+import '../../../values/my_imgs.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
-import '../../../widgets/custom_button.dart';
-import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/toasts.dart';
-import '../../../widgets/social_login_buttons.dart';
 import '../../../helper/analytics_helper.dart';
 
 class SignUpNewUser extends StatefulWidget {
-  SignUpNewUser({Key? key, this.supporterId, this.isSocial = false}) : super(key: key);
-  String? supporterId;
-  bool isSocial;
+  SignUpNewUser({Key? key, this.supporterId, this.isSocial = false})
+      : super(key: key);
+  final String? supporterId;
+  final bool isSocial;
 
   @override
   State<SignUpNewUser> createState() => _SignUpNewUserState();
@@ -27,271 +23,603 @@ class SignUpNewUser extends StatefulWidget {
 
 class _SignUpNewUserState extends State<SignUpNewUser> {
   final AuthController authController = Get.find();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _phoneFieldController = TextEditingController();
+  String _completePhoneNumber = '';
+  bool _isPhoneValid = false;
+  bool _obscurePassword = true;
+
+  static final RegExp _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
+
+  // ── Design colors from S02_Final_Clean.html ──
+  static const Color _bg = Color(0xFFEAF7E4);
+  static const Color _circleColor = Color(0xFFC8E8C0);
+  static const Color _textDark = Color(0xFF163220);
+  static const Color _textSub = Color(0xFF5A7A56);
+  static const Color _textMuted = Color(0xFF9AB09A);
+  static const Color _green = Color(0xFF6DC55A);
+  static const Color _dividerLine = Color(0xFFD8EDD4);
+  static const Color _placeholder = Color(0xFFC8E8C0);
+
+  // Neha's customer support ID
+  static const int _defaultCustomerSupportId = 44;
 
   @override
   void initState() {
-    authController.getUsersBasedOnUserType(authController.addTeamMember[4].replaceAll(" ", "_"));
-
     super.initState();
-    // Track screen view
     AnalyticsHelper.trackScreenView('signup_screen');
   }
 
   @override
+  void dispose() {
+    _fullNameController.dispose();
+    _phoneFieldController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    var textTheme = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(() {
-        if (widget.supporterId == null) {
-          Get.back();
-        } else {
-          Get.off(Login());
-        }
-      }, text: "Sign Up"),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Dimens.size20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 20.h,
-              ),
-              Text(
-                "Welcome to FitHer",
-                style: textTheme.headlineSmall!.copyWith(fontSize: 24.sp, color: MyColors.textColor3, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(
-                height: Dimens.size5.h,
-              ),
-              // Text(
-              //   "Create an account to get in and explore different Workouts, Diet Plans, Gynaecological & Psychological appointments.",
-              //   style: textTheme.titleLarge!.copyWith(
-              //       height: 1.8,
-              //       color: MyColors.black,
-              //       fontWeight: FontWeight.w500),
-              // ),
-              RichText(
-                  text: TextSpan(
-                      text: "Create an account to get in and explore different ",
-                      children: [
-                        TextSpan(
-                            text: "Workouts, Diet Plans, Gynaecological & Psychological",
-                            style: textTheme.titleLarge!.copyWith(height: 1.8, color: MyColors.black, fontWeight: FontWeight.w600)),
-                        TextSpan(
-                            text: " appointments",
-                            style: textTheme.titleLarge!.copyWith(height: 1.8, color: MyColors.black, fontWeight: FontWeight.w400)),
-                      ],
-                      style: textTheme.titleLarge!.copyWith(height: 1.8, color: MyColors.black, fontWeight: FontWeight.w400))),
-              SizedBox(
-                height: 15.h,
-              ),
-              if (!widget.isSocial)
-                Column(
-                  children: [
-                    CustomTextField(
-                      keyboardType: TextInputType.text,
-                      text: "First Name".tr,
-                      length: 30,
-                      height: 48,
-                      background: Colors.white,
-                      controller: authController.firstNameController,
-                      inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
-                      icon: const Icon(Icons.person, color: MyColors.textColor3),
-                    ),
-                    SizedBox(
-                      height: 20.h,
-                    ),
-                    CustomTextField(
-                      keyboardType: TextInputType.text,
-                      text: "Last Name".tr,
-                      length: 30,
-                      height: 48,
-                      background: Colors.white,
-                      controller: authController.lastNameController,
-                      inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
-                      icon: Icon(Icons.person, color: MyColors.textColor3),
-                    ),
-                    SizedBox(
-                      height: 20.h,
-                    ),
-                    CustomTextField(
-                      keyboardType: TextInputType.text,
-                      text: "Email".tr,
-                      length: 30,
-                      height: 48,
-                      background: Colors.white,
-                      Readonly: widget.isSocial,
-                      controller: authController.emailNameController,
-                      inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
-                      icon: Icon(Icons.email, color: MyColors.textColor3),
-                    ),
-                    SizedBox(
-                      height: 20.h,
-                    ),
-                  ],
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: _bg,
+        body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // ── Background circles ──
+            Positioned(
+              top: -100.h,
+              right: -90.w,
+              child: Container(
+                width: 300.w,
+                height: 300.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _circleColor.withValues(alpha: 0.45),
                 ),
+              ),
+            ),
+            Positioned(
+              top: 160.h,
+              left: -70.w,
+              child: Container(
+                width: 200.w,
+                height: 200.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _circleColor.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
 
-              CustomTextField(
-                keyboardType: TextInputType.number,
-                text: "Phone no".tr,
-                length: 30,
-                height: 48,
-                background: Colors.white,
-                controller: authController.phoneNumberController,
-                inputFormatters: FilteringTextInputFormatter.digitsOnly,
-                icon: Icon(Icons.phone, color: MyColors.textColor3),
-              ),
-              SizedBox(
-                height: 20.h,
-              ),
-              CustomTextField(
-                keyboardType: TextInputType.text,
-                text: "Password".tr,
-                length: 30,
-                height: 48,
-                background: Colors.white,
-                controller: authController.passwordController,
-                inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
-                icon: Icon(Icons.lock, color: MyColors.textColor3),
-              ),
-              SizedBox(
-                height: 20.h,
-              ),
+            // ── Main content ──
+            SafeArea(
+              child: Column(
+                children: [
+                  // ── Back button ──
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 8.w, top: 8.h),
+                      child: IconButton(
+                        onPressed: () {
+                          if (widget.supporterId == null) {
+                            Get.back();
+                          } else {
+                            Get.off(() => Login());
+                          }
+                        },
+                        icon: Icon(Icons.arrow_back_ios_new,
+                            color: _textDark, size: 20.sp),
+                      ),
+                    ),
+                  ),
 
-              Text(
-                widget.supporterId == null ? "Please select customer support representative" : "Your sales representative",
-                style: textTheme.headlineSmall!.copyWith(fontSize: 15.sp, color: MyColors.textColor3, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(
-                height: 10.h,
-              ),
-              Obx(() => authController.getUsersBasedOnUserTypeLoad.value
-                  ? authController.getUsersBasedOnUserTypeModel!.users.isNotEmpty
-                      ? Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.black),
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonFormField<UserTypeData>(
-                            style: TextStyle(color: MyColors.textColor, fontSize: 16.sp, fontWeight: FontWeight.w600),
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                              border: InputBorder.none,
+                  // ── Hero logo ──
+                  Padding(
+                    padding: EdgeInsets.only(top: 4.h, bottom: 16.h),
+                    child: Image.asset(
+                      MyImgs.fitHerLogo,
+                      width: 120.w,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+
+                  // ── Bottom sheet ──
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(25.r)),
+                      ),
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 24.w, vertical: 28.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title
+                            Text(
+                              'Create account',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 22.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _textDark,
+                              ),
                             ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              'Join FitHer — built for every phase of you',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w300,
+                                color: _textSub,
+                              ),
+                            ),
+                            SizedBox(height: 24.h),
 
-                            //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                            value: authController.getUsersBasedOnUserTypeModel!.users.firstWhere(
-                                (element) => element.id.toString() == (widget.supporterId ?? authController.selectCustomerSupport.value.toString())),
-                            onChanged: widget.supporterId != null
-                                ? null
-                                : (UserTypeData? newValue) {
-                                    if (newValue != null) {
-                                      authController.selectCustomerSupport.value = newValue.id;
-                                    }
-                                  },
-                            items: authController.getUsersBasedOnUserTypeModel!.users.map((UserTypeData cat) {
-                              return DropdownMenuItem<UserTypeData>(
-                                value: cat,
-                                child: SizedBox(
-                                  width: 200.w,
-                                  child: Text(
-                                    "${cat.id}: ${cat.firstName} ${cat.lastName}",
-                                    maxLines: 2,
-                                    style: textTheme.bodySmall!.copyWith(color: Colors.black, overflow: TextOverflow.ellipsis),
+                            // ── Social buttons ──
+                            Row(
+                              children: [
+                                // Apple
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      await AnalyticsHelper.trackLogin('apple');
+                                      authController.handleappleLogin();
+                                    },
+                                    child: Container(
+                                      height: 52.h,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius:
+                                            BorderRadius.circular(14.r),
+                                      ),
+                                      child: Center(
+                                        child: Image.asset(
+                                          MyImgs.appleIcon,
+                                          width: 22.w,
+                                          height: 22.w,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        )
-                      : SizedBox.shrink()
-                  : const Center(
-                      child: CircularProgressIndicator(
-                      color: MyColors.buttonColor,
-                    ))),
-              SizedBox(height: 40.h),
-              RichText(
-                text: TextSpan(
-                  text: 'By continuing, I agree to ',
-                  style: textTheme.titleLarge!.copyWith(color: MyColors.black, height: 2, fontWeight: FontWeight.w400),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: 'Terms of Services',
-                      style: textTheme.titleLarge!
-                          .copyWith(decoration: TextDecoration.underline, color: MyColors.black, height: 2, fontWeight: FontWeight.w400),
-                    ),
-                    TextSpan(
-                      text: ' and acknowledge the ',
-                      style: textTheme.titleLarge!.copyWith(height: 2, color: MyColors.black, fontWeight: FontWeight.w400),
-                    ),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: textTheme.titleLarge!.copyWith(
-                          decoration: TextDecoration.underline,
-                          decorationColor: MyColors.buttonColor,
-                          color: MyColors.buttonColor,
-                          height: 2,
-                          fontWeight: FontWeight.w400),
-                    ),
-                    const TextSpan(
-                      text: '.',
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20.h),
-              CustomButton(
-                  text: "Continue",
-                  onPressed: () async {
-                    // Track button click
-                    await AnalyticsHelper.trackButtonClick('continue_button', screenName: 'signup_screen');
+                                SizedBox(width: 12.w),
+                                // Google
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      await AnalyticsHelper.trackLogin(
+                                          'google');
+                                      authController.showEmailsDialog();
+                                    },
+                                    child: Container(
+                                      height: 52.h,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius:
+                                            BorderRadius.circular(14.r),
+                                        border: Border.all(
+                                            color: _dividerLine, width: 1),
+                                      ),
+                                      child: Center(
+                                        child: Image.asset(
+                                          MyImgs.googleIcon,
+                                          width: 22.w,
+                                          height: 22.w,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 24.h),
 
-                    print('HomeController.addUser ${authController.selectCustomerSupport.value}');
+                            // ── Divider "or sign up with email" ──
+                            Row(
+                              children: [
+                                Expanded(
+                                    child: Container(
+                                        height: 1, color: _dividerLine)),
+                                Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 12.w),
+                                  child: Text(
+                                    'or sign up with email',
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 11.sp,
+                                      color: _textMuted,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                    child: Container(
+                                        height: 1, color: _dividerLine)),
+                              ],
+                            ),
+                            SizedBox(height: 24.h),
 
-                    if (authController.firstNameController.text.isEmpty ||
-                        authController.lastNameController.text.isEmpty ||
-                        authController.emailNameController.text.isEmpty ||
-                        authController.phoneNumberController.text.isEmpty ||
-                        authController.passwordController.text.isEmpty) {
-                      CustomToast.failToast(msg: "Please provide all information");
-                      // Track validation error
-                      await AnalyticsHelper.trackError('validation_error', errorMessage: 'Missing required fields', screenName: 'signup_screen');
-                    } else if (!authController.emailNameController.text.removeAllWhitespace.isEmail) {
-                      CustomToast.failToast(msg: "Please provide valid email");
-                      // Track validation error
-                      await AnalyticsHelper.trackError('validation_error', errorMessage: 'Invalid email format', screenName: 'signup_screen');
-                    } else {
-                      // Track sign up attempt
-                      await AnalyticsHelper.trackSignUp('email');
-                      Get.find<HomeController>().addUser(
-                          status: false,
-                          firstName: authController.firstNameController.text,
-                          lastName: authController.lastNameController.text,
-                          email: authController.emailNameController.text,
-                          phone: authController.phoneNumberController.text,
-                          password: authController.passwordController.text,
-                          customerSupportId: authController.selectCustomerSupport.value);
-                    }
-                  }),
-              SizedBox(height: 20.h),
-              Center(
-                child: Text(
-                  "or continue with",
-                  style: textTheme.titleMedium!.copyWith(
-                    color: MyColors.textColor3,
-                    fontSize: 14.sp,
+                            // ── Full name ──
+                            if (!widget.isSocial) ...[
+                              _buildLabel('Full name'),
+                              SizedBox(height: 5.h),
+                              _buildTextField(
+                                controller: _fullNameController,
+                                hint: 'Shaista Khalid',
+                                keyboardType: TextInputType.name,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter
+                                      .singleLineFormatter
+                                ],
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // ── Email ──
+                              _buildLabel('Email address'),
+                              SizedBox(height: 5.h),
+                              _buildTextField(
+                                controller:
+                                    authController.emailNameController,
+                                hint: 'you@email.com',
+                                keyboardType: TextInputType.emailAddress,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter
+                                      .singleLineFormatter
+                                ],
+                              ),
+                              SizedBox(height: 16.h),
+                            ],
+
+                            // ── Phone ──
+                            _buildLabel('Phone number'),
+                            SizedBox(height: 5.h),
+                            IntlPhoneField(
+                              controller: _phoneFieldController,
+                              initialCountryCode: 'PK',
+                              disableLengthCheck: false,
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14.sp,
+                                color: _textDark,
+                              ),
+                              dropdownTextStyle: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14.sp,
+                                color: _textDark,
+                              ),
+                              showCountryFlag: true,
+                              showDropdownIcon: true,
+                              decoration: InputDecoration(
+                                counterText: '',
+                                hintText: '300 1234567',
+                                hintStyle: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 14.sp,
+                                  color: _placeholder,
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16.w, vertical: 14.h),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide:
+                                      BorderSide(color: _dividerLine, width: 1),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide:
+                                      BorderSide(color: _green, width: 1.5),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide: const BorderSide(
+                                      color: Colors.red, width: 1),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide: const BorderSide(
+                                      color: Colors.red, width: 1.5),
+                                ),
+                              ),
+                              onChanged: (phone) {
+                                _completePhoneNumber = phone.completeNumber;
+                                _isPhoneValid = phone.isValidNumber();
+                              },
+                            ),
+                            SizedBox(height: 16.h),
+
+                            // ── Password ──
+                            _buildLabel('Password'),
+                            SizedBox(height: 5.h),
+                            TextField(
+                              controller: authController.passwordController,
+                              obscureText: _obscurePassword,
+                              inputFormatters: [
+                                FilteringTextInputFormatter
+                                    .singleLineFormatter
+                              ],
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14.sp,
+                                color: _textDark,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Create a password',
+                                hintStyle: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 14.sp,
+                                  color: _placeholder,
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16.w, vertical: 14.h),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide: BorderSide(
+                                      color: _dividerLine, width: 1),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide: BorderSide(
+                                      color: _green, width: 1.5),
+                                ),
+                                suffixIcon: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                  child: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: _textMuted,
+                                    size: 20.sp,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 28.h),
+
+                            // ── Create account button ──
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52.h,
+                              child: ElevatedButton(
+                                onPressed: _onCreateAccount,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _green,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(14.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Create my account →',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 12.h),
+
+                            // ── Terms ──
+                            Center(
+                              child: RichText(
+                                textAlign: TextAlign.center,
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 11.sp,
+                                    color: _textMuted,
+                                    height: 1.6,
+                                  ),
+                                  children: [
+                                    const TextSpan(
+                                        text:
+                                            'By continuing, I agree to '),
+                                    TextSpan(
+                                      text: 'Terms of Services',
+                                      style: TextStyle(
+                                        color: _green,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                        text: ' and acknowledge the '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: TextStyle(
+                                        color: _green,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const TextSpan(text: '.'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20.h),
+
+                            // ── Sign in link ──
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Already have an account?',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 13.sp,
+                                    color: _textMuted,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Get.off(() => Login()),
+                                  child: Text(
+                                    ' Sign in',
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: _green,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 20.h),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              SizedBox(height: 20.h),
-              SocialLoginButtons(),
-              SizedBox(height: 40.h),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+      ),
+    );
+  }
+
+  // ── Label widget ──
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w600,
+        color: _textSub,
+      ),
+    );
+  }
+
+  // ── Text field widget ──
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      inputFormatters: inputFormatters,
+      style: TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 14.sp,
+        color: _textDark,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 14.sp,
+          color: _placeholder,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: _dividerLine, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: _green, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  // ── Create account handler ──
+  Future<void> _onCreateAccount() async {
+    await AnalyticsHelper.trackButtonClick('continue_button',
+        screenName: 'signup_screen');
+
+    final fullName = _fullNameController.text.trim();
+    final email = authController.emailNameController.text.trim();
+    final password = authController.passwordController.text.trim();
+    final phone = _completePhoneNumber;
+
+    // Split full name into first + last
+    String firstName = '';
+    String lastName = '';
+    if (!widget.isSocial) {
+      if (fullName.isEmpty) {
+        CustomToast.failToast(msg: 'Please enter your name');
+        return;
+      }
+      final nameParts = fullName.split(' ');
+      firstName = nameParts.first;
+      lastName =
+          nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+      if (email.isEmpty) {
+        CustomToast.failToast(msg: 'Please enter your email');
+        return;
+      }
+      if (!_emailRegex.hasMatch(email)) {
+        CustomToast.failToast(msg: 'Please provide a valid email address');
+        await AnalyticsHelper.trackError('validation_error',
+            errorMessage: 'Invalid email format',
+            screenName: 'signup_screen');
+        return;
+      }
+    } else {
+      firstName = authController.firstNameController.text.trim();
+      lastName = authController.lastNameController.text.trim();
+    }
+
+    if (!_isPhoneValid) {
+      CustomToast.failToast(msg: 'Please enter a valid phone number');
+      return;
+    }
+
+    if (password.length < 6) {
+      CustomToast.failToast(msg: 'Password must be at least 6 characters');
+      return;
+    }
+
+    // Sync controllers for downstream use
+    authController.firstNameController.text = firstName;
+    authController.lastNameController.text = lastName;
+    authController.phoneNumberController.text = phone;
+
+    await AnalyticsHelper.trackSignUp('email');
+
+    Get.find<HomeController>().addUser(
+      status: false,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: phone,
+      password: password,
+      customerSupportId: _defaultCustomerSupportId,
     );
   }
 }

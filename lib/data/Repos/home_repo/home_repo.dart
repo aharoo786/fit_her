@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../../../values/constants.dart';
 import '../../api_provider/api_provider.dart';
+import '../../models/home_dashboard/home_dashboard_model.dart';
 
 class HomeRepo extends GetxService {
   ApiProvider apiProvider;
@@ -189,6 +192,19 @@ class HomeRepo extends GetxService {
 
   Future<Response> addUserDetails({required String accessToken, required Map<String, dynamic> map}) async {
     return await apiProvider.postData(Constants.addUserDetails, body: map, headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> savePcosScreening({required String accessToken, required Map<String, dynamic> body}) async {
+    return await apiProvider.postData(Constants.savePcosScreening, body: body, headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> saveHealthScreening({required String accessToken, required Map<String, dynamic> body}) async {
+    return await apiProvider.postData(Constants.saveHealthScreening, body: body, headers: {"accessToken": accessToken});
+  }
+
+  Future<Response> getHealthScreening({required String accessToken, String? conditionType}) async {
+    final query = conditionType != null ? '?conditionType=$conditionType' : '';
+    return await apiProvider.getData('${Constants.getHealthScreening}$query', headers: {"accessToken": accessToken});
   }
 
   Future<Response> getPaymentLink({required String accessToken, required Map<String, dynamic> map}) async {
@@ -445,6 +461,103 @@ class HomeRepo extends GetxService {
 
   Future<Response> deletePost({required String accessToken, required int postId}) async {
     return await apiProvider.deleteData("${Constants.deletePost}/$postId", headers: {"accessToken": accessToken});
+  }
+
+  /// Upsert the current week's weight (Monday-start convention enforced
+  /// server-side). Same self-contained token pattern as [logWater].
+  Future<bool> logWeight(double kg) async {
+    try {
+      final prefs = Get.find<SharedPreferences>();
+      final token = prefs.getString(Constants.accessToken) ?? '';
+      if (token.isEmpty) return false;
+      final response = await apiProvider.postData(
+        Constants.weightLog,
+        body: {'weightKg': kg},
+        headers: {"accessToken": token},
+      ).timeout(const Duration(seconds: 10));
+      final body = response.body;
+      if (body is Map && body['status'] == '1') return true;
+      return false;
+    } catch (e) {
+      debugPrint('[HomeRepo.logWeight] $e');
+      return false;
+    }
+  }
+
+  /// Set (or clear with null) the user's target weight. Updates
+  /// `User.targetWeightKg` server-side.
+  Future<bool> saveTargetWeight(double? kg) async {
+    try {
+      final prefs = Get.find<SharedPreferences>();
+      final token = prefs.getString(Constants.accessToken) ?? '';
+      if (token.isEmpty) return false;
+      final response = await apiProvider.postData(
+        Constants.targetWeight,
+        body: {'targetWeightKg': kg},
+        headers: {"accessToken": token},
+      ).timeout(const Duration(seconds: 10));
+      final body = response.body;
+      if (body is Map && body['status'] == '1') return true;
+      return false;
+    } catch (e) {
+      debugPrint('[HomeRepo.saveTargetWeight] $e');
+      return false;
+    }
+  }
+
+  /// Log a water intake for today. Self-contained (reads token via
+  /// `Get.find<SharedPreferences>()`) to match [getPaidHomeDashboard]'s
+  /// pattern. Returns true on status="1" responses, false on anything else.
+  /// 10 s timeout.
+  Future<bool> logWater(int amountMl) async {
+    try {
+      final prefs = Get.find<SharedPreferences>();
+      final token = prefs.getString(Constants.accessToken) ?? '';
+      if (token.isEmpty) return false;
+
+      final response = await apiProvider.postData(
+        Constants.waterLog,
+        body: {'amountMl': amountMl},
+        headers: {"accessToken": token},
+      ).timeout(const Duration(seconds: 10));
+
+      final body = response.body;
+      if (body is Map && body['status'] == '1') return true;
+      return false;
+    } catch (e) {
+      debugPrint('[HomeRepo.logWater] $e');
+      return false;
+    }
+  }
+
+  /// PaidHomeScreenV2 aggregate. Reads the access token from SharedPreferences
+  /// internally so the controller doesn't have to thread it. Returns null on
+  /// any failure (network error, timeout, malformed body, non-"1" status).
+  /// 15 s timeout so a hung endpoint never blocks the UI forever.
+  Future<HomeDashboardModel?> getPaidHomeDashboard() async {
+    try {
+      final prefs = Get.find<SharedPreferences>();
+      final token = prefs.getString(Constants.accessToken) ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await apiProvider.getData(
+        Constants.paidHomeDashboard,
+        headers: {"accessToken": token},
+      ).timeout(const Duration(seconds: 15));
+
+      final body = response.body;
+      if (body is! Map ||
+          body['status'] != '1' ||
+          body['data'] is! Map) {
+        return null;
+      }
+      return HomeDashboardModel.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
+    } catch (e) {
+      debugPrint('[HomeRepo.getPaidHomeDashboard] $e');
+      return null;
+    }
   }
 
   Future<Response> approvePost({required String accessToken, required int postId, required bool approved}) async {

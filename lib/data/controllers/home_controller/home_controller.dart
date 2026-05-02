@@ -30,6 +30,7 @@ import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../UI/auth_module/sign_up_screen/BMI_result.dart';
+import '../../../UI/auth_module/sign_up_screen/goal_screen.dart';
 import '../../../UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
 import '../../../helper/analytics_helper.dart';
 import '../../../values/constants.dart';
@@ -938,7 +939,11 @@ class HomeController extends GetxController implements GetxService {
                   Get.find<AuthController>().logInUser = model.data;
                   Get.find<AuthController>().addLocalStorage(model.data!, password);
                   // getPlans();
-                  Get.offAll(() => SignUpScreenQuestions());
+                  Get.offAll(() => GoalScreen(
+                    onNext: (goal) {
+                      Get.off(() => SignUpScreenQuestions(selectedGoal: goal));
+                    },
+                  ));
                 }
                 clearyControllers();
               }
@@ -951,7 +956,7 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addUserDetails({bool status = true, String? age, String? height, String? weight, String? bmiResult}) {
+  addUserDetails({bool status = true, String? age, String? height, String? weight, String? bmiResult, String? mainGoal, String? healthConditions}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
@@ -961,7 +966,7 @@ class HomeController extends GetxController implements GetxService {
 
         await homeRepo.addUserDetails(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {"userId": sharedPreferences.getString(Constants.userId), "age": age, "weight": weight, "height": height, "bmiResult": bmiResult},
+          map: {"userId": sharedPreferences.getString(Constants.userId), "age": age, "weight": weight, "height": height, "bmiResult": bmiResult, if (mainGoal != null) "mainGoal": mainGoal, if (healthConditions != null) "healthConditions": healthConditions},
         ).then((response) async {
           Get.back();
 
