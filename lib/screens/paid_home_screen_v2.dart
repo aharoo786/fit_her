@@ -1,8 +1,13 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../data/controllers/paid_home_controller/paid_home_controller.dart';
+import '../utils/app_clock.dart';
 import '../widgets/paid_home_v2/paid_feel_selector.dart';
 import '../widgets/paid_home_v2/paid_footer.dart';
 import '../widgets/paid_home_v2/paid_hero.dart';
@@ -23,17 +28,74 @@ class PaidHomeScreenV2 extends StatefulWidget {
   State<PaidHomeScreenV2> createState() => _PaidHomeScreenV2State();
 }
 
-class _PaidHomeScreenV2State extends State<PaidHomeScreenV2> {
+class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
+    with WidgetsBindingObserver {
   final PaidHomeController _controller = Get.find<PaidHomeController>();
+
+  // Step 4-style sync layers — same pattern as the workout schedule.
+  // Heartbeat keeps live/comingUp data fresh when the realtime socket
+  // is offline; foreground + reconnect triggers cover the long-tail
+  // cases (resume from background, network drop). _lastContactAt
+  // drives the "Reconnecting…" banner.
+  Timer? _heartbeatTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  DateTime? _lastContactAt;
+
+  static const Duration _kHeartbeatInterval = Duration(seconds: 30);
+  static const Duration _kStaleAfter = Duration(seconds: 60);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_controller.dashboard.value == null) {
-        _controller.loadDashboard();
+        _controller.loadDashboard().then((_) {
+          if (mounted) setState(() => _lastContactAt = AppClock.now());
+        });
+      } else {
+        _lastContactAt = AppClock.now();
       }
     });
+
+    _heartbeatTimer = Timer.periodic(_kHeartbeatInterval, (_) => _heartbeat());
+
+    _connectivitySub = Connectivity()
+        .onConnectivityChanged
+        .listen(_onConnectivityChanged);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _heartbeatTimer?.cancel();
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _heartbeat({String reason = 'tick'}) async {
+    if (!mounted) return;
+    debugPrint('[PaidHomeV2] heartbeat ($reason)');
+    final ok = await _controller.silentRefresh();
+    if (!mounted || !ok) return;
+    setState(() => _lastContactAt = AppClock.now());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _heartbeat(reason: 'resumed');
+    }
+  }
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
+    final reachable = results.any((r) => r != ConnectivityResult.none);
+    if (reachable) _heartbeat(reason: 'reconnect');
+  }
+
+  bool get _isStale {
+    if (_lastContactAt == null) return false;
+    return AppClock.now().difference(_lastContactAt!) > _kStaleAfter;
   }
 
   @override
@@ -66,10 +128,61 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2> {
           // Cream body bg matches the H-01 reference scroll area below the
           // hero. Unchanged.
           backgroundColor: const Color(0xFFEAF7E4),
-          body: _buildBody(),
+          body: Stack(
+            children: [
+              _buildBody(),
+              // Reconnecting banner — overlay so it stays pinned at the
+              // top of the screen instead of scrolling away with the
+              // hero. SafeArea so it clears the status bar.
+              if (_isStale)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: _buildReconnectingBanner(),
+                  ),
+                ),
+            ],
+          ),
         ),
       );
     });
+  }
+
+  // Slim amber pill shown when no successful heartbeat in [_kStaleAfter].
+  // Same styling intent as the workout schedule banner so users see
+  // consistent reconnecting feedback wherever they are in the app.
+  Widget _buildReconnectingBanner() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      color: const Color(0xFFFAC775),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 12.w,
+            height: 12.w,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            'Reconnecting…',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBody() {

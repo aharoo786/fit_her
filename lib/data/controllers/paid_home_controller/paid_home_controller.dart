@@ -52,6 +52,23 @@ class PaidHomeController extends GetxController {
 
   Future<void> refreshDashboard() => loadDashboard();
 
+  /// Heartbeat-friendly refresh. Skips the [isLoading] toggle so polling
+  /// timers don't fight pull-to-refresh, and never overwrites the
+  /// existing [dashboard] with `null` on transient failures. Returns
+  /// true on a successful payload — UI uses that to drive the
+  /// "Reconnecting…" banner.
+  Future<bool> silentRefresh() async {
+    try {
+      final result = await homeRepo.getPaidHomeDashboard();
+      if (result == null) return false;
+      dashboard.value = result;
+      return true;
+    } catch (e) {
+      debugPrint('[PaidHomeController.silentRefresh] $e');
+      return false;
+    }
+  }
+
   /// Persists today's mood via the existing CheckinRepository (upsert on
   /// `(userId, today)` server-side). On success refetches the dashboard so
   /// `todayCheckin.moodLevel` reflects the new value. Returns true on

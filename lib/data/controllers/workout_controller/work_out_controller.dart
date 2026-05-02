@@ -83,50 +83,96 @@ class WorkOutController extends GetxController implements GetxService {
     });
   }
 
-  getDietPlanDetailsFunc(String id, {bool showSlots = false}) {
-    print('WorkOutController.getDietPlanDetailsFunc');
-    workOutPlanDetailsLoad.value = false;
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-      } else {
-        await homeRepo
-            .getUserPlanDetailsWorkout(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          planId: id,
-          userId: sharedPreferences.getString(Constants.userId) ?? "",
-          showSlots: showSlots,
-        )
-            .then((response) async {
-          // Get.back();
-          if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
-          } else if (response.body["status"] != "0") {
-            ApiResponse<GetUserWorkoutPlanDetails> model = ApiResponse.fromJson(
-                response.body, GetUserWorkoutPlanDetails.fromJson);
-            if (model.status == "1") {
-              getUserWorkoutPlanDetailsPlan = model.data;
-
-              ///filtering slots for two days
-              if (showSlots) {
-                var today = DateFormat('EEEE').format(DateTime.now());
-                var tomorrow = DateFormat('EEEE')
-                    .format(DateTime.now().add(const Duration(days: 1)));
-
-                List<TrainerSlot> filter = getUserWorkoutPlanDetailsPlan
-                        ?.trainerSlots
-                        .where((t) => t.day == today || t.day == tomorrow)
-                        .toList() ??
-                    [];
-
-                getUserWorkoutPlanDetailsPlan?.trainerSlots = filter;
-              }
-              workOutPlanDetailsLoad.value = true;
-            }
-          }
-        });
+  // [silent] true = heartbeat refresh from the schedule's polling timer.
+  // Skips the load-flag toggle so the screen doesn't flash a spinner,
+  // and skips toast errors so transient network blips don't spam the
+  // user. Returns true on a status="1" payload — the schedule uses
+  // that to drive the connection banner.
+  Future<bool> getDietPlanDetailsFunc(
+    String id, {
+    bool showSlots = false,
+    bool silent = false,
+  }) async {
+    print('WorkOutController.getDietPlanDetailsFunc${silent ? ' (silent)' : ''}');
+    if (!silent) workOutPlanDetailsLoad.value = false;
+    final hasInternet = await connectionService.checkConnection();
+    if (!hasInternet) {
+      if (!silent) CustomToast.noInternetToast();
+      return false;
+    }
+    try {
+      final response = await homeRepo.getUserPlanDetailsWorkout(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        planId: id,
+        userId: sharedPreferences.getString(Constants.userId) ?? "",
+        showSlots: showSlots,
+      );
+      if (response.body["status"] == "0") {
+        if (!silent) CustomToast.failToast(msg: response.body["message"]);
+        return false;
       }
-    });
+      final model = ApiResponse<GetUserWorkoutPlanDetails>.fromJson(
+        response.body,
+        GetUserWorkoutPlanDetails.fromJson,
+      );
+      if (model.status != "1") return false;
+      getUserWorkoutPlanDetailsPlan = model.data;
+      if (showSlots) {
+        final today = DateFormat('EEEE').format(DateTime.now());
+        final tomorrow = DateFormat('EEEE')
+            .format(DateTime.now().add(const Duration(days: 1)));
+        final filter = getUserWorkoutPlanDetailsPlan?.trainerSlots
+                .where((t) => t.day == today || t.day == tomorrow)
+                .toList() ??
+            [];
+        getUserWorkoutPlanDetailsPlan?.trainerSlots = filter;
+      }
+      workOutPlanDetailsLoad.value = true;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Lightweight per-slot refresh. Patches the in-memory slot at [slotId]
+  // with fresh status / trainerLink / isTrainerJoined / joinedUserUID and
+  // forces a rebuild via update(). Used by the popup-open trigger and any
+  // future per-slot smart triggers. Returns the updated fields, or null
+  // on any failure (silent — caller decides what to do).
+  Future<Map<String, dynamic>?> refreshSlotStatus(int slotId) async {
+    try {
+      final token = sharedPreferences.getString(Constants.accessToken) ?? '';
+      final response = await homeRepo.getSlotStatus(
+        accessToken: token,
+        slotId: slotId,
+      );
+      final body = response.body;
+      if (body is! Map || body['status'] != '1') return null;
+      final patch = body['data']?['slot'];
+      if (patch is! Map) return null;
+      // Walk the cached trainerSlots tree and patch in place.
+      final plan = getUserWorkoutPlanDetailsPlan;
+      if (plan == null) return Map<String, dynamic>.from(patch);
+      for (final daySlot in plan.trainerSlots) {
+        for (final slot in daySlot.slots) {
+          if (slot.id == slotId) {
+            if (patch.containsKey('status')) slot.status = patch['status'] as String?;
+            if (patch.containsKey('trainerLink')) slot.trainerLink = patch['trainerLink'] as String?;
+            if (patch.containsKey('isTrainerJoined')) {
+              slot.isTrainerJoined = patch['isTrainerJoined'] as bool?;
+            }
+            if (patch.containsKey('joinedUserUID')) {
+              slot.joinedUserUID = patch['joinedUserUID'] as int?;
+            }
+            update();
+            return Map<String, dynamic>.from(patch);
+          }
+        }
+      }
+      return Map<String, dynamic>.from(patch);
+    } catch (_) {
+      return null;
+    }
   }
 
   getTrainerHomeFunc() {

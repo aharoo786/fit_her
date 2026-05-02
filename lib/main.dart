@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:fitness_zone_2/helper/notification_services.dart';
+import 'package:fitness_zone_2/utils/app_clock.dart';
 import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/theme/app_theme.dart';
 import 'package:fitness_zone_2/widgets/zoom_meeting_widget.dart';
@@ -55,6 +56,12 @@ Future<void> main() async {
   }
 
   await di.init();
+
+  // Sync server time once. Fire-and-forget — we don't want to block app
+  // launch on the network, and AppClock falls back to device time
+  // until the first response lands.
+  // ignore: unawaited_futures
+  AppClock.init();
 
   // Initialize Analytics
   final analyticsService = Get.find<AnalyticsService>();

@@ -127,21 +127,70 @@ class SessionScreen extends StatelessWidget {
             const SizedBox(
               height: 20,
             ),
-            CustomButton(
-                text: "Start Session",
-                onPressed: () async {
-                  if (googleMeet.text.isEmpty) {
-                    CustomToast.failToast(msg: "Please provide link to join");
-                    return;
-                  }
-                  if (isDiet) {
+            // Start / End session row. Trainer ends the session manually
+            // so the admin can audit class quality (vs. auto-flipping at
+            // slot end-time and losing the no-show signal).
+            if (isDiet)
+              CustomButton(
+                  text: "Start Session",
+                  onPressed: () async {
+                    if (googleMeet.text.isEmpty) {
+                      CustomToast.failToast(msg: "Please provide link to join");
+                      return;
+                    }
                     await launchUrl(Uri.parse(googleMeet.text));
-                  } else {
-                    status?.value = "In Progress";
-                    await Get.find<HomeController>().updateSlotStatus(slotId.toString(), "In Progress");
-                    await launchUrl(Uri.parse(googleMeet.text));
-                  }
-                }),
+                  }),
+            if (!isDiet)
+              Obx(() {
+                final s = status?.value ?? "";
+                final isInProgress = s == "In Progress";
+                return Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        text: isInProgress ? "Resume" : "Start Session",
+                        onPressed: () async {
+                          if (googleMeet.text.isEmpty) {
+                            CustomToast.failToast(
+                                msg: "Please provide link to join");
+                            return;
+                          }
+                          if (!isInProgress) {
+                            status?.value = "In Progress";
+                            await Get.find<HomeController>()
+                                .updateSlotStatus(slotId.toString(), "In Progress");
+                          }
+                          await launchUrl(Uri.parse(googleMeet.text));
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: CustomButton(
+                        text: "End Session",
+                        color: Colors.red,
+                        borderColor: Colors.red,
+                        onPressed: () async {
+                          if (s == "Completed") {
+                            CustomToast.failToast(
+                                msg: "Session is already ended");
+                            return;
+                          }
+                          if (!isInProgress) {
+                            CustomToast.failToast(
+                                msg: "Start the session before ending it");
+                            return;
+                          }
+                          status?.value = "Completed";
+                          await Get.find<HomeController>()
+                              .updateSlotStatus(slotId.toString(), "Completed");
+                          CustomToast.successToast(msg: "Session ended");
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              }),
             const SizedBox(
               height: 20,
             ),

@@ -81,6 +81,13 @@ class HomeRepo extends GetxService {
     return await apiProvider.getData("${Constants.getUserWorkoutPlanDetails}/$planId/$userId/$showSlots", headers: {"accessToken": accessToken});
   }
 
+  // Lightweight read of one slot. Used by the popup-open and boundary-cross
+  // smart triggers — full schedule refetch would be wasteful when we only
+  // care about a single slot's status / trainerLink.
+  Future<Response> getSlotStatus({required String accessToken, required int slotId}) async {
+    return await apiProvider.getData("/admin/slot/$slotId/status", headers: {"accessToken": accessToken});
+  }
+
   Future<Response> getSubCategoriesBasedOnUserTypes({required String accessToken, required String userType}) async {
     return await apiProvider.getData("${Constants.getSubCatBasedOnUserType}/$userType", headers: {"accessToken": accessToken});
   }
