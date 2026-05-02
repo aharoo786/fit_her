@@ -1895,27 +1895,4 @@ class HomeController extends GetxController implements GetxService {
   }
 
   var showDotHome = false.obs;
-
-  createPaymentIntent(String amount, String currency) async {
-    try {
-      Map<String, dynamic> body = {
-        'amount': amount,
-        'currency': currency,
-      };
-      // var data = await Stripe.instance.confirmPlatformPayPaymentIntent(
-      //     clientSecret: DotEnv().get("STRIPE_PUBLIC_KEY_TEST"),
-      //     confirmParams: PlatformPayConfirmParams.fromJson(body));
-      // print("data $data");
-
-      var response = await http.post(
-        Uri.parse('https://api.stripe.com/v1/payment_intents'),
-        headers: {'Authorization': 'Bearer ${dotenv.get("STRIPE_SECRET_KEY_TEST")}', 'Content-Type': 'application/x-www-form-urlencoded'},
-        body: body,
-      );
-      print("response    ${response.body}");
-      return json.decode(response.body);
-    } catch (err) {
-      throw Exception(err.toString());
-    }
-  }
 }
