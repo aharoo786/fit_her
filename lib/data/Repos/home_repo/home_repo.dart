@@ -401,10 +401,6 @@ class HomeRepo extends GetxService {
     return await apiProvider.postData("${Constants.addCalorieImage}/$id", body: map, headers: {"accessToken": accessToken});
   }
 
-  buyDescription({required Map<String, dynamic> body, required String accessToken}) async {
-    return await apiProvider.postData(Constants.stripePayment, body: body, headers: {"accessToken": accessToken});
-  }
-
   /// Motivation module
   Future<Response> getMotivationStats({required String accessToken, required String userId}) async {
     return await apiProvider.getData("${Constants.getMotivationStats}/$userId", headers: {"accessToken": accessToken});

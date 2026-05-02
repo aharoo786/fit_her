@@ -5,7 +5,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:flutter/material.dart';
 
-/// Payment WebView. Loads [url] (e.g. Payin PWA or Stripe).
+/// Payment WebView. Loads [url] (e.g. Payin PWA).
 /// If [successPlanId] is set (Direct Pay flow), intercepts fither://payment/success
 /// and fither://payment/failed to close and optionally update plan status.
 class WebViewScreen extends StatefulWidget {
