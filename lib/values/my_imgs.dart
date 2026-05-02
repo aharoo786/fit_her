@@ -1,6 +1,5 @@
 class MyImgs {
   static const String splashLogo = "assets/images/splashLogo.png";
-  static const String fitHerLogo = "assets/images/fitHerLogoLightGreen.png";
   static const String logo = "assets/images/logo.jpeg";
   static const String sendIcon = "assets/icons/send_icon.png";
   static const String logo3 = "assets/images/logo2.png";

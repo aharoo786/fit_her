@@ -24,16 +24,6 @@ class LoginModel extends Serializable {
   String? height;
   String? weight;
   String? bmiResult;
-  String? mainGoal;
-  String? healthConditions;
-  // Option-C feature flags. Backend always returns these; fromJson defaults
-  // to false when missing (older clients / offline JSON caches).
-  bool useNewPaidHome;
-  bool useNewUnpaidHome;
-  // Phase A — Progress Screen rebuild. Defaults false; backend flips this
-  // per-user to opt into the new hub. See bottom_bar_screen.dart for the
-  // routing decision.
-  bool useNewProgressHub;
 
   LoginModel({
     required this.id,
@@ -49,11 +39,6 @@ class LoginModel extends Serializable {
     this.age,
     this.weight,
     this.bmiResult,
-    this.mainGoal,
-    this.healthConditions,
-    this.useNewPaidHome = false,
-    this.useNewUnpaidHome = false,
-    this.useNewProgressHub = false,
   });
 
   factory LoginModel.fromJson(Map<String, dynamic> json) => LoginModel(
@@ -70,11 +55,6 @@ class LoginModel extends Serializable {
         weight: json["weight"],
         height: json["height"],
         bmiResult: json["bmiResult"],
-        mainGoal: json["mainGoal"],
-        healthConditions: json["healthConditions"],
-        useNewPaidHome: json["useNewPaidHome"] ?? false,
-        useNewUnpaidHome: json["useNewUnpaidHome"] ?? false,
-        useNewProgressHub: json["useNewProgressHub"] ?? false,
       );
 
   @override
@@ -88,11 +68,6 @@ class LoginModel extends Serializable {
         "userType": userType,
         "adminId": adminId,
         "accessToken": accessToken,
-        "mainGoal": mainGoal,
-        "healthConditions": healthConditions,
-        "useNewPaidHome": useNewPaidHome,
-        "useNewUnpaidHome": useNewUnpaidHome,
-        "useNewProgressHub": useNewProgressHub,
       };
 
   String get fullName => "${firstName} ${lastName}";

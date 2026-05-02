@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_plans_of_user.dart';
-import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/progress_screen_v1.dart';
-import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/progress_screen_v2.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/progress_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/workout_plans_of_user.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/posts_module/feed_screen.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
@@ -50,12 +49,6 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
       }
       authController.showDot.value = authController.sharedPreferences.getBool("showDot") ?? false;
     });
-    // Trainers and dietitians get a 4th "Community" tab between Chat and
-    // Profile. Same FeedScreen the women users see — single shared feed,
-    // no separate version. Paywall bypass for these roles is handled
-    // inside FeedScreen / CreatePostScreen via `userType` checks.
-    final isPro = authController.loginAsA.value == Constants.trainer ||
-        authController.loginAsA.value == Constants.dietitian;
     _widgetOption = authController.loginAsA.value == Constants.admin
         ? [
             HomeScreen(),
@@ -67,32 +60,26 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                 HomeScreen(),
                 WorkPlansOfUser(showBackButton: false,),
                 DietPlansOfUser(showBackButton: false,),
-                // Progress tab — paid users (status=true) see the new V2
-                // hub; free users see the legacy V1 measurement screen.
-                // Mirrors the home_screen.dart paid-vs-free pattern. The
-                // useNewProgressHub flag is retained in the DB/model for
-                // backward compat but no longer drives routing.
-                ((authController.logInUser?.status ?? false)
-                    ? const ProgressScreenV2()
-                    : ProgressScreenV1()),
+                ProgressScreen(),
                 FeedScreen()
                 // ChatRoom(
                 //     chatRoomId: widget.roomId ?? "",
                 //     userMap: widget.userMap ?? {}),
               ]
-            : isPro
-                ? [
-                    HomeScreen(),
-                    ChatHomeScreen(),
-                    FeedScreen(),
-                    ProfileScreen(),
-                  ]
-                : [
-                    HomeScreen(),
-                    ChatHomeScreen(),
-                    ProfileScreen(),
-                  ];
+            : [
+                HomeScreen(),
+                ChatHomeScreen(),
+                ProfileScreen(),
+              ];
 
+    if (authController.sharedPreferences.getBool("isFirstTime") == null) {
+      WidgetsBinding.instance.addPostFrameCallback((value) {
+        HelpingWidgets.showCustomDialog(context, () {
+          authController.sharedPreferences.setBool("isFirstTime", false);
+          Get.back();
+        }, "Welcome to FitHer!", "We’re thrilled to have you on this journey. Let’s kickstart it to a healthier, happier you.", MyImgs.welcomeEmoji);
+      });
+    }
     if (authController.sharedPreferences.getString(Constants.announcementNotification) != null) {
       var announcement = jsonDecode(authController.sharedPreferences.getString(Constants.announcementNotification)!);
       DateTime announcementDate = DateTime.parse(announcement["date"]);
@@ -232,240 +219,220 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
             ? FloatingActionButtonLocation.endFloat
             : null,
         bottomNavigationBar: Get.find<AuthController>().loginAsA.value == Constants.user
-            ? _buildUserOrProNav(textTheme: textTheme, forPro: false)
-            : (Get.find<AuthController>().loginAsA.value == Constants.trainer ||
-                    Get.find<AuthController>().loginAsA.value ==
-                        Constants.dietitian)
-                ? _buildUserOrProNav(textTheme: textTheme, forPro: true)
-                : _legacyAdminNav(textTheme: textTheme),
-      );
-  }
+            ? PreferredSize(
+                preferredSize: Size.fromHeight(70.h),
+                child: BottomNavigationBar(
+                  elevation: 0,
+                  backgroundColor: Colors.white,
+                  currentIndex: widget.index!,
 
-  /// User-side and trainer/dietitian both use the standard
-  /// `BottomNavigationBar` chrome (white bg, accent-circle on active,
-  /// icon-on-top + label-below). User-side has 5 tabs, pros have 4
-  /// (Home / Chat / Community / Profile). Falls back to this chrome
-  /// instead of the legacy rounded green pill so "Community" never gets
-  /// clipped at narrow widths.
-  Widget _buildUserOrProNav({
-    required TextTheme textTheme,
-    required bool forPro,
-  }) {
-    return PreferredSize(
-      preferredSize: Size.fromHeight(70.h),
-      child: BottomNavigationBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        currentIndex: widget.index!,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: MyColors.primaryGradient1,
-        unselectedIconTheme:
-            const IconThemeData(color: MyColors.primaryGradient1),
-        unselectedLabelStyle: TextStyle(
-            color: MyColors.primaryGradient1,
-            fontWeight: FontWeight.w500,
-            fontSize: 10.sp),
-        selectedIconTheme: const IconThemeData(color: MyColors.primaryColor),
-        selectedFontSize: 10.sp,
-        items: forPro ? _proItems() : _userItems(),
-        onTap: (value) async {
-          // Pre-existing showDot-clear behaviour for women users — fires
-          // when value == 3 (was the Progress tab in older layouts; kept
-          // verbatim to avoid behaviour drift). Pros don't carry showDot.
-          if (!forPro && value == 3) {
-            authController.sharedPreferences.setBool("showDot", false);
-            authController.showDot.value = false;
-          }
-          setState(() {
-            widget.index = value;
-          });
-        },
-      ),
-    );
-  }
+                  type: BottomNavigationBarType.fixed,
+                  selectedItemColor: Colors.white,
+                  unselectedItemColor: MyColors.primaryGradient1,
+                  unselectedIconTheme: const IconThemeData(color: MyColors.primaryGradient1),
+                  unselectedLabelStyle: TextStyle(color: MyColors.primaryGradient1, fontWeight: FontWeight.w500, fontSize: 10.sp),
 
-  /// Active-state circle behind the icon — accent-coloured, white icon.
-  Widget _activeIconCircle(String svgAsset) => Container(
-        padding: const EdgeInsets.all(5),
-        decoration: const BoxDecoration(
-            shape: BoxShape.circle, color: MyColors.buttonColor),
-        child: SvgPicture.asset(
-          svgAsset,
-          height: 30,
-          colorFilter:
-              const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-        ),
-      );
-
-  /// Pro variant of the active-icon circle for tabs that use Material
-  /// icons instead of SVG (Chat, Profile — no SVG asset exists).
-  Widget _activeMaterialIconCircle(IconData icon) => Container(
-        padding: const EdgeInsets.all(5),
-        decoration: const BoxDecoration(
-            shape: BoxShape.circle, color: MyColors.buttonColor),
-        child: Icon(icon, color: Colors.white, size: 24),
-      );
-
-  /// Trainer / dietitian — 4 tabs: Home / Chat / Community / Profile.
-  /// Home + Community use the same SVG assets as the user-side nav so
-  /// shared tabs feel identical. Chat + Profile fall back to Material
-  /// icons because no SVG counterpart exists in `MyImgs`.
-  List<BottomNavigationBarItem> _proItems() {
-    return [
-      BottomNavigationBarItem(
-        icon: SvgPicture.asset(MyImgs.homeSVG, height: 30),
-        activeIcon: _activeIconCircle(MyImgs.homeSVG),
-        label: "Home",
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 28),
-        activeIcon:
-            _activeMaterialIconCircle(Icons.chat_bubble_rounded),
-        label: "Chat",
-      ),
-      BottomNavigationBarItem(
-        icon: SvgPicture.asset(MyImgs.helpSVG, height: 30),
-        activeIcon: _activeIconCircle(MyImgs.helpSVG),
-        label: "Community",
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.person_outline_rounded, size: 28),
-        activeIcon: _activeMaterialIconCircle(Icons.person_rounded),
-        label: "Profile",
-      ),
-    ];
-  }
-
-  /// Regular women user — 5 tabs: Home / Workout / Diet / Progress / Community.
-  /// Verbatim from the previous version of this file.
-  List<BottomNavigationBarItem> _userItems() {
-    return [
-      BottomNavigationBarItem(
-        icon: SvgPicture.asset(MyImgs.homeSVG, height: 30),
-        activeIcon: _activeIconCircle(MyImgs.homeSVG),
-        label: "Home",
-      ),
-      BottomNavigationBarItem(
-        icon: SvgPicture.asset(MyImgs.workout, height: 30),
-        activeIcon: _activeIconCircle(MyImgs.workout),
-        label: "Workout",
-      ),
-      BottomNavigationBarItem(
-        icon: SvgPicture.asset(MyImgs.diet, height: 30),
-        activeIcon: _activeIconCircle(MyImgs.diet),
-        label: "Diet",
-      ),
-      BottomNavigationBarItem(
-        icon: SvgPicture.asset(MyImgs.progress, height: 30),
-        activeIcon: _activeIconCircle(MyImgs.progress),
-        label: "Progress",
-      ),
-      BottomNavigationBarItem(
-        icon: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            SvgPicture.asset(MyImgs.helpSVG, height: 30),
-            dotWidget(),
-          ],
-        ),
-        activeIcon: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            _activeIconCircle(MyImgs.helpSVG),
-            dotWidget(),
-          ],
-        ),
-        label: "Community",
-      ),
-    ];
-  }
-
-  /// Admin / specialists / customer support — legacy rounded green pill,
-  /// 3 tabs: Home / Chat / Profile. Verbatim from the previous version.
-  Widget _legacyAdminNav({required TextTheme textTheme}) {
-    return Container(
-      padding: EdgeInsets.only(bottom: 20.h, left: 20, right: 20.w),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
-        child: PreferredSize(
-          preferredSize: Size.fromHeight(56.h),
-          child: BottomNavigationBar(
-            elevation: 0,
-            backgroundColor: MyColors.buttonColor,
-            currentIndex: widget.index!,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: Colors.white,
-            unselectedItemColor: MyColors.black,
-            selectedFontSize: 0,
-            unselectedFontSize: 0,
-            selectedIconTheme:
-                const IconThemeData(color: MyColors.primaryColor),
-            items: [
-              BottomNavigationBarItem(
-                icon: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.home),
-                    SizedBox(width: 5.w),
-                    Text(
-                      "Home",
-                      style: textTheme.bodyMedium!.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: widget.index == 0
-                              ? Colors.white
-                              : Colors.black),
+                  selectedIconTheme: const IconThemeData(color: MyColors.primaryColor),
+                  selectedFontSize: 10.sp,
+                  // selectedLabelStyle: TextStyle(fontSize: 0),
+                  // selectedFontSize: 0,
+                  // unselectedFontSize: 10,
+                  // unselectedLabelStyle: const TextStyle(
+                  //   fontFamily: 'Roboto',
+                  // ),
+                  // selectedLabelStyle: const TextStyle(
+                  //   fontFamily: 'Roboto',
+                  // ),
+                  items: [
+                    BottomNavigationBarItem(
+                      icon: SvgPicture.asset(
+                        MyImgs.homeSVG,
+                        height: 30,
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: MyColors.buttonColor),
+                        child: SvgPicture.asset(
+                          MyImgs.homeSVG,
+                          height: 30,
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        ),
+                      ),
+                      label: "Home",
+                    ),
+                    BottomNavigationBarItem(
+                      icon: SvgPicture.asset(
+                        MyImgs.workout,
+                        height: 30,
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: MyColors.buttonColor),
+                        child: SvgPicture.asset(
+                          MyImgs.workout,
+                          height: 30,
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        ),
+                      ),
+                      label: "Workout",
+                    ),
+                    BottomNavigationBarItem(
+                      icon: SvgPicture.asset(
+                        MyImgs.diet,
+                        height: 30,
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: MyColors.buttonColor),
+                        child: SvgPicture.asset(
+                          MyImgs.diet,
+                          height: 30,
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        ),
+                      ),
+                      label: "Diet",
+                    ),
+                    BottomNavigationBarItem(
+                      icon: SvgPicture.asset(
+                        MyImgs.progress,
+                        height: 30,
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: MyColors.buttonColor),
+                        child: SvgPicture.asset(
+                          MyImgs.progress,
+                          height: 30,
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        ),
+                      ),
+                      label: "Progress",
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          SvgPicture.asset(
+                            MyImgs.helpSVG,
+                            height: 30,
+                          ),
+                          dotWidget()
+                        ],
+                      ),
+                      activeIcon: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: MyColors.buttonColor),
+                            child: SvgPicture.asset(
+                              MyImgs.helpSVG,
+                              height: 30,
+                              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                            ),
+                          ),
+                          dotWidget()
+                        ],
+                      ),
+                      label: "Community",
                     ),
                   ],
+                  onTap: (value) async {
+                    if (value == 3) {
+                      authController.sharedPreferences.setBool("showDot", false);
+                      authController.showDot.value = false;
+                    }
+                    setState(() {
+                      widget.index = value;
+                    });
+                  },
                 ),
-                label: "",
-              ),
-              BottomNavigationBarItem(
-                icon: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.message),
-                    SizedBox(width: 5.w),
-                    Text(
-                      "Chat",
-                      style: textTheme.bodyMedium!.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: widget.index == 1
-                              ? Colors.white
-                              : Colors.black),
+              )
+            : Container(
+                padding: EdgeInsets.only(bottom: 20.h, left: 20, right: 20.w),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(20)),
+                  child: PreferredSize(
+                    preferredSize: Size.fromHeight(56.h),
+                    child: BottomNavigationBar(
+                      elevation: 0,
+                      backgroundColor: MyColors.buttonColor,
+                      currentIndex: widget.index!,
+                      type: BottomNavigationBarType.fixed,
+                      selectedItemColor: Colors.white,
+                      unselectedItemColor: MyColors.black,
+                      selectedFontSize: 0,
+                      unselectedFontSize: 0,
+                      selectedIconTheme: const IconThemeData(color: MyColors.primaryColor),
+                      // unselectedLabelStyle: const TextStyle(
+                      //   fontFamily: 'Roboto',
+                      // ),
+                      // selectedLabelStyle: const TextStyle(
+                      //   fontFamily: 'Roboto',
+                      // ),
+                      items: [
+                        BottomNavigationBarItem(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.home),
+                              SizedBox(
+                                width: 5.w,
+                              ),
+                              Text(
+                                "Home",
+                                style: textTheme.bodyMedium!
+                                    .copyWith(fontWeight: FontWeight.w500, color: widget.index == 0 ? Colors.white : Colors.black),
+                              )
+                            ],
+                          ),
+                          label: "",
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.message),
+                              SizedBox(
+                                width: 5.w,
+                              ),
+                              Text(
+                                "Chat",
+                                style: textTheme.bodyMedium!
+                                    .copyWith(fontWeight: FontWeight.w500, color: widget.index == 1 ? Colors.white : Colors.black),
+                              )
+                            ],
+                          ),
+                          label: "",
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.person),
+                              SizedBox(
+                                width: 5.w,
+                              ),
+                              Text(
+                                "Profile",
+                                style: textTheme.bodyMedium!
+                                    .copyWith(fontWeight: FontWeight.w500, color: widget.index == 2 ? Colors.white : Colors.black),
+                              )
+                            ],
+                          ),
+                          label: "",
+                        ),
+                      ],
+
+                      onTap: (value) async {
+                        setState(() {
+                          widget.index = value;
+                        });
+                      },
                     ),
-                  ],
+                  ),
                 ),
-                label: "",
-              ),
-              BottomNavigationBarItem(
-                icon: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.person),
-                    SizedBox(width: 5.w),
-                    Text(
-                      "Profile",
-                      style: textTheme.bodyMedium!.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: widget.index == 2
-                              ? Colors.white
-                              : Colors.black),
-                    ),
-                  ],
-                ),
-                label: "",
-              ),
-            ],
-            onTap: (value) async {
-              setState(() {
-                widget.index = value;
-              });
-            },
-          ),
-        ),
-      ),
-    );
+              ));
   }
 
   dotWidget() {

@@ -4,7 +4,6 @@ import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart'
 import 'package:fitness_zone_2/data/Repos/checkin_repo/checkin_repository.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
-import 'package:fitness_zone_2/data/controllers/paid_home_controller/paid_home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/plan_controller/plan_controller.dart';
 import 'package:fitness_zone_2/data/controllers/post_controller.dart';
 import 'package:fitness_zone_2/data/controllers/progress_controller/progress_controller.dart';
@@ -50,10 +49,5 @@ Future init() async {
   Get.lazyPut(() => PlanController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
   Get.lazyPut(() => RatingController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
   Get.lazyPut(() => PostController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => PaidHomeController(
-        homeRepo: Get.find(),
-        checkinRepo: Get.find(),
-        sharedPreferences: sharedPreferences,
-      ));
   Get.lazyPut(() => ZoomMeetingGetxController());
 }

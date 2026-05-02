@@ -64,13 +64,6 @@ class ClientUser {
   String? bmiResult;
   ClientUser? supporter;
 
-  /// Backend's user-type discriminator. Per CLAUDE.md, expected values
-  /// are: 'User', 'Trainer', 'Dietition' (typo preserved by backend),
-  /// 'Gynecologist', 'Psychiatrist', 'Admin'. Defensive add — null when
-  /// the backend response omits the field, so consumers must null-check.
-  /// Powers the TRAINER / DIETITIAN badges on community post cards.
-  String? userType;
-
   ClientUser(
       {required this.id,
       required this.firstName,
@@ -79,8 +72,7 @@ class ClientUser {
       required this.phone,
       required this.experience,
       required this.bmiResult,
-      required this.supporter,
-      this.userType});
+      required this.supporter});
 
   factory ClientUser.fromJson(Map<String, dynamic> json) => ClientUser(
         id: json["id"],
@@ -91,19 +83,10 @@ class ClientUser {
         email: json["email"],
         experience: json["experience"] ?? "N/A",
         supporter: json["supporter"] == null ? null : ClientUser.fromJson(json["supporter"]),
-        userType: json["userType"] as String?,
       );
 
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "firstName": firstName,
-        "phone": phone,
-        "lastName": lastName,
-        "email": email,
-        "experience": experience,
-        "supporter": supporter,
-        "userType": userType,
-      };
+  Map<String, dynamic> toJson() =>
+      {"id": id, "firstName": firstName, "phone": phone, "lastName": lastName, "email": email, "experience": experience, "supporter": supporter};
 
   get fullName => "${this.firstName} ${this.lastName}";
 }

@@ -104,28 +104,19 @@ class Slot {
   });
 
   factory Slot.fromJson(Map<String, dynamic> json) => Slot(
-        start: _decodeTime(json["start"], "Start Time"),
-        end: _decodeTime(json["end"], "End Time"),
+        start: json["start"] == "Start Time"
+            ? "Start Time"
+            : DateFormat('hh:mm a')
+                .format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["start"]))),
+        end: json["end"] == "End Time"
+            ? "End Time"
+            : DateFormat('hh:mm a')
+                .format(DateTime.fromMillisecondsSinceEpoch(int.parse(json["end"]))),
         id: json["id"],
         dayId: json["TimeId"],
         // trainerLink: json["trainerLink"],
         trainerId: json["trainerId"],
       );
-
-  // Tolerates both legacy epoch-ms strings (e.g. "1714560000000") and
-  // current wall-clock strings (e.g. "08:00 AM"). int.parse-only would
-  // throw on wall-clock values and silently kill the whole response parse.
-  static String _decodeTime(dynamic raw, String placeholder) {
-    if (raw == null) return placeholder;
-    final s = raw.toString();
-    if (s.isEmpty || s == placeholder) return placeholder;
-    final n = int.tryParse(s);
-    if (n != null) {
-      return DateFormat('hh:mm a')
-          .format(DateTime.fromMillisecondsSinceEpoch(n));
-    }
-    return s;
-  }
 
   Map<String, dynamic> toJson() => {
         "start": start,
