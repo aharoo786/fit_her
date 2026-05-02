@@ -19,13 +19,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../helper/permissions.dart';
 import '../../../values/my_colors.dart';
 
-/// Phase D1 — renamed from `ProgressScreen`. Class kept under the new
-/// name so `bottom_bar_screen.dart` can route to V1 vs V2 by class name.
-/// Functionally identical to the pre-rebuild screen — Weekly Progress +
-/// Photo Library tabs. Users with `useNewProgressHub == false` continue to
-/// land here. The new hub is `ProgressScreenV2`.
-class ProgressScreenV1 extends StatelessWidget {
-  ProgressScreenV1({super.key});
+class ProgressScreen extends StatelessWidget {
+  ProgressScreen({super.key});
   final List<String> images = [
     MyImgs.before,
     MyImgs.after,

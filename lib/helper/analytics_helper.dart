@@ -352,48 +352,4 @@ class AnalyticsHelper {
   static Future<void> trackWeeklyProgressReport() async {
     await _analyticsService.logWeeklyProgressReport();
   }
-
-  // ─── Phase E3 — Progress Hub V2 events ──────────────────────────────────
-
-  /// E3 — Hub screen view (fires from ProgressScreenV2.initState).
-  static Future<void> trackProgressV2HubView() async {
-    await _analyticsService.logProgressV2HubView();
-  }
-
-  /// E3 — Period chip selector changed.
-  static Future<void> trackProgressV2PeriodChanged({
-    required String to,
-    String? from,
-  }) async {
-    await _analyticsService.logProgressV2PeriodChanged(to: to, from: from);
-  }
-
-  /// E3 — PDF generated successfully (before share sheet opens).
-  static Future<void> trackProgressV2PdfDownloaded({
-    int? bytes,
-    int? pageCount,
-    String? period,
-  }) async {
-    await _analyticsService.logProgressV2PdfDownloaded(
-      bytes: bytes,
-      pageCount: pageCount,
-      period: period,
-    );
-  }
-
-  /// E3 — Share-sheet outcome.
-  static Future<void> trackProgressV2PdfShareCompleted({
-    required String status,
-    String? period,
-  }) async {
-    await _analyticsService.logProgressV2PdfShareCompleted(
-      status: status,
-      period: period,
-    );
-  }
-
-  /// E3 — Locked Doctor Share button tapped (signals demand).
-  static Future<void> trackProgressV2DoctorShareClicked() async {
-    await _analyticsService.logProgressV2DoctorShareClicked();
-  }
 }

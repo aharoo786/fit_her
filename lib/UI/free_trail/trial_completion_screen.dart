@@ -149,7 +149,7 @@ class _TrialCompletionScreenState extends State<TrialCompletionScreen> {
             height: 110,
             maxlines: 4,
             keyboardType: TextInputType.multiline,
-            inputFormatters: FilteringTextInputFormatter.singleLineFormatter,
+            inputFormatters: [FilteringTextInputFormatter.singleLineFormatter],
           ),
           const SizedBox(height: 16),
           CustomButton(

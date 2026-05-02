@@ -4,7 +4,7 @@ import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../UI/auth_module/walt_through/walk_through_screenn.dart';
+import '../../UI/auth_module/welcom_screen.dart';
 
 class AppLinkHandler {
   static final AppLinkHandler _instance = AppLinkHandler._internal();
@@ -43,7 +43,7 @@ class AppLinkHandler {
     final token = uri.queryParameters["token"];
     if (uri.toString().contains("trial") && token != null && token.isNotEmpty) {
       Get.find<HomeController>().validateTrialToken(token);
-      Get.offAll(() => const WalkThroughScreen());
+      Get.offAll(() => WelcomeScreen());
       return;
     }
 
@@ -52,7 +52,7 @@ class AppLinkHandler {
             supporterId: uri.toString().split("/").last,
           ));
     } else {
-      Get.offAll(() => const WalkThroughScreen());
+      Get.offAll(() => WelcomeScreen());
     }
   }
 }

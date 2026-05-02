@@ -10,8 +10,6 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
-import '../../../screens/paid_home_screen_v2.dart';
-import '../../../screens/unpaid_home_screen_v2.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
 import '../../../widgets/trainer_home_screen.dart';
@@ -26,25 +24,17 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // No AppBar — the previous zero-height PreferredSize+AppBar served no
-    // visible purpose but caused the mint status-bar band on PaidHomeV2.
-    // AppBars in Flutter implement `systemOverlayStyle` via their own
-    // AnnotatedRegion, and this one inherited the global
-    // `AppBarTheme.systemOverlayStyle` (statusBarColor: AppColors.primary
-    // = #8AD167) from `lib/theme/app_theme.dart:60-64`. That outer
-    // AnnotatedRegion overrode PaidHomeV2's inner transparent one.
-    // Children that need their own status-bar styling now own it cleanly.
     return Scaffold(
         backgroundColor: Color(0xffF5EEEE),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(0),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+        ),
         body: Obx(() {
           if (authController.loginAsA.value == Constants.user) {
-            final user = authController.logInUser;
-            if (user != null && user.status == true && user.useNewPaidHome == true) {
-              return const PaidHomeScreenV2();
-            }
-            if (user != null && user.status == false && user.useNewUnpaidHome == true) {
-              return const UnpaidHomeScreenV2();
-            }
             return UserHomeScreen();
           } else if (authController.loginAsA.value == Constants.dietitian) {
             return DietitianProfileScreen();

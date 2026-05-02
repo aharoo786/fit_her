@@ -1,146 +1,368 @@
+import 'package:fitness_zone_2/UI/auth_module/height_slider_screen.dart';
+import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
+import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/BMI_result.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
-import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
-import 'package:fitness_zone_2/values/constants.dart';
+import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
+import 'package:fitness_zone_2/widgets/custom_textfield.dart';
+import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../cycle_data_screen.dart';
-import 'age_screen.dart';
-import 'health_conditions_screen.dart';
-import 'height_screen.dart';
-import 'weight_screen.dart';
+import '../../../values/dimens.dart';
+import '../../../values/my_colors.dart';
+import '../../../widgets/custom_button.dart';
 
-/// Orchestrates the onboarding question flow:
-/// GoalScreen (step 1, handled before this) →
-/// Age (2) → Weight (3) → Height (4) → Cycle (5) → HealthConditions (6)
-///
-/// Each step is a standalone screen using the shared OnboardingScaffold design.
 class SignUpScreenQuestions extends StatefulWidget {
-  final String? selectedGoal;
-
-  const SignUpScreenQuestions({Key? key, this.selectedGoal}) : super(key: key);
-
   @override
-  State<SignUpScreenQuestions> createState() => _SignUpScreenQuestionsState();
+  _SignUpScreenQuestionsState createState() => _SignUpScreenQuestionsState();
 }
 
 class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
-  static const int _totalSteps = 6;
-
-  late final String _goal;
-  late final int _initialAge;
-  late final double _initialWeight;
-  late final double _initialHeight;
-  late final String _initialConditions;
-
+  final PageController _pageController = PageController();
+  final PageController _pageController2 = PageController();
+  int _currentPage = 0;
+  int _currentIndex = 1;
+  List<int> ageNumber = List.generate(70 - 18 + 1, (index) => 18 + index);
+  List<int> weight = List.generate(100 - 30 + 1, (index) => 30 + index);
+  List<String> height = [];
+  TextEditingController weightController = TextEditingController();
   @override
   void initState() {
+    for (int feet = 4; feet <= 7; feet++) {
+      for (int inches = 0; inches < 12; inches++) {
+        height.add("${feet}.${inches}");
+      }
+    }
+    answers = [
+      _pages[0].options![0],
+      ageNumber[1],
+      weight[1],
+      height[1],
+      _pages[4].options![0]
+    ];
+    print("answers $answers");
     super.initState();
-    final auth = Get.find<AuthController>();
+  }
 
-    _goal = widget.selectedGoal ?? auth.mainGoal.value;
-    _initialAge = int.tryParse(auth.editAge.text) ?? 25;
-    _initialWeight = double.tryParse(auth.editWeight.text) ?? 55;
-    _initialHeight = double.tryParse(auth.editHeight.text) ?? 5.4;
-    _initialConditions = auth.healthConditions.value;
+  final List<Question> _pages = [
+    Question(text: "What’s your goal?", options: [
+      "Lose Weight",
+      "Improve Fitness",
+      "Build Muscles",
+      "Reduce Stress",
+      "For Consultancy",
+    ]),
+    Question(text: "Let’s get your age.", options: ["age"]),
+    Question(text: "Let’s get your weight.", options: ["weight"]),
+    Question(text: "Let’s get your height(Feet)", options: ["height"]),
+    Question(
+        text: "What’s time suits you?",
+        options: ["Morning", "Afternoon", "Evening", "No preference"])
+  ];
+  List<dynamic> answers = [];
+
+  void _nextPage() {
+    if (_currentPage < _pages.length - 1) {
+      _pageController.animateToPage(
+        _currentPage + 1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Step 2: Age (Goal was step 1 via GoalScreen)
-    return AgeScreen(
-      currentStep: 2,
-      totalSteps: _totalSteps,
-      initialValue: _initialAge,
-      onNext: (age) => _goToWeight(age),
+    var textTheme = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: HelpingWidgets().appBarWidget(
+        () {
+          if (_currentPage > 0) {
+            _pageController.previousPage(
+                duration: Duration(microseconds: 100), curve: Curves.easeIn);
+          } else {
+            Get.back();
+          }
+        },
+      ),
+      body: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Step ${_currentPage + 1}/${_pages.length}",
+                  style: textTheme.bodySmall!.copyWith(
+                      color: MyColors.black, fontWeight: FontWeight.w400),
+                ),
+                SizedBox(
+                  height: Dimens.size5.h,
+                ),
+                Text(
+                  _pages[_currentPage].text,
+                  style: textTheme.headlineSmall!.copyWith(
+                      fontSize: 24.sp,
+                      color: MyColors.textColor3,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            Expanded(
+              child: PageView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                controller: _pageController,
+                itemCount: _pages.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_pages[_currentPage].options!.length == 1) ...{
+                          if (_pages[_currentPage].options!.contains("age"))
+                            HeightSliderScreen(
+                              maxValue: 70.0,
+                              minValue: 18.0,
+                              interval: 5,
+                              majorTickInterval: 9,
+                              value: answers[_currentPage].toDouble(),
+                              toolString: 'years old',
+                              updateValue: (value) {
+                                answers[_currentPage] = value;
+                              },
+                            ),
+                          if (_pages[_currentPage].options!.contains("weight"))
+                            HeightSliderScreen(
+                              maxValue: 100.0,
+                              minValue: 30.0,
+                              interval: 5,
+                              majorTickInterval: 10,
+                              value: answers[_currentPage].toDouble(),
+                              toolString: 'kg',
+                              updateValue: (value) {
+                                answers[_currentPage] = value;
+                              },
+                            ),
+                          if (_pages[_currentPage].options!.contains("height"))
+                            HeightSliderScreen(
+                              maxValue: 7.0,
+                              minValue: 3.0,
+                              value: double.parse(
+                                  answers[_currentPage].toString()),
+                              toolString: 'ft',
+                              updateValue: (value) {
+                                answers[_currentPage] = value.toString();
+                              },
+                            )
+                        } else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemBuilder: (context, indexO) {
+                              var option = _pages[index].options![indexO];
+                              return CustomButton(
+                                text: option,
+                                onPressed: () {
+                                  answers[_currentPage] =
+                                      _pages[index].options![indexO];
+                                  setState(() {});
+                                },
+                                color: answers[_currentPage] ==
+                                        _pages[index].options![indexO]
+                                    ? MyColors.buttonColor
+                                    : Colors.white,
+                                textColor: MyColors.black,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w400,
+                              );
+                            },
+                            separatorBuilder: (context, index) {
+                              return SizedBox(
+                                height: 24.h,
+                              );
+                            },
+                            itemCount: _pages[index].options!.length,
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: 20.w,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 10.h,
+            ),
+            CustomButton(
+                text: _currentPage < _pages.length - 1 ? 'Next' : 'Done',
+                onPressed: () async {
+                  if (_currentPage < _pages.length - 1) {
+                    _currentIndex = 1;
+                    _pageController.nextPage(
+                        duration: const Duration(microseconds: 100),
+                        curve: Curves.easeInOut);
+                    print("answers $answers");
+                  } else {
+                    var heightInMeters = (double.parse(answers[3]) * 0.3048) *
+                        (double.parse(answers[3]) * 0.3048);
+                    var bmi = answers[2] / heightInMeters;
+                    AuthController authController = Get.find();
+                     Get.find<HomeController>().addUserDetails(
+                        status: false,
+                        age: answers[1].toString(),
+                        weight: answers[2].toString(),
+                        height: answers[3].toString(),
+                        bmiResult: bmi.toStringAsFixed(2));
+
+                    ///updating edit screen data
+
+                    authController.editBmi.text = bmi.toStringAsFixed(2) ?? "";
+                    authController.editAge.text = answers[1].toString() ?? "";
+                    authController.editWeight.text =
+                        answers[2].toString() ?? "";
+                    authController.editHeight.text =
+                        answers[3].toString() ?? "";
+                  }
+                }),
+            SizedBox(
+              height: 30.h,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  void _goToWeight(int age) {
-    Get.to(() => WeightScreen(
-          currentStep: 3,
-          totalSteps: _totalSteps,
-          initialValue: _initialWeight,
-          onNext: (weight) => _goToHeight(age, weight),
-        ));
-  }
+  Widget buildScrollPicker(List<dynamic> values, TextTheme textTheme,
+      {bool showDialogValue = true}) {
+    return SizedBox(
+      height: 100,
+      width: 300,
+      child: Row(
+        children: [
+          if (_currentIndex != 0)
+            Text(
+              values[_currentIndex - 1].toString(),
+              style: textTheme.bodySmall!.copyWith(
+                color: MyColors.black.withOpacity(0.2),
+                fontSize: 48.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          Expanded(
+            child: PageView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: values.length,
+              // allowImplicitScrolling: true,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                  answers[_currentPage] = values[index];
+                });
+              },
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    if (showDialogValue) {
+                      weightController.clear();
+                      showDialog(
+                          context: context,
+                          builder: (context) {
+                            return Dialog(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 20),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CustomTextField(
+                                        authFocus: true,
+                                        controller: weightController,
+                                        text: "Enter",
+                                        length: 3,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters:
+                                            FilteringTextInputFormatter
+                                                .digitsOnly),
+                                    SizedBox(
+                                      height: 20,
+                                    ),
+                                    CustomButton(
+                                        text: "Next",
+                                        onPressed: () {
+                                          int value =
+                                              int.parse(weightController.text);
+                                          if (value <= values.length) {
+                                            int index = values.indexOf(value);
+                                            _currentIndex = index;
+                                            answers[_currentPage] =
+                                                values[index];
+                                            Get.back();
+                                            setState(() {});
+                                            print("weight ${weight[index]}");
+                                          } else {
+                                            CustomToast.failToast(
+                                                msg:
+                                                    "Please enter value under ${values.length}");
+                                          }
 
-  void _goToHeight(int age, double weight) {
-    Get.to(() => HeightScreen(
-          currentStep: 4,
-          totalSteps: _totalSteps,
-          initialValue: _initialHeight,
-          onNext: (height) => _goToCycle(age, weight, height),
-        ));
-  }
-
-  void _goToCycle(int age, double weight, double height) {
-    Get.to(() => CycleDataScreen(
-          currentStep: 5,
-          totalSteps: _totalSteps,
-          onContinue: (cycleData) {
-            _saveCycleData(cycleData);
-            _goToHealthConditions(age, weight, height);
-          },
-          onSkip: () {
-            _saveCycleData({'dataProvided': 0});
-            _goToHealthConditions(age, weight, height);
-          },
-        ));
-  }
-
-  void _goToHealthConditions(int age, double weight, double height) {
-    Get.to(() => HealthConditionsScreen(
-          currentStep: 6,
-          totalSteps: _totalSteps,
-          initialConditions: _initialConditions,
-          onNext: (conditions) =>
-              _finish(conditions, age, weight, height),
-        ));
-  }
-
-  void _saveCycleData(Map<String, dynamic> cycleData) {
-    final token = Get.find<AuthController>()
-        .sharedPreferences
-        .getString(Constants.accessToken) ?? '';
-    Get.find<CycleDataRepository>()
-        .saveCycleData(accessToken: token, body: cycleData);
-  }
-
-  void _finish(String conditions, int age, double weight, double height) {
-    // Calculate BMI: weight(kg) / height(m)^2
-    final heightInMeters = height * 0.3048;
-    final bmi = weight / (heightInMeters * heightInMeters);
-    final bmiStr = bmi.toStringAsFixed(2);
-
-    final auth = Get.find<AuthController>();
-
-    // Send to API
-    Get.find<HomeController>().addUserDetails(
-      status: false,
-      age: age.toString(),
-      weight: weight.round().toString(),
-      height: height.toString(),
-      bmiResult: bmiStr,
-      mainGoal: _goal,
-      healthConditions: conditions,
+                                          // Get.back();
+                                        })
+                                  ],
+                                ),
+                              ),
+                            );
+                          });
+                    }
+                  },
+                  child: Center(
+                    child: Text(
+                      values[_currentIndex].toString(),
+                      style: textTheme.bodySmall!.copyWith(
+                        color: MyColors.textColor3,
+                        fontSize: 60.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (_currentIndex <= values.length - 2)
+            Text(
+              values[_currentIndex + 1].toString(),
+              style: textTheme.bodySmall!.copyWith(
+                color: MyColors.black.withOpacity(0.2),
+                fontSize: 48.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
     );
-
-    // Update local controllers for profile display
-    auth.editBmi.text = bmiStr;
-    auth.editAge.text = age.toString();
-    auth.editWeight.text = weight.round().toString();
-    auth.editHeight.text = height.toString();
-    auth.mainGoal.value = _goal;
-    auth.healthConditions.value = conditions;
   }
-}
-
-/// Kept for backward compatibility — used by questionair_screen.dart
-class Question {
-  final String text;
-  final List<String>? options;
-
-  Question({required this.text, this.options});
 }

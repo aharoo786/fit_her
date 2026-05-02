@@ -1,30 +1,31 @@
-import 'dart:async';
-
+import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
+import 'package:fitness_zone_2/data/controllers/zoom_controller.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/data/services/cycle_engine.dart';
+import 'package:fitness_zone_2/data/services/recommendation_service.dart';
+import 'package:fitness_zone_2/values/my_colors.dart';
+import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
+import 'package:fitness_zone_2/widgets/circular_progress.dart';
+import 'package:fitness_zone_2/widgets/recommended_badge.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
-
-import '../../../data/controllers/home_controller/home_controller.dart';
-import '../../../data/controllers/motivation_controller/motivation_controller.dart';
-import '../../../data/controllers/workout_controller/work_out_controller.dart';
 import '../../../data/models/get_user_plan/get_workout_user_plan_details.dart';
-import '../../../data/services/recommendation_service.dart';
-import '../../../utils/slot_input_builder.dart';
-import '../../../utils/slot_ui_state.dart';
-import '../../../widgets/app_bar_widget.dart';
-import '../../../widgets/circular_progress.dart';
+import '../../../helper/custom_print.dart';
+import '../../../values/constants.dart';
+import '../../../values/my_imgs.dart';
+import '../../../widgets/review_bottom_sheet.dart';
+import '../../../widgets/toasts.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
+import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation_controller.dart';
 
-/// Sprint 3 / S-18 — Workout Schedule timeline.
-///
-/// Class signature, constructor, the API call (`getDietPlanDetailsFunc`),
-/// the slot tap handler (`HelpingWidgets.showWorkoutBottomSheet`),
-/// pull-to-refresh, back navigation and analytics surface (none — this
-/// screen never had any) are preserved exactly. Only the widget tree is
-/// replaced.
 class WorkOutBottomScreen extends StatefulWidget {
-  const WorkOutBottomScreen({super.key, required this.planId});
+  WorkOutBottomScreen({super.key, required this.planId});
   final String planId;
 
   @override
@@ -32,963 +33,337 @@ class WorkOutBottomScreen extends StatefulWidget {
 }
 
 class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
-  // Preserved Get.find() bindings (HomeController is required by the
-  // showWorkoutBottomSheet call).
-  final HomeController homeController = Get.find();
-  final WorkOutController workOutController = Get.find();
-  final MotivationController motivationController = Get.find();
+  HomeController homeController = Get.find();
+  WorkOutController workOutController = Get.find();
+  MotivationController motivationController = Get.find();
+  bool showBottomSheet = false;
 
-  // ── S-18 design tokens (verbatim from Sprint3_Visual.html line 30+) ──
-  static const Color _bg = Color(0xFFE8F4E0);
-  static const Color _textDark = Color(0xFF1A3A22);
-  static const Color _textMuted = Color(0xFF7A8C78);
-  static const Color _textHint = Color(0xFF9AB09A);
-  static const Color _connector = Color(0xFFC8DEC4);
-  static const Color _liveBgDark = Color(0xFF0D2014);
-  static const Color _accent = Color(0xFF6DC55A);
-  static const Color _liveRed = Color(0xFFE24B4A);
-  static const Color _moderate = Color(0xFFFAC775);
-  static const Color _intense = Color(0xFFFF8A8A);
-  static const Color _circleBorder = Color(0xFFC8E8BC);
-
-  // Founder-approved social-proof copy for the LIVE card. Replaces the
-  // mockup's "34 women" — fake numbers undermine brand integrity. When
-  // backend exposes real attendance count, swap to "$count women joined".
-  static const String _liveCommunityCopy = 'Your community is here';
-
-  late DateTime _selectedDate;
-  late DateTime _weekStart; // Monday of the displayed week
-  Timer? _liveTickTimer;
+  String? _currentPhase;
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _selectedDate = DateTime(now.year, now.month, now.day);
-    _weekStart = _mondayOfWeek(_selectedDate);
+    _loadCyclePhase();
+  }
 
-    // Attendance stats power the past-class ✓ checkmark (per-date, not
-    // per-slot — a Phase D backend ticket will add per-slot precision).
-    if (motivationController.motivationStats.value == null &&
-        !motivationController.isLoadingStats.value) {
-      motivationController.fetchMotivationStats();
+  Future<void> _loadCyclePhase() async {
+    final authController = Get.find<AuthController>();
+    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final cycleRepo = Get.find<CycleDataRepository>();
+    final response = await cycleRepo.getCycleData(accessToken: token);
+
+    if (response.body != null &&
+        response.body['status'] == '1' &&
+        response.body['data'] != null &&
+        response.body['data']['dataProvided'] == 1 &&
+        response.body['data']['lastPeriodDate'] != null) {
+      final data = response.body['data'];
+      final cycleInfo = CycleEngine.calculate(
+        lastPeriodDate: DateTime.parse(data['lastPeriodDate']),
+        cycleLength: data['averageCycleLength'] ?? 28,
+      );
+      if (cycleInfo != null && mounted) {
+        setState(() {
+          _currentPhase = cycleInfo.phase;
+        });
+      }
     }
-
-    // Refresh the LIVE card's "N min" countdown every 60s.
-    _liveTickTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (mounted) setState(() {});
-    });
   }
-
-  @override
-  void dispose() {
-    _liveTickTimer?.cancel();
-    super.dispose();
-  }
-
-  static DateTime _mondayOfWeek(DateTime d) =>
-      d.subtract(Duration(days: d.weekday - 1));
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: _bg,
-      statusBarIconBrightness: Brightness.dark,
-    ));
+    var textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: _bg,
-      body: Obx(() {
-        if (!workOutController.workOutPlanDetailsLoad.value) {
-          return const Center(child: CircularProgress());
-        }
-        return SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildDayStrip(),
-              SizedBox(height: 12.h),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    // Preserved API call — same arg, same shape.
-                    workOutController
-                        .getDietPlanDetailsFunc(widget.planId);
-                    if (motivationController.motivationStats.value == null &&
-                        !motivationController.isLoadingStats.value) {
-                      motivationController.fetchMotivationStats();
-                    }
+        resizeToAvoidBottomInset: false,
+        appBar: HelpingWidgets().appBarWidget(() {
+          Get.back();
+        }, text: "Workout Schedule"),
+        body: Obx(
+          () => !workOutController.workOutPlanDetailsLoad.value
+              ? const CircularProgress()
+              : RefreshIndicator(
+                  onRefresh: () {
+                    workOutController.getDietPlanDetailsFunc(widget.planId);
+                    return Future.value();
                   },
-                  // Inner Obx so the timeline rebuilds when motivationStats
-                  // arrives (drives the ✓ checkmark on past cards).
-                  child: Obx(() {
-                    // Touch motivationStats so this Obx subscribes to it.
-                    motivationController.motivationStats.value;
-                    return _buildTimelineScrollable();
-                  }),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-
-  // ── Header: back button + YOUR SCHEDULE title + week chevrons ──────────
-  Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _circleButton(icon: Icons.arrow_back, onTap: () => Get.back()),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'YOUR SCHEDULE',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w700,
-                    color: _textMuted,
-                    letterSpacing: 0.88, // 0.08em × 11
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  DateFormat('EEEE, d MMMM').format(_selectedDate),
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.w800,
-                    color: _textDark,
-                    letterSpacing: -0.44, // -0.02em × 22
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _circleButton(
-            icon: Icons.chevron_left,
-            onTap: () => _navigateWeek(-1),
-          ),
-          SizedBox(width: 6.w),
-          _circleButton(
-            icon: Icons.chevron_right,
-            onTap: () => _navigateWeek(1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40.w,
-        height: 40.w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: _circleBorder, width: 1),
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon, color: _textDark, size: 18.w),
-      ),
-    );
-  }
-
-  // ── Day strip: 7 weekday pills ──────────────────────────────────────────
-  Widget _buildDayStrip() {
-    final dates = List.generate(7, (i) => _weekStart.add(Duration(days: i)));
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
-      child: Row(
-        children: [
-          for (int i = 0; i < dates.length; i++) ...[
-            Expanded(child: _buildDayPill(dates[i])),
-            if (i < dates.length - 1) SizedBox(width: 5.w),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDayPill(DateTime d) {
-    final selected = _isSelected(d);
-    final letter = DateFormat('E').format(d).substring(0, 1);
-    return GestureDetector(
-      onTap: () => setState(() {
-        _selectedDate = DateTime(d.year, d.month, d.day);
-      }),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 9.h, horizontal: 4.w),
-        decoration: BoxDecoration(
-          color: selected ? _liveBgDark : Colors.transparent,
-          borderRadius: BorderRadius.circular(11),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              letter,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 9.sp,
-                fontWeight: FontWeight.w700,
-                color: selected ? _accent : _textMuted,
-              ),
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              '${d.day}',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w800,
-                color: selected ? Colors.white : _textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Timeline (or empty state) ──────────────────────────────────────────
-  Widget _buildTimelineScrollable() {
-    final slots = _slotsForSelectedDay();
-    if (slots.isEmpty) {
-      // AlwaysScrollable so RefreshIndicator still works on empty days.
-      return SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: SizedBox(
-          height: 380.h,
-          child: _buildEmptyState(),
-        ),
-      );
-    }
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 30.h),
-      child: Column(
-        children: [
-          for (int i = 0; i < slots.length; i++)
-            _buildTimelineRow(slots[i], isLast: i == slots.length - 1),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.event_busy_outlined, size: 48.w, color: _connector),
-            SizedBox(height: 12.h),
-            Text(
-              'No classes today',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
-                color: _textDark,
-              ),
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              'Pick another day in the strip above.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13.sp,
-                color: _textMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Single timeline row: time | dot+connector | card ───────────────────
-  Widget _buildTimelineRow(Slot slot, {required bool isLast}) {
-    final state = _stateFor(slot);
-    final access = buildUserAccess(homeController);
-    final input = buildSlotInput(slot, _selectedDate);
-    final mins = (state == SlotUIState.upcomingSoon && input != null)
-        ? minutesUntilStart(input.start, DateTime.now())
-        : null;
-    final presentation = presentationForState(
-      state,
-      minutesUntilStart: mins,
-      blockReason: blockReasonFor(access),
-    );
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 50.w, child: _buildTimeColumn(slot, state)),
-          SizedBox(width: 14.w),
-          SizedBox(width: 12.w, child: _buildDotColumn(state, isLast)),
-          SizedBox(width: 14.w),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 14.h),
-              child: _buildCard(slot, state, presentation),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // States below are grouped only for VISUAL purposes — the resolver
-  // already drove the decision; these helpers just paint accordingly.
-  bool _isLiveState(SlotUIState s) =>
-      s == SlotUIState.liveReady ||
-      s == SlotUIState.liveNotReady ||
-      s == SlotUIState.liveBlocked;
-
-  bool _isPastState(SlotUIState s) =>
-      s == SlotUIState.past || s == SlotUIState.endedNotAttended;
-
-  bool _isUpcomingState(SlotUIState s) =>
-      s == SlotUIState.upcomingFar || s == SlotUIState.upcomingSoon;
-
-  Widget _buildTimeColumn(Slot slot, SlotUIState state) {
-    if (_isLiveState(state)) {
-      final left = _liveMinutesLeft(slot);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 4.h),
-          Text(
-            'NOW',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w800,
-              color: _liveRed,
-            ),
-          ),
-          SizedBox(height: 1.h),
-          Text(
-            left != null ? '$left min' : '—',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 9.sp,
-              fontWeight: FontWeight.w700,
-              color: _liveRed,
-            ),
-          ),
-        ],
-      );
-    }
-
-    // Past, upcoming, cancelled: show the slot's start time as "10:30" + "AM".
-    final parts = (slot.start).split(' ');
-    final time = parts.isNotEmpty ? parts[0] : slot.start;
-    final ampm = parts.length > 1 ? parts[1] : '';
-    final muted = _isPastState(state) || state == SlotUIState.cancelled;
-    final timeColor = muted ? _textMuted : _textDark;
-    final ampmColor = muted ? _textHint : _textMuted;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(height: 4.h),
-        Text(
-          time,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w800,
-            color: timeColor,
-          ),
-        ),
-        SizedBox(height: 1.h),
-        Text(
-          ampm,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.sp,
-            fontWeight: FontWeight.w600,
-            color: ampmColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDotColumn(SlotUIState state, bool isLast) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(height: 4.h),
-        _buildDot(state),
-        Expanded(
-          child: Container(
-            width: 2,
-            margin: EdgeInsets.symmetric(vertical: 4.h),
-            color: isLast ? Colors.transparent : _connector,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDot(SlotUIState state) {
-    if (_isLiveState(state)) {
-      // Red filled dot, white border, red glow ring.
-      return Container(
-        width: 14.w,
-        height: 14.w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _liveRed,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: _liveRed.withValues(alpha: 0.45),
-              spreadRadius: 2,
-              blurRadius: 0,
-            ),
-          ],
-        ),
-      );
-    }
-    if (_isPastState(state)) {
-      return Container(
-        width: 12.w,
-        height: 12.w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: _accent, width: 2),
-        ),
-      );
-    }
-    // upcoming + cancelled share the neutral hollow dot.
-    return Container(
-      width: 12.w,
-      height: 12.w,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(color: _connector, width: 2),
-      ),
-    );
-  }
-
-  // ── Class card variants ─────────────────────────────────────────────────
-  Widget _buildCard(Slot slot, SlotUIState state, SlotPresentation presentation) {
-    if (state == SlotUIState.cancelled) return _buildCancelledCard(slot);
-    if (_isPastState(state)) return _buildPastCard(slot);
-    if (_isUpcomingState(state)) return _buildUpcomingCard(slot, presentation);
-    return _buildLiveCard(slot, presentation);
-  }
-
-  Widget _buildPastCard(Slot slot) {
-    final attended = _attendedOnSelectedDate();
-    final intensity = _intensityFromSlotType(slot.type);
-    final duration = _durationMinutes(slot);
-    final trainer = _trainerName(slot);
-    return GestureDetector(
-      onTap: () => _onSlotTap(slot),
-      child: Opacity(
-        opacity: 0.6,
-        child: Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      slot.type ?? 'Class',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _textDark,
-                      ),
-                    ),
-                  ),
-                  if (attended)
-                    Padding(
-                      padding: EdgeInsets.only(left: 4.w),
-                      child: Icon(Icons.check, size: 14.w, color: _accent),
-                    ),
-                ],
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                _metaLine(trainer, duration, _intensityLabel(intensity)),
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11.sp,
-                  color: _textMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUpcomingCard(Slot slot, SlotPresentation presentation) {
-    final intensity = _intensityFromSlotType(slot.type);
-    final intensityColor = _intensityColor(intensity);
-    final duration = _durationMinutes(slot);
-    final trainer = _trainerName(slot);
-    final showCountdown =
-        presentation.appearance == SlotButtonAppearance.disabled &&
-            presentation.buttonLabel != null;
-    return GestureDetector(
-      onTap: () => _onSlotTap(slot),
-      child: Container(
-        padding: EdgeInsets.all(12.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border(
-            left: BorderSide(color: intensityColor, width: 3),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              slot.type ?? 'Class',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w800,
-                color: _textDark,
-              ),
-            ),
-            SizedBox(height: 2.h),
-            RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11.sp,
-                  color: _textMuted,
-                ),
-                children: [
-                  TextSpan(
-                    text:
-                        '$trainer · ${duration != null ? "${duration}m" : "—"} · ',
-                  ),
-                  TextSpan(
-                    text: _intensityLabel(intensity),
-                    style: TextStyle(
-                      color: intensityColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (showCountdown) ...[
-              SizedBox(height: 8.h),
-              _buildPresentationButton(slot, presentation, dark: false),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCancelledCard(Slot slot) {
-    return GestureDetector(
-      onTap: () => _onSlotTap(slot),
-      child: Opacity(
-        opacity: 0.6,
-        child: Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                slot.type ?? 'Class',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _textDark,
-                  decoration: TextDecoration.lineThrough,
-                ),
-              ),
-              SizedBox(height: 2.h),
-              Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: _liveRed.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  'Cancelled',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                    color: _liveRed,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Renders a button purely from a [SlotPresentation]. The widget makes
-  // no decisions of its own — color, label, and onPressed are picked
-  // straight off the struct. Add a new state in the resolver, this
-  // surface follows automatically.
-  Widget _buildPresentationButton(
-    Slot slot,
-    SlotPresentation presentation, {
-    required bool dark,
-  }) {
-    if (presentation.appearance == SlotButtonAppearance.hidden) {
-      return const SizedBox.shrink();
-    }
-    final isEnabled = presentation.appearance == SlotButtonAppearance.enabled;
-    final bg = switch (presentation.buttonColor) {
-      SlotButtonColor.accent => _accent,
-      SlotButtonColor.grey => dark ? Colors.white.withValues(alpha: 0.18) : _connector,
-      SlotButtonColor.none => Colors.transparent,
-    };
-    final fg = isEnabled
-        ? _liveBgDark
-        : (dark ? Colors.white.withValues(alpha: 0.7) : _textMuted);
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bg,
-          foregroundColor: fg,
-          disabledBackgroundColor: bg,
-          disabledForegroundColor: fg,
-          elevation: 0,
-          padding: EdgeInsets.symmetric(vertical: 12.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        onPressed: () => HelpingWidgets.dispatchSlotAction(
-          context: context,
-          homeController: homeController,
-          presentation: presentation,
-          slot: slot,
-        ),
-        child: Text(
-          presentation.buttonLabel ?? '',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLiveCard(Slot slot, SlotPresentation presentation) {
-    final intensity = _intensityFromSlotType(slot.type);
-    final duration = _durationMinutes(slot);
-    final trainer = _trainerName(slot);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Stack(
-        children: [
-          Container(
-            padding: EdgeInsets.all(18.w),
-            decoration: BoxDecoration(
-              color: _liveBgDark,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    _liveBadge(),
-                    SizedBox(width: 8.w),
-                    Flexible(
-                      child: Text(
-                        _liveCommunityCopy,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.6),
+                  child: ListView(
+                    children: [
+                      Center(
+                        child: Text(
+                          "We provide you with flexible timeslots\nthroughout the day so that you can\njoin according to your feasibility",
+                          style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w400),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Text(
-                  slot.type ?? 'Class',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    height: 1.1,
-                    letterSpacing: -0.18,
+                      SizedBox(
+                        height: 20.h,
+                      ),
+                      Builder(builder: (context) {
+                        if (motivationController.motivationStats.value == null && !motivationController.isLoadingStats.value) {
+                          motivationController.fetchMotivationStats();
+                        }
+
+                        DateTime today = DateTime.now();
+                        DateTime firstDate = today.subtract(const Duration(days: 29));
+                        DateTime lastDate = today;
+
+                        // Pick most recent attended date, fallback to today
+                        DateTime initialDate = today;
+                        final stats = motivationController.motivationStats.value;
+                        if (stats != null) {
+                          final attendedDates = stats.attendanceHistory
+                              .where((e) => e.attended == 1)
+                              .map((e) => DateTime.tryParse(e.date))
+                              .whereType<DateTime>()
+                              .toList()
+                            ..sort((a, b) => a.compareTo(b));
+                          if (attendedDates.isNotEmpty) {
+                            initialDate = attendedDates.last;
+                          }
+                        }
+
+                        return Obx(() {
+                          if (motivationController.isLoadingStats.value) {
+                            // Show shimmer loading
+                            return Column(
+                              children: [
+                                Container(
+                                  height: 20,
+                                  width: 160,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: 7,
+                                  children: List.generate(
+                                      42,
+                                      (index) => Container(
+                                            margin: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[300],
+                                              shape: BoxShape.circle,
+                                            ),
+                                          )),
+                                ),
+                              ],
+                            );
+                          }
+
+                          final s = motivationController.motivationStats.value;
+                          if (s == null) {
+                            return const SizedBox.shrink();
+                          }
+
+                          // Build current month grid
+                          final DateTime now = DateTime.now();
+                          final DateTime firstOfMonth = DateTime(now.year, now.month, 1);
+                          final int daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+                          final DateTime lastOfMonth = DateTime(now.year, now.month, daysInMonth);
+
+                          // Align grid start to the beginning of the week (Sunday=0)
+                          final int startOffset = firstOfMonth.weekday % 7;
+                          final DateTime gridStart = firstOfMonth.subtract(Duration(days: startOffset));
+
+                          final Set<String> attendedSet = s.attendanceHistory.where((e) => e.attended == 1).map((e) => e.date).toSet();
+
+                          List<Widget> buildGrid() {
+                            final List<Widget> cells = [];
+                            for (int i = 0; i < 42; i++) {
+                              final DateTime date = gridStart.add(Duration(days: i));
+                              final bool isCurrentMonth = date.month == now.month && date.year == now.year;
+                              if (!isCurrentMonth) {
+                                cells.add(const SizedBox.shrink());
+                                continue;
+                              }
+
+                              final String dateStr = DateFormat('yyyy-MM-dd').format(date);
+                              final bool isAttended = attendedSet.contains(dateStr);
+                              cells.add(Center(
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: isAttended ? MyColors.buttonColor : Colors.transparent,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.black12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${date.day}',
+                                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                                          color: isAttended ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
+                                ),
+                              ));
+                            }
+                            return cells;
+                          }
+
+                          final daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Text(
+                                  DateFormat('MMMM yyyy').format(now),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: daysOfWeek
+                                    .map((d) => SizedBox(
+                                          width: 36,
+                                          child: Center(
+                                            child: Text(
+                                              d,
+                                              style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 6),
+                              GridView.count(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisCount: 7,
+                                mainAxisSpacing: 2,
+                                crossAxisSpacing: 2,
+                                children: buildGrid(),
+                              ),
+                            ],
+                          );
+                        });
+                      }),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 5),
+                        itemBuilder: (BuildContext context, int timeIndex) {
+                          var time = workOutController.getUserWorkoutPlanDetailsPlan!.trainerSlots[timeIndex];
+                          return ExpansionTile(
+                            iconColor: Colors.black,
+                            initiallyExpanded: DateFormat('EEEE').format(DateTime.now()) == time.day,
+                            collapsedIconColor: Colors.black,
+                            title: Text(
+                              time.day,
+                              style: textTheme.headlineSmall,
+                            ),
+                            children: [
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10),
+                                itemCount: time.slots.length,
+                                itemBuilder: (context, index) {
+                                  var slot = time.slots[index];
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      HelpingWidgets.showWorkoutBottomSheet(context: context, slot: slot, homeController: homeController);
+                                    },
+                                    child: Container(
+                                      height: 90,
+                                      width: double.maxFinite,
+                                      padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 6.h),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: Colors.black),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                if (_currentPhase != null &&
+                                                    RecommendationService.isRecommended(slot.type, _currentPhase))
+                                                  Padding(
+                                                    padding: EdgeInsets.only(bottom: 2.h),
+                                                    child: const RecommendedBadge(),
+                                                  ),
+                                                Text(
+                                                  slot.type ?? "N/A",
+                                                  style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                                ),
+                                                const SizedBox(
+                                                  height: 3,
+                                                ),
+                                                Text(
+                                                  "${slot.start} - ${slot.end}",
+                                                  style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                                ),
+                                                SizedBox(height: 4.h),
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    const CircleAvatar(
+                                                      radius: 12,
+                                                      backgroundColor: MyColors.buttonColor,
+                                                      backgroundImage: AssetImage(MyImgs.logo),
+                                                    ),
+                                                    SizedBox(
+                                                      width: 10.w,
+                                                    ),
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          "${slot.trainer?.firstName} ${slot.trainer?.lastName}",
+                                                          style: textTheme.bodySmall!
+                                                              .copyWith(fontWeight: FontWeight.w400, color: const Color(0xff7F7F7F)),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Text(
+                                            slot.status ?? "",
+                                            style: textTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500),
+                                          ),
+                                          // SvgPicture.asset(MyImgs.progressbar)
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                                separatorBuilder: (BuildContext context, int index) {
+                                  return SizedBox(
+                                    height: 15.h,
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                        separatorBuilder: (BuildContext context, int index) {
+                          return SizedBox(
+                            height: 10.h,
+                          );
+                        },
+                        itemCount: workOutController.getUserWorkoutPlanDetailsPlan!.trainerSlots.length,
+                      )
+                    ],
                   ),
                 ),
-                SizedBox(height: 3.h),
-                Text(
-                  _metaLine(trainer, duration, _intensityLabel(intensity)),
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 11.sp,
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
-                ),
-                SizedBox(height: 14.h),
-                _buildPresentationButton(slot, presentation, dark: true),
-              ],
-            ),
-          ),
-          // Decorative green-glow circle, top-right corner. Painted over
-          // the dark surface but BEHIND the content (drawn first in Stack).
-          Positioned(
-            top: -30.h,
-            right: -30.w,
-            child: IgnorePointer(
-              child: Container(
-                width: 120.w,
-                height: 120.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _accent.withValues(alpha: 0.12),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _liveBadge() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
-      decoration: BoxDecoration(
-        color: _liveRed,
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5.w,
-            height: 5.w,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(width: 5.w),
-          Text(
-            'LIVE',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 9.sp,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: 0.9,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Slot tap handler — preserved exactly ───────────────────────────────
-  void _onSlotTap(Slot slot) {
-    HelpingWidgets.showWorkoutBottomSheet(
-      context: context,
-      slot: slot,
-      homeController: homeController,
-      anchorDate: _selectedDate,
-    );
-  }
-
-  // ── Selection + week navigation helpers ─────────────────────────────────
-  bool _isSelected(DateTime d) =>
-      d.year == _selectedDate.year &&
-      d.month == _selectedDate.month &&
-      d.day == _selectedDate.day;
-
-  void _navigateWeek(int direction) {
-    setState(() {
-      _weekStart = _weekStart.add(Duration(days: 7 * direction));
-      // Keep selected weekday position relative to the new week.
-      final selectedWeekdayOffset = _selectedDate.weekday - 1;
-      _selectedDate = _weekStart.add(Duration(days: selectedWeekdayOffset));
-    });
-  }
-
-  // ── Slots for the currently-selected weekday, sorted by start time ─────
-  List<Slot> _slotsForSelectedDay() {
-    final plan = workOutController.getUserWorkoutPlanDetailsPlan;
-    if (plan == null || plan.trainerSlots.isEmpty) return [];
-    final weekdayName = DateFormat('EEEE').format(_selectedDate);
-    final match = plan.trainerSlots.firstWhere(
-      (ts) => ts.day == weekdayName,
-      orElse: () => TrainerSlot(id: 0, day: weekdayName, slots: []),
-    );
-    final slots = [...match.slots];
-    slots.sort((a, b) {
-      final aT = parseSlotWallClock(a.start, _selectedDate);
-      final bT = parseSlotWallClock(b.start, _selectedDate);
-      if (aT == null && bT == null) return 0;
-      if (aT == null) return 1;
-      if (bT == null) return -1;
-      return aT.compareTo(bT);
-    });
-    return slots;
-  }
-
-  // ── Resolver bridge ─────────────────────────────────────────────────────
-  // The single source of truth for what the schedule should render for a
-  // given slot. Both this screen and the bottom-sheet popup call into
-  // `resolveSlotUIState` so they cannot disagree.
-  SlotUIState _stateFor(Slot slot) {
-    final input = buildSlotInput(slot, _selectedDate);
-    if (input == null) return SlotUIState.upcomingFar;
-    return resolveSlotUIState(
-      slot: input,
-      now: DateTime.now(),
-      user: buildUserAccess(homeController),
-    );
-  }
-
-  int? _durationMinutes(Slot slot) {
-    final s = parseSlotWallClock(slot.start, _selectedDate);
-    final e = parseSlotWallClock(slot.end, _selectedDate);
-    if (s == null || e == null) return null;
-    final mins = e.difference(s).inMinutes;
-    return mins > 0 ? mins : null;
-  }
-
-  int? _liveMinutesLeft(Slot slot) {
-    final e = parseSlotWallClock(slot.end, _selectedDate);
-    if (e == null) return null;
-    final left = e.difference(DateTime.now()).inMinutes;
-    return left > 0 ? left : 0;
-  }
-
-  String _trainerName(Slot slot) {
-    final t = slot.trainer;
-    if (t == null) return 'Trainer';
-    // ClientUser.firstName / lastName are non-nullable per the model.
-    final joined = '${t.firstName} ${t.lastName}'.trim();
-    return joined.isEmpty ? 'Trainer' : joined;
-  }
-
-  String _metaLine(String trainer, int? durationMin, String intensity) {
-    final dur = durationMin != null ? '${durationMin}m' : '—';
-    return '$trainer · $dur · $intensity';
-  }
-
-  // ── Date-level attendance ✓ ────────────────────────────────────────────
-  // Per-date check (not per-slot) — Phase D backend ticket will add
-  // per-slot precision. Until then, ANY past slot on a date the user
-  // attended gets the ✓.
-  bool _attendedOnSelectedDate() {
-    final stats = motivationController.motivationStats.value;
-    if (stats == null) return false;
-    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    return stats.attendanceHistory
-        .any((e) => e.attended == 1 && e.date == dateStr);
-  }
-
-  // ── Intensity mapping (Gap 1, Option C — RecommendationService) ───────
-  // Reuses Phase 5's RecommendationService.getSlotIntensity which maps
-  // class-type strings to high/medium/low. Translation:
-  //   high   → intense    (#FF8A8A)
-  //   medium → moderate   (#FAC775)
-  //   low    → gentle OR restorative (heuristic on type name)
-  //   null   → moderate   (founder fallback for unknown types)
-  _IntensityLevel _intensityFromSlotType(String? type) {
-    final raw = RecommendationService.getSlotIntensity(type);
-    switch (raw) {
-      case 'high':
-        return _IntensityLevel.intense;
-      case 'medium':
-        return _IntensityLevel.moderate;
-      case 'low':
-        final lower = (type ?? '').toLowerCase();
-        if (lower.contains('restore') ||
-            lower.contains('stretch') ||
-            lower.contains('wind')) {
-          return _IntensityLevel.restorative;
-        }
-        return _IntensityLevel.gentle;
-      default:
-        return _IntensityLevel.moderate;
-    }
-  }
-
-  String _intensityLabel(_IntensityLevel l) {
-    switch (l) {
-      case _IntensityLevel.gentle:
-        return 'gentle';
-      case _IntensityLevel.moderate:
-        return 'moderate';
-      case _IntensityLevel.intense:
-        return 'intense';
-      case _IntensityLevel.restorative:
-        return 'restorative';
-    }
-  }
-
-  Color _intensityColor(_IntensityLevel l) {
-    switch (l) {
-      case _IntensityLevel.gentle:
-      case _IntensityLevel.restorative:
-        return _accent;
-      case _IntensityLevel.moderate:
-        return _moderate;
-      case _IntensityLevel.intense:
-        return _intense;
-    }
+        ));
   }
 }
-
-enum _IntensityLevel { gentle, moderate, intense, restorative }

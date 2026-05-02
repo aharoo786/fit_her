@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart' hide TextDirection;
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
-import '../../widgets/onboarding_scaffold.dart';
+import '../../values/dimens.dart';
+import '../../values/my_colors.dart';
+import '../../widgets/custom_button.dart';
 
 class CycleDataScreen extends StatefulWidget {
-  final int currentStep;
-  final int totalSteps;
   final void Function(Map<String, dynamic> cycleData) onContinue;
   final void Function() onSkip;
 
   const CycleDataScreen({
     Key? key,
-    this.currentStep = 3,
-    this.totalSteps = 8,
     required this.onContinue,
     required this.onSkip,
   }) : super(key: key);
@@ -24,21 +24,22 @@ class CycleDataScreen extends StatefulWidget {
 
 class _CycleDataScreenState extends State<CycleDataScreen> {
   DateTime _selectedDate = DateTime.now();
-  double _cycleLength = 28;
-  String? _periodDuration = '3–5 days';
-  String? _flowType = 'Moderate';
-  String? _isRegular = '✓ Yes';
+  final TextEditingController _cycleLengthController =
+      TextEditingController(text: '28');
+  String? _selectedRegularity;
+  bool _notSure = false;
+
+  @override
+  void dispose() {
+    _cycleLengthController.dispose();
+    super.dispose();
+  }
 
   Map<String, dynamic> get cycleData => {
         'lastPeriodDate': DateFormat('yyyy-MM-dd').format(_selectedDate),
-        'averageCycleLength': _cycleLength.round(),
-        'isRegular': _isRegular == '✓ Yes'
-            ? 'yes'
-            : _isRegular == '✗ No'
-                ? 'no'
-                : 'not sure',
-        'periodDuration': _periodDuration,
-        'flowType': _flowType,
+        'averageCycleLength':
+            int.tryParse(_cycleLengthController.text) ?? 28,
+        'isRegular': _selectedRegularity,
         'dataProvided': 1,
       };
 
@@ -55,9 +56,9 @@ class _CycleDataScreenState extends State<CycleDataScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: OnboardingScaffold.green,
+              primary: MyColors.buttonColor,
               onPrimary: Colors.white,
-              onSurface: OnboardingScaffold.textDark,
+              onSurface: MyColors.textColor,
             ),
           ),
           child: child!,
@@ -66,245 +67,369 @@ class _CycleDataScreenState extends State<CycleDataScreen> {
     );
 
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = picked;
+      });
     }
+  }
+
+  void _onNotSureTapped() {
+    setState(() {
+      _notSure = true;
+      _cycleLengthController.text = '28';
+    });
+  }
+
+  void _showSkipBottomSheet() {
+    final textTheme = Theme.of(context).textTheme;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Are you sure?',
+                style: textTheme.headlineSmall!.copyWith(
+                  fontSize: 20.sp,
+                  color: MyColors.textColor3,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'Your cycle data makes everything 10x more accurate \u2014 your insights, workout recommendations, and reports. This data is encrypted and 100% private. Only you can see it. We never share it.',
+                style: textTheme.titleLarge!.copyWith(
+                  color: MyColors.textColorLow,
+                  fontWeight: FontWeight.w400,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24.h),
+              CustomButton(
+                text: 'I will add it now',
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              SizedBox(height: 12.h),
+              CustomButton(
+                text: 'Skip for now',
+                color: Colors.white,
+                textColor: MyColors.textColor3,
+                borderColor: MyColors.buttonColor,
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onSkip();
+                },
+              ),
+              SizedBox(height: 16.h),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return OnboardingScaffold(
-      currentStep: widget.currentStep,
-      totalSteps: widget.totalSteps,
-      badgeText: 'Your cycle',
-      questionLine1: 'Tell us about',
-      questionLine2: 'your cycle',
-      subtitle:
-          'This powers your hormonal intelligence and phase tracking',
-      onNext: () => widget.onContinue(cycleData),
-      onSkip: widget.onSkip,
-      skipText: 'Skip any question — update anytime',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Q1: Last period date ──
-          OnboardingScaffold.buildLabel(
-              'When did your ', 'last period', ' start?'),
-          SizedBox(height: 10.h),
-          GestureDetector(
-            onTap: _pickDate,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: 18.w, vertical: 15.h),
-              decoration: BoxDecoration(
-                color: OnboardingScaffold.optionBg,
-                borderRadius: BorderRadius.circular(14.r),
-                border: Border.all(
-                    color: OnboardingScaffold.radioBorder, width: 2),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        DateFormat('MMMM d, yyyy')
-                            .format(_selectedDate),
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: OnboardingScaffold.textDark,
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        'Tap to change',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12.sp,
-                          color: OnboardingScaffold.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text('📅', style: TextStyle(fontSize: 20.sp)),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 20.h),
+    final textTheme = Theme.of(context).textTheme;
 
-          // ── Q2: Cycle length slider ──
-          OnboardingScaffold.buildLabel('Average ', 'cycle length?'),
-          SizedBox(height: 10.h),
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: 18.w, vertical: 16.h),
-            decoration: BoxDecoration(
-              color: OnboardingScaffold.optionBg,
-              borderRadius: BorderRadius.circular(14.r),
-            ),
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: Dimens.size20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
+                SizedBox(height: 40.h),
+
+                // Heading
+                Text(
+                  'Your Cycle',
+                  style: textTheme.headlineSmall!.copyWith(
+                    fontSize: 24.sp,
+                    color: MyColors.textColor3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: Dimens.size5.h),
+
+                // Subtitle
+                Text(
+                  'This powers your daily insights and recommendations',
+                  style: textTheme.titleLarge!.copyWith(
+                    color: MyColors.textColorLow,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: 30.h),
+
+                // --- Field 1: Last period start date ---
+                Text(
+                  'Last period start date',
+                  style: textTheme.bodyMedium!.copyWith(
+                    color: MyColors.textColor3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                GestureDetector(
+                  onTap: _pickDate,
+                  child: Container(
+                    height: 48,
+                    width: double.infinity,
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w),
+                    decoration: BoxDecoration(
+                      color: MyColors.textFieldColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: MyColors.textColor, width: 1),
+                    ),
+                    child: Row(
                       children: [
                         Text(
-                          '${_cycleLength.round()}',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.w700,
-                            color: OnboardingScaffold.textDark,
+                          DateFormat('MMM dd, yyyy')
+                              .format(_selectedDate),
+                          style: textTheme.bodyMedium!.copyWith(
+                            color: MyColors.textColor3,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          'days',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13.sp,
-                            color: OnboardingScaffold.textMuted,
-                          ),
-                        ),
+                        const Spacer(),
+                        const Icon(Icons.calendar_today_outlined,
+                            color: MyColors.textColorLow, size: 20),
                       ],
                     ),
-                    Text(
-                      '21 — 35 days',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12.sp,
-                        color: OnboardingScaffold.textMuted,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+
+                // --- Field 2: Average cycle length ---
+                Text(
+                  'Average cycle length',
+                  style: textTheme.bodyMedium!.copyWith(
+                    color: MyColors.textColor3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                TextField(
+                  controller: _cycleLengthController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+                  enabled: !_notSure,
+                  onChanged: (_) {
+                    setState(() {
+                      _notSure = false;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: MyColors.textFieldColor,
+                    suffixText: 'days',
+                    suffixStyle: textTheme.bodyMedium!.copyWith(
+                      color: MyColors.textColorLow,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w, vertical: 12.h),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: MyColors.textColor, width: 1),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: MyColors.textColor, width: 1),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: MyColors.buttonColor, width: 1),
+                    ),
+                    disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: MyColors.textColor, width: 1),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                GestureDetector(
+                  onTap: _onNotSureTapped,
+                  child: Container(
+                    height: 40,
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 16.w),
+                    decoration: BoxDecoration(
+                      color: _notSure
+                          ? MyColors.buttonColor.withOpacity(0.15)
+                          : MyColors.textFieldColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _notSure
+                            ? MyColors.buttonColor
+                            : MyColors.textColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Not sure',
+                        style: textTheme.bodyMedium!.copyWith(
+                          color: _notSure
+                              ? MyColors.buttonColor
+                              : MyColors.textColorLow,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 28.h),
+
+                // --- Field 3: Is your cycle regular? ---
+                Text(
+                  'Is your cycle regular?',
+                  style: textTheme.bodyMedium!.copyWith(
+                    color: MyColors.textColor3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Row(
+                  children: ['Yes', 'Somewhat', 'No']
+                      .map((option) => Padding(
+                            padding: EdgeInsets.only(right: 10.w),
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedRegularity =
+                                      _selectedRegularity ==
+                                              option.toLowerCase()
+                                          ? null
+                                          : option.toLowerCase();
+                                });
+                              },
+                              child: Container(
+                                height: 40,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20.w),
+                                decoration: BoxDecoration(
+                                  color: _selectedRegularity ==
+                                          option.toLowerCase()
+                                      ? MyColors.buttonColor
+                                              .withOpacity(0.15)
+                                      : MyColors.textFieldColor,
+                                  borderRadius:
+                                      BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: _selectedRegularity ==
+                                            option.toLowerCase()
+                                        ? MyColors.buttonColor
+                                        : MyColors.textColor,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    option,
+                                    style: textTheme.bodyMedium!
+                                        .copyWith(
+                                      color: _selectedRegularity ==
+                                              option.toLowerCase()
+                                          ? MyColors.buttonColor
+                                          : MyColors.textColorLow,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+                SizedBox(height: 24.h),
+
+                // --- Privacy note ---
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 16.sp,
+                      color: MyColors.buttonColor,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        'Your cycle data is private and protected. Only used to understand your body more accurately. We never share it.',
+                        style: textTheme.bodySmall!.copyWith(
+                          color: MyColors.textColorLow,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 12.h),
-                SliderTheme(
-                  data: SliderThemeData(
-                    activeTrackColor: OnboardingScaffold.green,
-                    inactiveTrackColor: OnboardingScaffold.radioBorder,
-                    thumbColor: OnboardingScaffold.green,
-                    overlayColor:
-                        OnboardingScaffold.green.withValues(alpha: 0.15),
-                    trackHeight: 6.h,
-                    thumbShape: _GreenThumb(),
-                  ),
-                  child: Slider(
-                    value: _cycleLength,
-                    min: 21,
-                    max: 35,
-                    divisions: 14,
-                    onChanged: (v) => setState(() => _cycleLength = v),
+                SizedBox(height: 24.h),
+
+                // --- Continue button ---
+                CustomButton(
+                  text: 'Continue',
+                  onPressed: () {
+                    final length =
+                        int.tryParse(_cycleLengthController.text) ?? 28;
+                    if (length < 21 || length > 45) {
+                      Get.snackbar(
+                        'Invalid cycle length',
+                        'Please enter a value between 21 and 45 days',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: MyColors.error,
+                        colorText: Colors.white,
+                      );
+                      return;
+                    }
+                    widget.onContinue(cycleData);
+                  },
+                ),
+                SizedBox(height: 16.h),
+
+                // --- Skip text ---
+                Center(
+                  child: GestureDetector(
+                    onTap: _showSkipBottomSheet,
+                    child: Text(
+                      'Skip',
+                      style: textTheme.bodyMedium!.copyWith(
+                        fontSize: 16.sp,
+                        color: MyColors.textColorLow,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ),
                 ),
+                SizedBox(height: 30.h),
               ],
             ),
           ),
-          Padding(
-            padding: EdgeInsets.only(top: 8.h),
-            child: Center(
-              child: Text(
-                'Not sure? Leave at 28 — the average',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12.sp,
-                  color: OnboardingScaffold.radioBorder,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 20.h),
-
-          // ── Q3: Period duration ──
-          OnboardingScaffold.buildLabel(
-              'How long does it ', 'usually last?'),
-          SizedBox(height: 10.h),
-          OnboardingScaffold.buildPillRow(
-            options: const ['1–2 days', '3–5 days', '6–7 days', '7+ days'],
-            selected: _periodDuration,
-            onSelect: (v) => setState(() => _periodDuration = v),
-          ),
-          SizedBox(height: 20.h),
-
-          // ── Q4: Flow type ──
-          OnboardingScaffold.buildLabel(
-              'How would you describe your ', 'flow?'),
-          SizedBox(height: 10.h),
-          OnboardingScaffold.buildPillRow(
-            options: const ['Light', 'Moderate', 'Heavy', 'Irregular'],
-            selected: _flowType,
-            onSelect: (v) => setState(() => _flowType = v),
-          ),
-          SizedBox(height: 20.h),
-
-          // ── Q5: Regular? ──
-          OnboardingScaffold.buildLabel(
-              'Are your cycles ', 'regular?'),
-          SizedBox(height: 10.h),
-          OnboardingScaffold.buildYesNoRow(
-            options: const ['✓ Yes', '✗ No', '🤷 Not sure'],
-            selected: _isRegular,
-            onSelect: (v) => setState(() => _isRegular = v),
-          ),
-          SizedBox(height: 20.h),
-        ],
+        ),
       ),
-    );
-  }
-}
-
-/// Custom slider thumb matching S05 HTML: 24px circle, green, white border, shadow.
-class _GreenThumb extends SliderComponentShape {
-  @override
-  Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
-      const Size(24, 24);
-
-  @override
-  void paint(
-    PaintingContext context,
-    Offset center, {
-    required Animation<double> activationAnimation,
-    required Animation<double> enableAnimation,
-    required bool isDiscrete,
-    required TextPainter labelPainter,
-    required RenderBox parentBox,
-    required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
-    required double value,
-    required double textScaleFactor,
-    required Size sizeWithOverflow,
-  }) {
-    final canvas = context.canvas;
-
-    // Shadow
-    canvas.drawCircle(
-      center + const Offset(0, 2),
-      12,
-      Paint()
-        ..color = OnboardingScaffold.green.withValues(alpha: 0.4)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
-
-    // White border
-    canvas.drawCircle(
-      center,
-      12,
-      Paint()..color = Colors.white,
-    );
-
-    // Green fill
-    canvas.drawCircle(
-      center,
-      9,
-      Paint()..color = OnboardingScaffold.green,
     );
   }
 }
