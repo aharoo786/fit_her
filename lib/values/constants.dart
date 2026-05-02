@@ -5,6 +5,9 @@ class Constants {
   static const String robotoFamily = "Roboto";
   static const String RobotoFamily = "Roboto";
   static const String isGuest = "isGuest";
+  static String appID = dotenv.env['AGORA_APP_ID'] ?? '';
+  static String appCertificate = dotenv.env['AGORA_APP_CERTIFICATE'] ?? '';
+  static String chatAppKey = dotenv.env['AGORA_CHAT_APP_KEY'] ?? '';
   static const String chatRoom = "chatRoom";
   static const String allMessages = "allMessages";
   static const String reviewDate = "reviewDate";
@@ -165,6 +168,7 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static String home = "/users/home";
   static String getDietitianUsers = "/users/dietition_get_all_users";
   static String getUserPlan = "/users/get_user_plans";
+  static String stripePayment = "/users/stripe_payment";
   /// Direct Pay (Payin PWA) - backend returns payment URL; client_secret stays on server
   static String directPayUrl = "/pay/directpay_payment";
   static String logout = "/users/logout";
