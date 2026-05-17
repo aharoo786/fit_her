@@ -8,10 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 import '../../../values/my_imgs.dart';
 import '../../data/models/get_user_plan/get_workout_user_plan_details.dart';
+import '../../values/constants.dart';
 import '../../widgets/custom_button.dart';
 
 class FreeTrialSlots extends StatefulWidget {
