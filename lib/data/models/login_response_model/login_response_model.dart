@@ -24,6 +24,22 @@ class LoginModel extends Serializable {
   String? height;
   String? weight;
   String? bmiResult;
+  String? mainGoal;
+  String? healthConditions;
+  // Option-C feature flags. Backend always returns these; fromJson defaults
+  // to false when missing (older clients / offline JSON caches).
+  bool useNewPaidHome;
+  bool useNewUnpaidHome;
+  // Phase A — Progress Screen rebuild. Defaults false; backend flips this
+  // per-user to opt into the new hub. See bottom_bar_screen.dart for the
+  // routing decision.
+  bool useNewProgressHub;
+  // Phase F.3 — IANA zone the dietitian set on the User row server-side
+  // (camelCase column `User.timeZone`). Used by DietPlanUserController
+  // for "today's meals" math and by TimezoneSyncService to detect
+  // device drift. Defaults to Asia/Karachi for older login responses
+  // that didn't include the field.
+  String timeZone;
 
   LoginModel({
     required this.id,
@@ -39,6 +55,12 @@ class LoginModel extends Serializable {
     this.age,
     this.weight,
     this.bmiResult,
+    this.mainGoal,
+    this.healthConditions,
+    this.useNewPaidHome = false,
+    this.useNewUnpaidHome = false,
+    this.useNewProgressHub = false,
+    this.timeZone = 'Asia/Karachi',
   });
 
   factory LoginModel.fromJson(Map<String, dynamic> json) => LoginModel(
@@ -55,6 +77,12 @@ class LoginModel extends Serializable {
         weight: json["weight"],
         height: json["height"],
         bmiResult: json["bmiResult"],
+        mainGoal: json["mainGoal"],
+        healthConditions: json["healthConditions"],
+        useNewPaidHome: json["useNewPaidHome"] ?? false,
+        useNewUnpaidHome: json["useNewUnpaidHome"] ?? false,
+        useNewProgressHub: json["useNewProgressHub"] ?? false,
+        timeZone: (json["timeZone"] ?? 'Asia/Karachi').toString(),
       );
 
   @override
@@ -68,6 +96,12 @@ class LoginModel extends Serializable {
         "userType": userType,
         "adminId": adminId,
         "accessToken": accessToken,
+        "mainGoal": mainGoal,
+        "healthConditions": healthConditions,
+        "useNewPaidHome": useNewPaidHome,
+        "useNewUnpaidHome": useNewUnpaidHome,
+        "useNewProgressHub": useNewProgressHub,
+        "timeZone": timeZone,
       };
 
   String get fullName => "${firstName} ${lastName}";

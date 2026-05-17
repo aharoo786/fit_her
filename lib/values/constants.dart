@@ -1,12 +1,10 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 
 class Constants {
   static const String robotoFamily = "Roboto";
   static const String RobotoFamily = "Roboto";
   static const String isGuest = "isGuest";
-  static const appID = '4babf557757745deb4176da00b193310';
-  static const appCertificate = '94b22af90adb429e8a88e32f7e475e78';
-  static const chatAppKey = '411039298#1214303';
   static const String chatRoom = "chatRoom";
   static const String allMessages = "allMessages";
   static const String reviewDate = "reviewDate";
@@ -23,6 +21,7 @@ class Constants {
   static String fullName = "fullName";
   static String packageState = "packageState";
   static String userId = "userId";
+  static String trialToken = "trialToken";
 
   static String email = "email";
   static String password = "p";
@@ -39,13 +38,52 @@ class Constants {
 
   static String user = "User";
   static String accessToken = "accessToken";
+  // Option-C feature flags persisted across sessions. Saved in addLocalStorage
+  // so the cached values survive app restart before a fresh login response
+  // refreshes them.
+  static const String useNewPaidHomeKey = 'useNewPaidHome';
+  static const String useNewUnpaidHomeKey = 'useNewUnpaidHome';
+  // Phase A — Progress Screen rebuild. Routes between progress_screen_v1.dart
+  // (legacy) and progress_screen_v2.dart (new hub). Default false; opt-in
+  // per-user via the backend flag.
+  static const String useNewProgressHubKey = 'useNewProgressHub';
+  // Phase F.3 — IANA timezone last seen for the logged-in user.
+  // Populated on login from the server, kept in sync by
+  // TimezoneSyncService when the device timezone drifts. Survives
+  // cold-start so DietPlanUserController doesn't fall back to device-
+  // local math while the user model rehydrates.
+  static const String userTimeZoneKey = 'userTimeZone';
+  // Progress hub endpoints (Phase B). All accept ?period and ?asOf.
+  static const String progressSummary = '/users/progress/summary';
+  static const String progressWeight = '/users/progress/weight';
+  static const String progressGlance = '/users/progress/glance';
+  static const String progressHydration = '/users/progress/hydration';
+  static const String progressSymptoms = '/users/progress/symptoms';
+  static const String progressInsightsHub = '/users/progress/insights/hub';
+  // Phase E — minimal feature-flag toggle endpoint (POST). Only flags in
+  // the backend allow-list can be flipped from the client.
+  static const String setFeatureFlag = '/users/profile/feature_flag';
+
+  // Plan freeze (user-button flow). See partner_backend
+  // docs/Freeze_Logic_Audit.md for the contract.
+  static const String planFreeze = '/users/plan/freeze';
+  static const String planUnfreeze = '/users/plan/unfreeze';
+  static const String planFreezeStatus = '/users/plan/freeze-status';
+  // PaidHomeScreenV2 data layer. Leading slash required — ApiProvider
+  // concatenates `baseUrl + url` without adding separators.
+  static const String paidHomeDashboard = "/users/home/dashboard";
+  static const String waterLog = "/users/water_log";
+  // PaidHomeScreenV2 — Phase B2.7. Weekly weight upsert + target weight set.
+  static const String weightLog = "/users/weekly_checkin/weight";
+  static const String targetWeight = "/users/profile/target_weight";
   static String login = "login";
   static String weeklyReports = "weeklyReports";
 
   ///base url
   // static String baseUrl = "https://test.thefither.com";
   // static String baseUrl = "http://192.168.1.31:9005";
-  static String baseUrl = "https://backend.thefither.com";
+//   static String baseUrl = "https://backend.thefither.com";
+static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =
@@ -57,8 +95,7 @@ class Constants {
   static String members = "members";
   static String deviceToken = "deviceToken";
   static String announcementNotification = "announcementNotification";
-  static const serverKey =
-      "AAAAY1XRUEo:APA91bHjQM7SlZ0Yj9rSCJzJoLfatUhOJkye1HfBQsJkw8c8p92-L44E5t7jAc0FJy-sFzcYprNQWmutMifd2DVUhZQF08qRl1IePncuPLWoh-0V1aTEbQgEm74BHlHCkucRDHsWGNJu";
+  static String serverKey = dotenv.env['FCM_SERVER_KEY'] ?? '';
 
   /// Apis end points
 
@@ -70,6 +107,30 @@ class Constants {
   static String resetPassword = "/users/change_password_after_otp";
   static String dietitianLogin = "/users/dietition_login";
   static String trainerLogin = "/users/trainer_login";
+
+  // ── Phase E.1 — Structured AI diet-plan endpoints (Phase C/D backend) ──
+  // Admin/dietitian surface:
+  static const String dietPlanAdminGenerate = "/admin/diet-plan/generate";
+  static const String dietPlanAdminDrafts = "/admin/diet-plan/drafts";
+  // Path templates — repo expands `{id}` / `{userId}` / `{mealId}` at call time.
+  static const String dietPlanAdminById = "/admin/diet-plan/{id}";
+  static const String dietPlanAdminActivate = "/admin/diet-plan/{id}/activate";
+  static const String dietPlanAdminCancel = "/admin/diet-plan/{id}/cancel";
+  static const String dietPlanAdminUserList = "/admin/diet-plan/user/{userId}/list";
+  static const String dietPlanAdminUpdateMeal = "/admin/diet-plan/meal/{mealId}";
+  // User-facing surface (Phase F consumer):
+  static const String dietPlanUserActive = "/users/diet-plan/me/active";
+  static const String dietPlanUserTimezone = "/users/diet-plan/me/timezone";
+  // Phase F.3 — booking context for the empty-state CTA (userId,
+  // userPlanId, dietitianId, hasActivePlan).
+  static const String dietPlanUserBookingContext =
+      "/users/diet-plan/me/booking-context";
+  // Phase G.3 — Day 7 check-in popup variable name. The endpoint paths
+  // themselves are already declared further down (`day7Review` +
+  // `popupAck`, lines ~207–212); this is just the variable string used
+  // in the URL fragment + matches the backend whitelist in
+  // controllers/FrontSite/popupStateController.js.
+  static const String day7ReviewPopupVariable = "POPUP_DAY7_REVIEW";
   static String getAllCategories = "/admin/all_categories";
   static String getSubCat = "/admin/get_subcategories";
   static String getUserDietPlans = "/admin/userDietPlans";
@@ -136,17 +197,43 @@ class Constants {
   static String updateUserDietOfWeek = "/admin/addDiet";
   static String addPlanImage = "/admin/addImage";
   static String addProgressImages = "/admin/addProgressImages";
-  static String resendOtpPath = "/users/login";
+  static String resendOtpPath = "/users/resend_otp";
   static String home = "/users/home";
+
+  // ── Consultation flow (Phase 1B endpoints) ─────────────────────────
+  static const String preConsultationProfile = "/users/pre-consultation";
+  static const String mealLogs = "/users/meal-logs";
+  static const String day7Review = "/users/day7-review";
+  static const String progressSubmission = "/users/progress";
+  static const String dietitianAvailability = "/users/dietitian-availability";
+  static const String userEscalations = "/users/escalations";
+  // Append "/<variable>/dismiss" or "/<variable>/complete".
+  static const String popupAck = "/users/popup";
+  // Append "/<id>/no-show" for the consultant no-show report.
+  static const String appointmentNoShowSuffix = "/no-show";
+  // Admin-side endpoints.
+  static const String adminPreConsultationProfile = "/admin/pre-consultation";
+  static const String adminDay7Reviews = "/admin/day7-reviews";
+  static const String adminUserProgress = "/admin/users"; // append /:id/progress
+  static const String adminEscalations = "/admin/escalations";
+  static const String adminMetricsOverview = "/admin/metrics/overview";
+
   static String getDietitianUsers = "/users/dietition_get_all_users";
   static String getUserPlan = "/users/get_user_plans";
-  static String stripePayment = "/users/stripe_payment";
   /// Direct Pay (Payin PWA) - backend returns payment URL; client_secret stays on server
   static String directPayUrl = "/pay/directpay_payment";
   static String logout = "/users/logout";
-  static String deleteUser = "/users/delete_user";
+  static String deleteUser = "/admin/delete_user";
   static String updateSlotTrainer = "/admin/update_slot_trainer";
   static String addFreeTrailUser = "/admin/createFreeTrialUser";
+
+  /// 3-Day Trial MVP
+  static String trialValidateToken = "/trial/validate-token";
+  static String trialStart = "/trial/start";
+  static String trialMe = "/trial/me";
+  static String trialBookDay = "/trial/book-day";
+  static String trialAttendance = "/trial/attendance";
+  static String trialConvert = "/trial/convert";
 
   /// Motivation module
   static String getMotivationStats = "/attendance/motivation";
@@ -158,6 +245,21 @@ class Constants {
 
   ///Duration
   static String timeDuration = "/duration/create";
+
+  /// CYCLE DATA
+  static const String getCycleData = "/users/cycle_data";
+  static const String saveCycleData = "/users/cycle_data";
+  static const String savePcosScreening = "/users/pcos_screening";
+  static const String saveHealthScreening = "/users/health_screening";
+  static const String getHealthScreening = "/users/health_screening";
+
+  /// CHECK-INS
+  static const String saveDailyCheckin = "/users/daily_checkin";
+  static const String getDailyCheckin = "/users/daily_checkin";
+  static const String getDailyCheckinsWeek = "/users/daily_checkins/week";
+  static const String getDailyCheckinsRecent = "/users/daily_checkins/recent";
+  static const String saveWeeklyCheckin = "/users/weekly_checkin";
+  static const String getWeeklyCheckinsRecent = "/users/weekly_checkins/recent";
 
   /// POSTS MODULE
   static const String getAllPosts = "/posts/";

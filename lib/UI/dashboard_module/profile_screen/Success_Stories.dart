@@ -52,6 +52,7 @@ class Success_Stories extends StatelessWidget {
                   Text(
                     text[index],
                     style:  TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 16.sp,
                       color: const Color.fromARGB(255, 60, 60, 60),
                     ),

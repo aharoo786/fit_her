@@ -31,14 +31,32 @@ import '../data/services/youtube_tutorial_service.dart';
 
 import '../helper/analytics_helper.dart';
 import 'package:get/get.dart';
+import 'package:fitness_zone_2/widgets/migration_banner.dart';
+import 'package:fitness_zone_2/widgets/insight_card.dart';
+import 'package:fitness_zone_2/widgets/checkin_prompt.dart';
+import 'package:fitness_zone_2/widgets/weekly_report_progress.dart';
+import 'package:fitness_zone_2/UI/auth_module/daily_checkin_screen.dart';
+import 'package:fitness_zone_2/UI/auth_module/cycle_settings_screen.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/recommended_slots_screen.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/data/Repos/checkin_repo/checkin_repository.dart';
+import 'package:fitness_zone_2/data/services/cycle_engine.dart';
+import 'package:fitness_zone_2/data/services/insight_service.dart';
+import 'package:fitness_zone_2/data/services/accuracy_service.dart';
+import 'package:fitness_zone_2/values/constants.dart';
 import 'border_titlle_widget.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'custom_textfield.dart';
 
-class UserHomeScreen extends StatelessWidget {
+class UserHomeScreen extends StatefulWidget {
   UserHomeScreen({Key? key}) : super(key: key);
 
+  @override
+  State<UserHomeScreen> createState() => _UserHomeScreenState();
+}
+
+class _UserHomeScreenState extends State<UserHomeScreen> {
   final AuthController authController = Get.find();
   final HomeController homeController = Get.find();
   final SocketController socketController = Get.put(SocketController());
@@ -74,6 +92,92 @@ class UserHomeScreen extends StatelessWidget {
     {"text": "Our Journey", "image": MyImgs.ourJourney},
   ];
 
+  // Phase 2: Insight data state
+  CycleInfo? _cycleInfo;
+  Insight? _insight;
+  double? _accuracyPercent;
+  int _checkinsThisWeek = 0;
+  bool _hasCheckinToday = false;
+  bool _hasCycleData = false;
+  bool _showCheckinPrompt = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInsightData();
+    });
+  }
+
+  Future<void> _loadInsightData() async {
+    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+
+    // a. Get cycle data
+    final cycleRepo = Get.find<CycleDataRepository>();
+    final cycleResponse = await cycleRepo.getCycleData(accessToken: token);
+
+    CycleInfo? cycleInfo;
+    bool hasCycleData = false;
+
+    if (cycleResponse.body != null &&
+        cycleResponse.body['status'] == '1' &&
+        cycleResponse.body['data'] != null &&
+        cycleResponse.body['data']['dataProvided'] == 1 &&
+        cycleResponse.body['data']['lastPeriodDate'] != null) {
+      final data = cycleResponse.body['data'];
+      cycleInfo = CycleEngine.calculate(
+        lastPeriodDate: DateTime.parse(data['lastPeriodDate']),
+        cycleLength: data['averageCycleLength'] ?? 28,
+      );
+      hasCycleData = true;
+    }
+
+    // b. Get insight
+    final insight = InsightService.getTodayInsight(cycleInfo);
+
+    // c. Check today's checkin
+    final checkinRepo = Get.find<CheckinRepository>();
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final todayResponse = await checkinRepo.getDailyCheckin(accessToken: token, date: todayStr);
+    final hasCheckinToday = todayResponse.body != null &&
+        todayResponse.body['status'] == '1' &&
+        todayResponse.body['data'] != null;
+
+    // d. Get week checkins count
+    final weekResponse = await checkinRepo.getDailyCheckinsWeek(accessToken: token);
+    int checkinsThisWeek = 0;
+    if (weekResponse.body != null && weekResponse.body['status'] == '1' && weekResponse.body['data'] is List) {
+      checkinsThisWeek = (weekResponse.body['data'] as List).length;
+    }
+
+    // e. Get accuracy from recent checkins
+    double? accuracyPercent;
+    final recentResponse = await checkinRepo.getDailyCheckinsRecent(accessToken: token, limit: 7);
+    if (recentResponse.body != null && recentResponse.body['status'] == '1' && recentResponse.body['data'] is List) {
+      final recentList = (recentResponse.body['data'] as List).whereType<Map<String, dynamic>>().toList();
+      final accuracy = AccuracyService.getRolling7DayAccuracy(recentList);
+      if (accuracy != null) {
+        accuracyPercent = accuracy * 100;
+      }
+    }
+
+    // f. Show checkin prompt: after 2PM + no checkin today
+    final showPrompt = DateTime.now().hour >= 14 && !hasCheckinToday;
+
+    if (mounted) {
+      setState(() {
+        _cycleInfo = cycleInfo;
+        _insight = insight;
+        _hasCycleData = hasCycleData;
+        _hasCheckinToday = hasCheckinToday;
+        _checkinsThisWeek = checkinsThisWeek;
+        _accuracyPercent = accuracyPercent;
+        _showCheckinPrompt = showPrompt;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -107,6 +211,63 @@ class UserHomeScreen extends StatelessWidget {
           children: [
             _buildHeaderSection(context, textTheme, size, isSmallScreen, isMediumScreen, isLargeScreen),
             _buildSpacing(size, isSmallScreen, isMediumScreen, isLargeScreen),
+            // Phase 2: Insight Card
+            if (_insight != null)
+              Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: InsightCard(
+                  cycleInfo: _cycleInfo,
+                  insight: _insight!,
+                  accuracyPercent: _accuracyPercent,
+                  onViewSessions: () => Get.to(() => const RecommendedSlotsScreen()),
+                  onAddCycleData: () => Get.to(() => const CycleSettingsScreen()),
+                ),
+              ),
+            // Phase 2: Check-in Prompt
+            if (_showCheckinPrompt)
+              Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: CheckinPrompt(
+                  onTap: () async {
+                    setState(() => _showCheckinPrompt = false);
+                    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+                    await Get.to(() => DailyCheckinScreen(
+                      onSubmit: (data) async {
+                        final now = DateTime.now();
+                        final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+                        data['date'] = dateStr;
+                        if (_cycleInfo != null) {
+                          data['cycleDay'] = _cycleInfo!.cycleDay;
+                          data['cyclePhase'] = _cycleInfo!.phase;
+                          data['predictedEnergy'] = _insight?.energy?.energy;
+                          data['predictedMood'] = _insight?.mood?.mood;
+                        }
+                        final response = await Get.find<CheckinRepository>().saveDailyCheckin(accessToken: token, body: data);
+                        if (response.body == null || response.body['status'] != '1') {
+                          Get.snackbar(
+                            'Error',
+                            'Could not save check-in. Please try again.',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: MyColors.error,
+                            colorText: Colors.white,
+                          );
+                        }
+                      },
+                      onDismiss: () => Get.back(),
+                    ));
+                    _loadInsightData();
+                  },
+                ),
+              ),
+            // Phase 2: Weekly Progress Bar
+            if (_hasCycleData)
+              Padding(
+                padding: EdgeInsets.only(bottom: 16.h),
+                child: WeeklyReportProgress(
+                  checkinsThisWeek: _checkinsThisWeek,
+                ),
+              ),
+            if (_shouldShowMigrationBanner()) const MigrationBanner(),
             if (_shouldShowFreezeSection()) _buildFreezeSection(context, textTheme),
             _buildGridSection(context, textTheme, size, isSmallScreen, isMediumScreen, isLargeScreen),
             _buildTopSellersSection(context, textTheme, size),
@@ -534,6 +695,13 @@ class UserHomeScreen extends StatelessWidget {
             ? 0.25
             : 0.24;
     return SizedBox(height: size.height * spacingFactor);
+  }
+
+  bool _shouldShowMigrationBanner() {
+    final prefs = Get.find<AuthController>().sharedPreferences;
+    final dataProvided = prefs.getInt('cycle_data_provided') ?? -1;
+    final dismissed = prefs.getBool('cycle_banner_dismissed') ?? false;
+    return dataProvided == 0 && !dismissed;
   }
 
   bool _shouldShowFreezeSection() {

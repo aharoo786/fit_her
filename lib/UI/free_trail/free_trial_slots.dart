@@ -1,4 +1,6 @@
 import 'package:fitness_zone_2/UI/free_trail/free_trail_question.dart';
+import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
+import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/helper/analytics_helper.dart';
 import 'package:fitness_zone_2/values/constants.dart';
@@ -25,6 +27,7 @@ class FreeTrialSlots extends StatefulWidget {
 
 class _FreeTrialSlotsState extends State<FreeTrialSlots> {
   WorkOutController workOutController = Get.find();
+  HomeController homeController = Get.find();
   bool showBottomSheet = false;
 
   @override
@@ -199,6 +202,20 @@ class _FreeTrialSlotsState extends State<FreeTrialSlots> {
                           return;
                         }
                         Get.to(() => FreeTrialPersonalizationScreen());
+                      },
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    CustomButton(
+                      text: "Open 3-Day Trial Journey",
+                      onPressed: () async {
+                        await homeController.getMyTrialJourney();
+                        if (homeController.trialJourney == null) {
+                          await homeController.startTrial();
+                          await homeController.getMyTrialJourney();
+                        }
+                        Get.to(() => const TrialJourneyScreen());
                       },
                     ),
                     SizedBox(

@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:fitness_zone_2/helper/notification_services.dart';
+import 'package:fitness_zone_2/utils/app_clock.dart';
 import 'package:fitness_zone_2/values/constants.dart';
-import 'package:fitness_zone_2/values/styles.dart';
+import 'package:fitness_zone_2/theme/app_theme.dart';
 import 'package:fitness_zone_2/widgets/zoom_meeting_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,8 @@ import 'firebase_options.dart';
 import 'get_food_kcal_details.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -47,11 +50,23 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+  await dotenv.load(fileName: ".env");
+
+  // Phase F.3 — load the IANA database before anything reads
+  // tz.getLocation(...). Synchronous + cheap; bundled with the package.
+  tz_data.initializeTimeZones();
+
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp();
   }
 
   await di.init();
+
+  // Sync server time once. Fire-and-forget — we don't want to block app
+  // launch on the network, and AppClock falls back to device time
+  // until the first response lands.
+  // ignore: unawaited_futures
+  AppClock.init();
 
   // Initialize Analytics
   final analyticsService = Get.find<AnalyticsService>();
@@ -130,7 +145,7 @@ class _MyAppState extends State<MyApp> {
 
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
-        theme: Styles.appTheme,
+        theme: AppTheme.light,
         getPages: [
           GetPage<void>(page: () => SplashScreen(), name: '/'),
         ],
@@ -140,3 +155,4 @@ class _MyAppState extends State<MyApp> {
     // });
   }
 }
+

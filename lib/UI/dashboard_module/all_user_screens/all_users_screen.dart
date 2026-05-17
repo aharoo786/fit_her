@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/models/get_all_users/get_all_users.dart';
+import 'package:fitness_zone_2/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
@@ -178,26 +179,67 @@ class AllUsersScreen extends StatelessWidget {
                 SizedBox(
                   width: 12.w,
                 ),
-                // GestureDetector(
-                //   onTap: () {
-                //     Get.defaultDialog(
-                //         title: "Alert",
-                //         content: const Text("Do you really want to delete this user"),
-                //         onConfirm: () async {
-                //           Get.back();
-                //           if (user?.user != null) {
-                //             Get.find<AuthController>().deleteUser(id: user?.user.id.toString());
-                //           }
-                //         },
-                //         onCancel: () async {});
-                //   },
-                //   child: Container(
-                //     height: 32.h,
-                //     width: 32.h,
-                //     decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xffFFDAD3)),
-                //     child: Icon(Icons.delete),
-                //   ),
-                // ),
+                GestureDetector(
+                  onTap: () {
+                    Get.defaultDialog(
+                      title: "Delete User",
+                      titleStyle: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      content: Text(
+                        "Are you sure you want to delete ${user?.user.firstName}?",
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      confirmTextColor: AppColors.textOnPrimary,
+                      buttonColor: AppColors.error,
+                      cancelTextColor: AppColors.textPrimary,
+                      onConfirm: () async {
+                        Get.back();
+                        if (user?.user != null) {
+                          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+                          final authController = Get.find<AuthController>();
+                          final response = await authController.authRepo.deleteUser(
+                            id: user!.user.id.toString(),
+                          );
+                          Get.back();
+                          if (response.statusCode == 200 && response.body["status"] == "1") {
+                            homeController.getAllUsers?.otherPlanUsers.remove(user);
+                            homeController.getAllUsers?.freeTrialUsers.remove(user);
+                            homeController.getAllUsersLoad.refresh();
+                            Get.snackbar(
+                              'Success',
+                              response.body["message"],
+                              backgroundColor: AppColors.success,
+                              colorText: AppColors.textOnPrimary,
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                          } else {
+                            Get.snackbar(
+                              'Error',
+                              response.body["message"] ?? "Failed to delete user",
+                              backgroundColor: AppColors.error,
+                              colorText: AppColors.textOnPrimary,
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                          }
+                        }
+                      },
+                      onCancel: () {},
+                    );
+                  },
+                  child: Container(
+                    height: 32.h,
+                    width: 32.h,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.error),
+                    child: const Icon(Icons.delete, color: AppColors.textOnPrimary, size: 16),
+                  ),
+                ),
               ],
             )
           : GestureDetector(

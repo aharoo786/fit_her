@@ -48,10 +48,12 @@ class PostController extends GetxController implements GetxService {
 
   /// ================================
   /// 🔹 CREATE POST
+  /// Returns the created Post on success (use `.approved` to decide whether
+  /// to show the "wait for admin approval" popup), or null on failure.
   /// ================================
-  Future<bool> createPost({required String text, bool approved = true, bool isPost = true}) async {
+  Future<Post?> createPost({required String text, bool isPost = true}) async {
     createPostLoad.value = false;
-    var returnValue = false;
+    Post? returnValue;
     await homeRepo
         .createPost(
       accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
@@ -61,12 +63,20 @@ class PostController extends GetxController implements GetxService {
       userId: sharedPreferences.getString(Constants.userId) ?? "0",
     )
         .then((response) {
-      if (response.statusCode == 200) {
+      // Backend returns 201 on successful create (other handlers return 200).
+      // Treat any 2xx as a candidate success and let the body's `status` field
+      // decide — otherwise a fresh post triggers a "Something went wrong"
+      // toast despite the row + image having been saved.
+      final code = response.statusCode ?? 0;
+      if (code >= 200 && code < 300) {
         var res = jsonDecode(response.bodyString ?? "");
         if (res["status"] == "1") {
           CustomToast.successToast(msg: res["message"]);
           postImageFile = null;
-          returnValue = true;
+          final postJson = res["data"]?["post"];
+          if (postJson is Map<String, dynamic>) {
+            returnValue = Post.fromJson(postJson);
+          }
 
           // var addedPost = Post.fromJson(res["data"]["post"]);
           // var user = Get.find<AuthController>().logInUser;
@@ -97,12 +107,10 @@ class PostController extends GetxController implements GetxService {
           // getAllPosts(approved: approved);
         } else {
           CustomToast.failToast(msg: res["message"]);
-          returnValue = false;
         }
         createPostLoad.value = true;
       } else {
         CustomToast.failToast(msg: "Something went wrong");
-        returnValue = false;
       }
     });
     return returnValue;
@@ -216,17 +224,14 @@ class PostController extends GetxController implements GetxService {
       replyToId: parentReplyId,
     )
         .then((response) {
-      if (response.statusCode == 200) {
+      // Backend returns 201 on successful create — accept any 2xx and let
+      // the body's `status` field decide. Strict == 200 incorrectly surfaced
+      // "Something went wrong" even though the reply was actually saved.
+      final code = response.statusCode ?? 0;
+      if (code >= 200 && code < 300) {
         var res = jsonDecode(response.bodyString ?? "");
         if (res["status"] == "1") {
           CustomToast.successToast(msg: "Message sent");
-
-          // // Append new reply locally
-          // final post = postsList.firstWhereOrNull((p) => p.id == postId);
-          // if (post != null) {
-          //   post.replies?.add(Reply.fromJson(res["data"]["reply"]));
-          //   postsList.refresh();
-          // }
         } else {
           CustomToast.failToast(msg: res["message"]);
         }

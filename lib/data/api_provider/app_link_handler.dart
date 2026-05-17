@@ -1,9 +1,10 @@
 import 'package:app_links/app_links.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
+import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../UI/auth_module/welcom_screen.dart';
+import '../../UI/auth_module/walt_through/walk_through_screenn.dart';
 
 class AppLinkHandler {
   static final AppLinkHandler _instance = AppLinkHandler._internal();
@@ -39,12 +40,19 @@ class AppLinkHandler {
   void _handleIncomingUri(BuildContext context, Uri uri) {
     print('AppLinkHandler._handleIncomingUri ${uri}');
     print('AppLinkHandler._handleIncomingUri ${uri.toString().split("/").last}');
+    final token = uri.queryParameters["token"];
+    if (uri.toString().contains("trial") && token != null && token.isNotEmpty) {
+      Get.find<HomeController>().validateTrialToken(token);
+      Get.offAll(() => const WalkThroughScreen());
+      return;
+    }
+
     if (uri.toString().contains('customerSupport')) {
       Get.offAll(() => SignUpNewUser(
             supporterId: uri.toString().split("/").last,
           ));
     } else {
-      Get.offAll(() => WelcomeScreen());
+      Get.offAll(() => const WalkThroughScreen());
     }
   }
 }

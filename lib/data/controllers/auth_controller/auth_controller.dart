@@ -5,6 +5,7 @@ import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_users/get_all_dietitian_users.dart';
@@ -21,6 +22,7 @@ import '../../GetServices/CheckConnectionService.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../Repos/auth_repo/auth_repo.dart';
+import '../../services/timezone_sync_service.dart';
 import '../../models/api_response/api_response_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fAuth;
@@ -39,6 +41,7 @@ class AuthController extends GetxController implements GetxService {
   ///Generating unique id
   var uuid = const Uuid();
   var showDot = false.obs;
+  var isLoggingIn = false.obs;
 
   ///TextEditing Controller for Adding User
   TextEditingController firstNameController = TextEditingController();
@@ -61,6 +64,8 @@ class AuthController extends GetxController implements GetxService {
   TextEditingController editWeight = TextEditingController();
   TextEditingController editHeight = TextEditingController();
   TextEditingController editBmi = TextEditingController();
+  var mainGoal = ''.obs;
+  var healthConditions = ''.obs;
 
   ///countryCode
   var countryCode = Constants.countryCode;
@@ -151,6 +156,46 @@ class AuthController extends GetxController implements GetxService {
     sharedPreferences.setString(Constants.loginAsa, loginAsA.value);
 
     sharedPreferences.setBool(Constants.isGuest, false);
+    // Persist Option-C feature flags so the router can honor them on cold
+    // start before a fresh login response is available.
+    sharedPreferences.setBool(
+        Constants.useNewPaidHomeKey, model.useNewPaidHome);
+    sharedPreferences.setBool(
+        Constants.useNewUnpaidHomeKey, model.useNewUnpaidHome);
+    sharedPreferences.setBool(
+        Constants.useNewProgressHubKey, model.useNewProgressHub);
+    // Phase F.3 — persist the IANA zone so the very-first DietPlanUser
+    // load on cold-start uses the right zone instead of falling back
+    // to device-local. TimezoneSyncService keeps it fresh post-login.
+    sharedPreferences.setString(Constants.userTimeZoneKey, model.timeZone);
+    // Kick the sync service. Idempotent — safe to call after every
+    // login (Email/Password, Google, Apple, etc.).
+    try {
+      Get.find<TimezoneSyncService>().start();
+    } catch (_) {
+      // DI not ready (cold-start race) — service will be wired up the
+      // next time addLocalStorage runs.
+    }
+  }
+
+  /// Phase F.3 — IANA zone the dietitian set on `User.timeZone`. In-memory
+  /// `logInUser` is the authoritative source while logged in; the
+  /// SharedPreferences fallback covers the cold-start window before
+  /// `logInUser` rehydrates from a fresh login.
+  String get userTimeZone {
+    final inMem = logInUser?.timeZone;
+    if (inMem != null && inMem.isNotEmpty) return inMem;
+    final cached = sharedPreferences.getString(Constants.userTimeZoneKey);
+    if (cached != null && cached.isNotEmpty) return cached;
+    return 'Asia/Karachi';
+  }
+
+  /// Phase F.3 — called by TimezoneSyncService when the device drifts.
+  /// Updates the in-memory model + the cached SharedPreferences value
+  /// in lockstep so the rest of the app sees the new zone instantly.
+  void setUserTimeZoneLocal(String tzName) {
+    if (logInUser != null) logInUser!.timeZone = tzName;
+    sharedPreferences.setString(Constants.userTimeZoneKey, tzName);
   }
 
   login({String? userType, String? email, String? password}) {
@@ -159,6 +204,7 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
+        isLoggingIn.value = true;
         Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         if (userType != null) {
           loginAsA.value = userType;
@@ -172,6 +218,7 @@ class AuthController extends GetxController implements GetxService {
         )
             .then((response) async {
           Get.back();
+          isLoggingIn.value = false;
           print('AuthController.login ${response}}');
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
@@ -186,6 +233,7 @@ class AuthController extends GetxController implements GetxService {
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, password ?? loginUserPassword.text);
+                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.trainer) {
                   //  Get.find<HomeController>().getTrainerHomeFunc();
@@ -204,9 +252,13 @@ class AuthController extends GetxController implements GetxService {
                 loginUserPhone.clear();
                 loginUserPassword.clear();
                 updateUserDetails();
+                if (trialStarted && loginAsA.value == Constants.user) {
+                  Get.to(() => const TrialJourneyScreen());
+                }
               }
             }
           } else {
+            isLoggingIn.value = false;
             CustomToast.failToast(msg: response.body["message"]);
           }
         });
@@ -242,6 +294,7 @@ class AuthController extends GetxController implements GetxService {
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, signedFrom);
+                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.user) {
                   if (!logInUser!.status) {
@@ -254,6 +307,9 @@ class AuthController extends GetxController implements GetxService {
                 loginUserPhone.clear();
                 loginUserPassword.clear();
                 updateUserDetails();
+                if (trialStarted && loginAsA.value == Constants.user) {
+                  Get.to(() => const TrialJourneyScreen());
+                }
               } else if (response.body["status"] == "2") {
                 print('AuthController.signInUsingGoogle}');
                 emailNameController.text = userEmail;
@@ -421,6 +477,8 @@ class AuthController extends GetxController implements GetxService {
       editAge.text = logInUser?.age ?? "";
       editWeight.text = logInUser?.weight ?? "";
       editHeight.text = logInUser?.height ?? "";
+      mainGoal.value = logInUser?.mainGoal ?? "";
+      healthConditions.value = logInUser?.healthConditions ?? "";
     }
     Get.find<HomeController>().getUserHomeFunc();
     Get.offAll(() => BottomBarScreen());

@@ -1,8 +1,12 @@
 import 'package:fitness_zone_2/UI/auth_module/questionair_screen.dart';
+import 'package:fitness_zone_2/UI/auth_module/cycle_data_screen.dart';
+import 'package:fitness_zone_2/UI/auth_module/notification_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'package:fitness_zone_2/UI/in_app_webview.dart';
+import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/values/my_imgs.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
@@ -237,12 +241,20 @@ class BmiResult extends StatelessWidget {
                                         child: CustomButton(
                                       text: "Skip",
                                       onPressed: () {
-                                        AuthController authController =
-                                            Get.find();
-
-                                        authController.updateUserDetails(
-                                            updateFields: false);
-                                        homeController.getUserHomeFunc();
+                                        Get.to(() => CycleDataScreen(
+                                          onContinue: (cycleData) async {
+                                            final repo = Get.find<CycleDataRepository>();
+                                            final token = Get.find<AuthController>().sharedPreferences.getString(Constants.accessToken) ?? '';
+                                            await repo.saveCycleData(accessToken: token, body: cycleData);
+                                            Get.to(() => const NotificationScreen());
+                                          },
+                                          onSkip: () async {
+                                            final repo = Get.find<CycleDataRepository>();
+                                            final token = Get.find<AuthController>().sharedPreferences.getString(Constants.accessToken) ?? '';
+                                            await repo.saveCycleData(accessToken: token, body: {'dataProvided': 0});
+                                            Get.to(() => const NotificationScreen());
+                                          },
+                                        ));
                                       },
                                       height: 40,
                                       textColor: Colors.black,
@@ -317,13 +329,20 @@ class BmiResult extends StatelessWidget {
                           ),
                         ));
               } else {
-                HelpingWidgets.showCustomDialog(context, () {
-                  AuthController authController = Get.find();
-                  authController.updateUserDetails(updateFields: false);
-                },
-                    "Welcome 🎉",
-                    "Unlock live workout sessions, and expert consultations",
-                    MyImgs.logo);
+                Get.to(() => CycleDataScreen(
+                  onContinue: (cycleData) async {
+                    final repo = Get.find<CycleDataRepository>();
+                    final token = Get.find<AuthController>().sharedPreferences.getString(Constants.accessToken) ?? '';
+                    await repo.saveCycleData(accessToken: token, body: cycleData);
+                    Get.to(() => const NotificationScreen());
+                  },
+                  onSkip: () async {
+                    final repo = Get.find<CycleDataRepository>();
+                    final token = Get.find<AuthController>().sharedPreferences.getString(Constants.accessToken) ?? '';
+                    await repo.saveCycleData(accessToken: token, body: {'dataProvided': 0});
+                    Get.to(() => const NotificationScreen());
+                  },
+                ));
               }
             }),
       ),

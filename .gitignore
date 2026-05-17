@@ -49,10 +49,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+lib/data/api_provider/chat_api_provider.dart
+
 # FVM Version Cache
 .fvm/
 
-lib/data/api_provider/chat_api_provider.dart
+.env
 
 android/app/libs/mobilertc.aar
 ios/Runner/MobileRTC.xcframework

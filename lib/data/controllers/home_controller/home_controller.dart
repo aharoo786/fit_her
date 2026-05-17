@@ -30,7 +30,9 @@ import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../UI/auth_module/sign_up_screen/BMI_result.dart';
+import '../../../UI/auth_module/sign_up_screen/goal_screen.dart';
 import '../../../UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
+import '../../../helper/analytics_helper.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
 import '../../GetServices/CheckConnectionService.dart';
@@ -192,6 +194,9 @@ class HomeController extends GetxController implements GetxService {
   var userHomeLoad = false.obs;
   var getPlanImagesLoad = false.obs;
   var getTeamMembersLoad = false.obs;
+  var trialLoad = false.obs;
+  var trialActionLoad = false.obs;
+  Map<String, dynamic>? trialJourney;
 
   ///testimonials pic
   XFile? testiPicture;
@@ -934,7 +939,11 @@ class HomeController extends GetxController implements GetxService {
                   Get.find<AuthController>().logInUser = model.data;
                   Get.find<AuthController>().addLocalStorage(model.data!, password);
                   // getPlans();
-                  Get.offAll(() => SignUpScreenQuestions());
+                  Get.offAll(() => GoalScreen(
+                    onNext: (goal) {
+                      Get.off(() => SignUpScreenQuestions(selectedGoal: goal));
+                    },
+                  ));
                 }
                 clearyControllers();
               }
@@ -947,7 +956,7 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  addUserDetails({bool status = true, String? age, String? height, String? weight, String? bmiResult}) {
+  addUserDetails({bool status = true, String? age, String? height, String? weight, String? bmiResult, String? mainGoal, String? healthConditions}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
@@ -957,7 +966,7 @@ class HomeController extends GetxController implements GetxService {
 
         await homeRepo.addUserDetails(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {"userId": sharedPreferences.getString(Constants.userId), "age": age, "weight": weight, "height": height, "bmiResult": bmiResult},
+          map: {"userId": sharedPreferences.getString(Constants.userId), "age": age, "weight": weight, "height": height, "bmiResult": bmiResult, if (mainGoal != null) "mainGoal": mainGoal, if (healthConditions != null) "healthConditions": healthConditions},
         ).then((response) async {
           Get.back();
 
@@ -1692,28 +1701,198 @@ class HomeController extends GetxController implements GetxService {
     return success;
   }
 
-  var showDotHome = false.obs;
+  Future<bool> validateTrialToken(String token, {bool showToastOnSuccess = false}) async {
+    bool isValid = false;
+    trialActionLoad.value = true;
 
-  createPaymentIntent(String amount, String currency) async {
-    try {
-      Map<String, dynamic> body = {
-        'amount': amount,
-        'currency': currency,
-      };
-      // var data = await Stripe.instance.confirmPlatformPayPaymentIntent(
-      //     clientSecret: DotEnv().get("STRIPE_PUBLIC_KEY_TEST"),
-      //     confirmParams: PlatformPayConfirmParams.fromJson(body));
-      // print("data $data");
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        await homeRepo.validateTrialToken(token: token).then((response) async {
+          if (response.statusCode == 200 && response.body["status"] == "1") {
+            sharedPreferences.setString(Constants.trialToken, token);
+            trialJourney = response.body["data"]?["journey"];
+            isValid = true;
+            if (showToastOnSuccess) {
+              CustomToast.successToast(msg: response.body["message"]);
+            }
+          } else {
+            CustomToast.failToast(msg: response.body["message"] ?? "Invalid trial token");
+          }
+        });
+      }
+    });
 
-      var response = await http.post(
-        Uri.parse('https://api.stripe.com/v1/payment_intents'),
-        headers: {'Authorization': 'Bearer ${dotenv.get("STRIPE_SECRET_KEY_TEST")}', 'Content-Type': 'application/x-www-form-urlencoded'},
-        body: body,
-      );
-      print("response    ${response.body}");
-      return json.decode(response.body);
-    } catch (err) {
-      throw Exception(err.toString());
-    }
+    trialActionLoad.value = false;
+    update();
+    return isValid;
   }
+
+  Future<bool> startTrialFromSavedToken() async {
+    final accessToken = sharedPreferences.getString(Constants.accessToken) ?? "";
+    final token = sharedPreferences.getString(Constants.trialToken) ?? "";
+
+    if (accessToken.isEmpty || token.isEmpty) {
+      return false;
+    }
+
+    bool started = false;
+    trialActionLoad.value = true;
+    await homeRepo.startTrial(accessToken: accessToken, token: token).then((response) async {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        trialJourney = response.body["data"]?["journey"];
+        sharedPreferences.remove(Constants.trialToken);
+        started = true;
+      }
+    });
+    trialActionLoad.value = false;
+    update();
+    return started;
+  }
+
+  Future<bool> startTrial() async {
+    bool started = false;
+    trialActionLoad.value = true;
+    await homeRepo
+        .startTrial(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+    )
+        .then((response) async {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        trialJourney = response.body["data"]?["journey"];
+        started = true;
+      } else {
+        CustomToast.failToast(msg: response.body["message"] ?? "Unable to start trial");
+      }
+    });
+    trialActionLoad.value = false;
+    update();
+    return started;
+  }
+
+  Future<void> getMyTrialJourney() async {
+    trialLoad.value = false;
+
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+      } else {
+        await homeRepo
+            .getMyTrial(
+          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        )
+            .then((response) async {
+          if (response.statusCode == 200 && response.body["status"] == "1") {
+            trialJourney = response.body["data"]?["journey"];
+            trialLoad.value = true;
+          } else {
+            CustomToast.failToast(msg: response.body["message"] ?? "Unable to load trial");
+          }
+        });
+      }
+    });
+    update();
+  }
+
+  Future<void> bookTrialDay({required int day, required int slotId}) async {
+    trialActionLoad.value = true;
+    await homeRepo
+        .bookTrialDay(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      day: day,
+      slotId: slotId,
+    )
+        .then((response) async {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        trialJourney = response.body["data"]?["journey"];
+        CustomToast.successToast(msg: response.body["message"]);
+      } else {
+        CustomToast.failToast(msg: response.body["message"] ?? "Unable to book day");
+      }
+    });
+    trialActionLoad.value = false;
+    update();
+  }
+
+  Future<void> markTrialAttendance({required int day, int attendedMinutes = 30}) async {
+    trialActionLoad.value = true;
+    await homeRepo
+        .markTrialAttendance(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      day: day,
+      attendedMinutes: attendedMinutes,
+    )
+        .then((response) async {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        trialJourney = response.body["data"]?["journey"];
+        CustomToast.successToast(msg: response.body["message"]);
+      } else {
+        CustomToast.failToast(msg: response.body["message"] ?? "Unable to mark attendance");
+      }
+    });
+    trialActionLoad.value = false;
+    update();
+  }
+
+  Future<bool> submitTrialFeedback({
+    required double rating,
+    required String comment,
+    required String classReview,
+  }) async {
+    bool success = false;
+    trialActionLoad.value = true;
+    await homeRepo
+        .addReview(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      map: {
+        "comment": comment,
+        "value": rating.toInt(),
+        "classReview": classReview,
+        "trainerOrDiet": sharedPreferences.getString(Constants.userId) ?? "",
+        "PlanId": 0,
+        "userId": sharedPreferences.getString(Constants.userId) ?? "",
+      },
+    )
+        .then((response) async {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        success = true;
+        CustomToast.successToast(msg: response.body["message"]);
+      } else {
+        CustomToast.failToast(msg: response.body["message"] ?? "Unable to submit feedback");
+      }
+    });
+    trialActionLoad.value = false;
+    update();
+    return success;
+  }
+
+  Future<bool> markTrialConverted() async {
+    bool converted = false;
+    trialActionLoad.value = true;
+    await homeRepo
+        .markTrialConverted(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+    )
+        .then((response) async {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        trialJourney = response.body["data"]?["journey"];
+        converted = true;
+        await AnalyticsHelper.trackFreeTrialEvent(
+          'trial_converted_backend_confirmed',
+          step: 'conversion',
+          additionalParams: {
+            'state': trialJourney?["state"]?.toString() ?? "",
+          },
+        );
+      } else {
+        CustomToast.failToast(msg: response.body["message"] ?? "Unable to complete conversion");
+      }
+    });
+    trialActionLoad.value = false;
+    update();
+    return converted;
+  }
+
+  var showDotHome = false.obs;
 }

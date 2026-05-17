@@ -1,4 +1,5 @@
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_bottom_bar.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/recommended_slots_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/work_out_bottom_screen.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
@@ -41,7 +42,28 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
           text: "Your Plans"),
       body: Obx(() => workOutController.workOutOfUserLoad.value
           ? workOutController.workoutPlans!.plans.isEmpty
-              ? HelpingWidgets().getOurPlans(context, textTheme)
+              ? Column(
+                  children: [
+                    Expanded(
+                      child: HelpingWidgets().getOurPlans(context, textTheme),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: TextButton(
+                        onPressed: () {
+                          Get.to(() => const RecommendedSlotsScreen());
+                        },
+                        child: Text(
+                          'View recommended sessions →',
+                          style: textTheme.bodyMedium!.copyWith(
+                            color: MyColors.buttonColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
               : ListView.separated(
                   padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
                   itemCount: workOutController.workoutPlans!.plans.length,

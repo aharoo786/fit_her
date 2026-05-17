@@ -17,14 +17,28 @@ import 'package:intl/intl.dart';
 import '../../../widgets/toasts.dart';
 
 class SessionScreen extends StatelessWidget {
-  SessionScreen({Key? key, required this.slotId, this.planId, this.link, this.isDiet = false, required this.userId, required this.token, this.status})
-      : super(key: key);
+  SessionScreen({
+    Key? key,
+    required this.slotId,
+    this.planId,
+    this.link,
+    this.isDiet = false,
+    required this.userId,
+    required this.token,
+    RxString? status,
+  })  : status = status ?? RxString('Upcoming Class'),
+        super(key: key);
+
   final int slotId;
   final String token;
   final bool isDiet;
   final int userId;
   final String? planId;
-  RxString? status;
+  // Non-nullable: write sites previously did `status?.value = ...` which
+  // silently no-oped when status was null. Now it always exists, so all
+  // status updates take effect and the Obx() at line ~124 won't crash on
+  // first read.
+  final RxString status;
   String? link;
   final WorkOutController workOutController = Get.find();
   late TextEditingController googleMeet;
@@ -68,7 +82,7 @@ class SessionScreen extends StatelessWidget {
                           height: 40,
                           fontSize: 10,
                           onPressed: () async {
-                            status?.value = "Confirmed";
+                            status.value = "Confirmed";
                             Get.find<HomeController>().updateSlotStatus(slotId.toString(), "Confirmed");
                           }),
                     const SizedBox(
@@ -83,7 +97,7 @@ class SessionScreen extends StatelessWidget {
                           borderColor: Colors.red,
                           fontSize: 10,
                           onPressed: () async {
-                            status?.value = "Cancelled";
+                            status.value = "Cancelled";
                             Get.find<HomeController>().updateSlotStatus(slotId.toString(), "Cancelled");
                           }),
                     const SizedBox(
@@ -96,7 +110,7 @@ class SessionScreen extends StatelessWidget {
                           height: 40,
                           fontSize: 8,
                           onPressed: () async {
-                            status?.value = "Completed";
+                            status.value = "Completed";
                             Get.find<HomeController>().updateSlotStatus(slotId.toString(), "Completed");
                           }),
                   ],
@@ -121,27 +135,76 @@ class SessionScreen extends StatelessWidget {
                   const SizedBox(
                     height: 5,
                   ),
-                  Obx(() => Text("Current status: ${status?.value ?? "N/A"}")),
+                  Obx(() => Text("Current status: ${status.value}")),
                 ],
               ),
             const SizedBox(
               height: 20,
             ),
-            CustomButton(
-                text: "Start Session",
-                onPressed: () async {
-                  if (googleMeet.text.isEmpty) {
-                    CustomToast.failToast(msg: "Please provide link to join");
-                    return;
-                  }
-                  if (isDiet) {
+            // Start / End session row. Trainer ends the session manually
+            // so the admin can audit class quality (vs. auto-flipping at
+            // slot end-time and losing the no-show signal).
+            if (isDiet)
+              CustomButton(
+                  text: "Start Session",
+                  onPressed: () async {
+                    if (googleMeet.text.isEmpty) {
+                      CustomToast.failToast(msg: "Please provide link to join");
+                      return;
+                    }
                     await launchUrl(Uri.parse(googleMeet.text));
-                  } else {
-                    status?.value = "In Progress";
-                    await Get.find<HomeController>().updateSlotStatus(slotId.toString(), "In Progress");
-                    await launchUrl(Uri.parse(googleMeet.text));
-                  }
-                }),
+                  }),
+            if (!isDiet)
+              Obx(() {
+                final s = status.value;
+                final isInProgress = s == "In Progress";
+                return Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        text: isInProgress ? "Resume" : "Start Session",
+                        onPressed: () async {
+                          if (googleMeet.text.isEmpty) {
+                            CustomToast.failToast(
+                                msg: "Please provide link to join");
+                            return;
+                          }
+                          if (!isInProgress) {
+                            status.value = "In Progress";
+                            await Get.find<HomeController>()
+                                .updateSlotStatus(slotId.toString(), "In Progress");
+                          }
+                          await launchUrl(Uri.parse(googleMeet.text));
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: CustomButton(
+                        text: "End Session",
+                        color: Colors.red,
+                        borderColor: Colors.red,
+                        onPressed: () async {
+                          if (s == "Completed") {
+                            CustomToast.failToast(
+                                msg: "Session is already ended");
+                            return;
+                          }
+                          if (!isInProgress) {
+                            CustomToast.failToast(
+                                msg: "Start the session before ending it");
+                            return;
+                          }
+                          status.value = "Completed";
+                          await Get.find<HomeController>()
+                              .updateSlotStatus(slotId.toString(), "Completed");
+                          CustomToast.successToast(msg: "Session ended");
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              }),
             const SizedBox(
               height: 20,
             ),
