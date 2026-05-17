@@ -15,6 +15,7 @@ import 'package:fitness_zone_2/data/models/add_package/add_package_model.dart'
 
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fitness_zone_2/utils/app_clock.dart';
 import '../../Repos/home_repo/home_repo.dart';
 import '../../models/api_response/api_response_model.dart';
 import '../../models/free_trial_user_details.dart';
@@ -118,9 +119,10 @@ class WorkOutController extends GetxController implements GetxService {
       if (model.status != "1") return false;
       getUserWorkoutPlanDetailsPlan = model.data;
       if (showSlots) {
-        final today = DateFormat('EEEE').format(DateTime.now());
+        final nowAtServer = AppClock.now();
+        final today = DateFormat('EEEE').format(nowAtServer);
         final tomorrow = DateFormat('EEEE')
-            .format(DateTime.now().add(const Duration(days: 1)));
+            .format(nowAtServer.add(const Duration(days: 1)));
         final filter = getUserWorkoutPlanDetailsPlan?.trainerSlots
                 .where((t) => t.day == today || t.day == tomorrow)
                 .toList() ??
@@ -259,7 +261,9 @@ class WorkOutController extends GetxController implements GetxService {
   }
 
   checkTiming(String start, String end) {
-    Timestamp timestamp = Timestamp.fromDate(DateTime.now());
+    // Server-anchored — drifted device clocks would otherwise lock
+    // the trainer out of joining or open the door too early.
+    Timestamp timestamp = Timestamp.fromDate(AppClock.now());
     int startTime = covertToTimeStamp(start);
     int endTime = covertToTimeStamp(end);
 

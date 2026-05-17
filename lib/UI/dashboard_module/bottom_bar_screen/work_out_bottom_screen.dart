@@ -72,6 +72,12 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   // the "Reconnecting…" banner via [_isStale].
   DateTime? _lastContactAt;
 
+  // In-flight guard. Without this, a slow heartbeat can be still
+  // awaiting its API call when the next 30s tick (or a reconnect /
+  // resume trigger) fires another one. Two concurrent fetches waste
+  // bandwidth and can let a later success hide an earlier failure.
+  bool _heartbeatInFlight = false;
+
   // Heartbeat refetches the schedule every 30s. Lighter on the eyes than
   // 60s when status flips happen mid-class.
   static const Duration _kHeartbeatInterval = Duration(seconds: 30);
@@ -133,14 +139,19 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   // that updates [_lastContactAt] on success so the banner can hide.
 
   Future<void> _heartbeat({String reason = 'tick'}) async {
-    if (!mounted) return;
-    debugPrint('[WorkoutSchedule] heartbeat ($reason)');
-    final ok = await workOutController.getDietPlanDetailsFunc(
-      widget.planId,
-      silent: true,
-    );
-    if (!mounted || !ok) return;
-    setState(() => _lastContactAt = AppClock.now());
+    if (!mounted || _heartbeatInFlight) return;
+    _heartbeatInFlight = true;
+    try {
+      debugPrint('[WorkoutSchedule] heartbeat ($reason)');
+      final ok = await workOutController.getDietPlanDetailsFunc(
+        widget.planId,
+        silent: true,
+      );
+      if (!mounted || !ok) return;
+      setState(() => _lastContactAt = AppClock.now());
+    } finally {
+      _heartbeatInFlight = false;
+    }
   }
 
   @override
@@ -719,6 +730,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
                   TextSpan(
                     text: _intensityLabel(intensity),
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: intensityColor,
                       fontWeight: FontWeight.w700,
                     ),

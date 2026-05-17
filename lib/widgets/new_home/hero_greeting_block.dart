@@ -61,8 +61,9 @@ class HeroGreetingBlock extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 11,
-              fontWeight: FontWeight.w300,
+              fontWeight: FontWeight.w500,
               color: Colors.white.withOpacity(0.75),
             ),
           ),
@@ -76,8 +77,9 @@ class HeroGreetingBlock extends StatelessWidget {
                   TextSpan(
                     text: '${phase.label} ',
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: phaseSize,
-                      fontWeight: FontWeight.w300,
+                      fontWeight: FontWeight.w500,
                       color: Colors.white.withOpacity(0.55),
                       letterSpacing: -0.5,
                       height: 1.0,
@@ -86,6 +88,7 @@ class HeroGreetingBlock extends StatelessWidget {
                   TextSpan(
                     text: phase.emoji,
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: phaseSize,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -104,8 +107,9 @@ class HeroGreetingBlock extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: phaseSize,
-                fontWeight: FontWeight.w300,
+                fontWeight: FontWeight.w500,
                 color: Colors.white.withOpacity(0.55),
                 letterSpacing: -0.5,
                 height: 1.0,
@@ -138,6 +142,7 @@ class HeroGreetingBlock extends StatelessWidget {
   Widget _sep() => Text(
         '·',
         style: TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 11,
           color: Colors.white.withOpacity(0.18),
         ),
@@ -146,6 +151,10 @@ class HeroGreetingBlock extends StatelessWidget {
   Widget _chip(String text, double size, FontWeight? weight, Color color) =>
       Text(
         text,
-        style: TextStyle(fontSize: size, fontWeight: weight, color: color),
+        style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: size,
+            fontWeight: weight,
+            color: color),
       );
 }

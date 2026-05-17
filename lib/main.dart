@@ -26,6 +26,7 @@ import 'get_food_kcal_details.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -50,6 +51,10 @@ Future<void> main() async {
   //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   await dotenv.load(fileName: ".env");
+
+  // Phase F.3 — load the IANA database before anything reads
+  // tz.getLocation(...). Synchronous + cheap; bundled with the package.
+  tz_data.initializeTimeZones();
 
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp();

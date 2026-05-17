@@ -90,7 +90,7 @@ class HelpingWidgets {
     int? selectedDay = weekdayMap[selectedDayName];
     if (selectedDay == null) throw Exception('Invalid weekday name: $selectedDayName');
 
-    DateTime today = DateTime.now();
+    DateTime today = AppClock.now();
     int currentWeekday = today.weekday;
 
     // Calculate how many days to add to get to the next selected day

@@ -19,6 +19,7 @@ class LockedInsightCard extends StatelessWidget {
           Text(
             "🔒 FITHER AI · TODAY'S INSIGHT",
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 9,
               fontWeight: FontWeight.w700,
               color: Color(0xFF9AB09A),
@@ -31,6 +32,7 @@ class LockedInsightCard extends StatelessWidget {
             child: Text(
               'Recovery is 40% faster in your follicular phase — push today, rest smart this weekend for...',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12,
                 color: Color(0xFF4A6B4A),
                 height: 1.5,
@@ -41,6 +43,7 @@ class LockedInsightCard extends StatelessWidget {
           Text(
             'Unlock insight →',
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: Color(0xFF6DC55A),

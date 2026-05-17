@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../data/controllers/meal_log_controller/meal_log_controller.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
+import '../../data/models/meal_log/meal_log.dart';
 import 'log_weight_modal.dart';
 import 'paid_cycle_card.dart';
 import 'set_target_weight_modal.dart';
@@ -166,36 +169,77 @@ class _NutritionCard extends StatelessWidget {
   final HomeDashboardModel dashboard;
   const _NutritionCard({required this.dashboard});
 
+  static String _slotName(MealType t) {
+    switch (t) {
+      case MealType.breakfast:
+        return 'breakfast';
+      case MealType.lunch:
+        return 'lunch';
+      case MealType.dinner:
+        return 'dinner';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // STATIC for HBL demo. Footer "Log lunch →" is text-only, not a tap
-    // target — when nutrition tracking ships, swap _CardShell to its
-    // onTap variant and route to the meal-logger.
-    //
-    // Nutrition uses the larger ".card" padding (13/15) and bigger value
-    // font (26) per HTML reference — different from Row 1 stats which
-    // use the compact 11/6 cell padding and 21px values.
-    return const _CardShell(
-      padding: EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+    // Resolve once per build — slot only changes hour-to-hour, and the
+    // accordion state is reactive via Obx below.
+    final slot = currentMealForNow();
+    // Defensive lookup — GetX's lazyPut bindings can fall out of the
+    // registry on hot-reload when get_di.dart is edited without a full
+    // hot-restart. Re-register on demand so the Nutrition card doesn't
+    // bring the whole home screen down with "MealLogController not
+    // found". Idempotent: if it's already there, isRegistered short-
+    // circuits to the existing instance.
+    if (!Get.isRegistered<MealLogController>()) {
+      Get.put(MealLogController(
+        homeRepo: Get.find(),
+        sharedPreferences: Get.find(),
+      ));
+    }
+    final ctrl = Get.find<MealLogController>();
+    return _CardShell(
+      onTap: ctrl.toggleTodayMeals,
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _StatColumn(
+          const _StatColumn(
             label: '🥗 Nutrition',
             value: '82%',
             sub: 'diet plan',
             valueFontSize: 26,
             subFontSize: 10,
           ),
-          SizedBox(height: 6),
-          Text(
-            'Log lunch →',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF163220),
-            ),
-          ),
+          const SizedBox(height: 6),
+          Obx(() {
+            final expanded = ctrl.todayMealsExpanded.value;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Log ${_slotName(slot)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF163220),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  // 0.25 turns = 90° clockwise → arrow points down.
+                  turns: expanded ? 0.25 : 0.0,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOutCubic,
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 13,
+                    color: Color(0xFF163220),
+                  ),
+                ),
+              ],
+            );
+          }),
         ],
       ),
     );

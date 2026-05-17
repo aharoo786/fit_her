@@ -47,6 +47,12 @@ class Constants {
   // (legacy) and progress_screen_v2.dart (new hub). Default false; opt-in
   // per-user via the backend flag.
   static const String useNewProgressHubKey = 'useNewProgressHub';
+  // Phase F.3 — IANA timezone last seen for the logged-in user.
+  // Populated on login from the server, kept in sync by
+  // TimezoneSyncService when the device timezone drifts. Survives
+  // cold-start so DietPlanUserController doesn't fall back to device-
+  // local math while the user model rehydrates.
+  static const String userTimeZoneKey = 'userTimeZone';
   // Progress hub endpoints (Phase B). All accept ?period and ?asOf.
   static const String progressSummary = '/users/progress/summary';
   static const String progressWeight = '/users/progress/weight';
@@ -57,6 +63,12 @@ class Constants {
   // Phase E — minimal feature-flag toggle endpoint (POST). Only flags in
   // the backend allow-list can be flipped from the client.
   static const String setFeatureFlag = '/users/profile/feature_flag';
+
+  // Plan freeze (user-button flow). See partner_backend
+  // docs/Freeze_Logic_Audit.md for the contract.
+  static const String planFreeze = '/users/plan/freeze';
+  static const String planUnfreeze = '/users/plan/unfreeze';
+  static const String planFreezeStatus = '/users/plan/freeze-status';
   // PaidHomeScreenV2 data layer. Leading slash required — ApiProvider
   // concatenates `baseUrl + url` without adding separators.
   static const String paidHomeDashboard = "/users/home/dashboard";
@@ -95,6 +107,30 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static String resetPassword = "/users/change_password_after_otp";
   static String dietitianLogin = "/users/dietition_login";
   static String trainerLogin = "/users/trainer_login";
+
+  // ── Phase E.1 — Structured AI diet-plan endpoints (Phase C/D backend) ──
+  // Admin/dietitian surface:
+  static const String dietPlanAdminGenerate = "/admin/diet-plan/generate";
+  static const String dietPlanAdminDrafts = "/admin/diet-plan/drafts";
+  // Path templates — repo expands `{id}` / `{userId}` / `{mealId}` at call time.
+  static const String dietPlanAdminById = "/admin/diet-plan/{id}";
+  static const String dietPlanAdminActivate = "/admin/diet-plan/{id}/activate";
+  static const String dietPlanAdminCancel = "/admin/diet-plan/{id}/cancel";
+  static const String dietPlanAdminUserList = "/admin/diet-plan/user/{userId}/list";
+  static const String dietPlanAdminUpdateMeal = "/admin/diet-plan/meal/{mealId}";
+  // User-facing surface (Phase F consumer):
+  static const String dietPlanUserActive = "/users/diet-plan/me/active";
+  static const String dietPlanUserTimezone = "/users/diet-plan/me/timezone";
+  // Phase F.3 — booking context for the empty-state CTA (userId,
+  // userPlanId, dietitianId, hasActivePlan).
+  static const String dietPlanUserBookingContext =
+      "/users/diet-plan/me/booking-context";
+  // Phase G.3 — Day 7 check-in popup variable name. The endpoint paths
+  // themselves are already declared further down (`day7Review` +
+  // `popupAck`, lines ~207–212); this is just the variable string used
+  // in the URL fragment + matches the backend whitelist in
+  // controllers/FrontSite/popupStateController.js.
+  static const String day7ReviewPopupVariable = "POPUP_DAY7_REVIEW";
   static String getAllCategories = "/admin/all_categories";
   static String getSubCat = "/admin/get_subcategories";
   static String getUserDietPlans = "/admin/userDietPlans";
@@ -163,6 +199,25 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static String addProgressImages = "/admin/addProgressImages";
   static String resendOtpPath = "/users/resend_otp";
   static String home = "/users/home";
+
+  // ── Consultation flow (Phase 1B endpoints) ─────────────────────────
+  static const String preConsultationProfile = "/users/pre-consultation";
+  static const String mealLogs = "/users/meal-logs";
+  static const String day7Review = "/users/day7-review";
+  static const String progressSubmission = "/users/progress";
+  static const String dietitianAvailability = "/users/dietitian-availability";
+  static const String userEscalations = "/users/escalations";
+  // Append "/<variable>/dismiss" or "/<variable>/complete".
+  static const String popupAck = "/users/popup";
+  // Append "/<id>/no-show" for the consultant no-show report.
+  static const String appointmentNoShowSuffix = "/no-show";
+  // Admin-side endpoints.
+  static const String adminPreConsultationProfile = "/admin/pre-consultation";
+  static const String adminDay7Reviews = "/admin/day7-reviews";
+  static const String adminUserProgress = "/admin/users"; // append /:id/progress
+  static const String adminEscalations = "/admin/escalations";
+  static const String adminMetricsOverview = "/admin/metrics/overview";
+
   static String getDietitianUsers = "/users/dietition_get_all_users";
   static String getUserPlan = "/users/get_user_plans";
   /// Direct Pay (Payin PWA) - backend returns payment URL; client_secret stays on server

@@ -41,6 +41,7 @@ class HeroLiveSection extends StatelessWidget {
                     Text(
                       'LIVE',
                       style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -53,6 +54,7 @@ class HeroLiveSection extends StatelessWidget {
               Text(
                 '34 women · training now',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 10,
                   color: Colors.white.withOpacity(0.22),
                 ),
@@ -75,6 +77,7 @@ class HeroLiveSection extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 21,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -95,6 +98,7 @@ class HeroLiveSection extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 11,
                         color: Colors.white.withOpacity(0.70),
                       ),
@@ -120,6 +124,7 @@ class HeroLiveSection extends StatelessWidget {
                 child: const Text(
                   'Try free →',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,

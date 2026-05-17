@@ -104,6 +104,7 @@ class _FeedScreenState extends State<FeedScreen> {
           const Text(
             'COMMUNITY',
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: _kSage,
@@ -158,6 +159,7 @@ class _FeedScreenState extends State<FeedScreen> {
             Text(
               hasPackage ? 'Post' : 'Locked',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 color: hasPackage ? Colors.white : _kSage,
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w700,
@@ -212,6 +214,7 @@ class _FeedScreenState extends State<FeedScreen> {
               child: Text(
                 'Unlock posting & replies',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
                   color: _kTextPrimary,
@@ -221,6 +224,7 @@ class _FeedScreenState extends State<FeedScreen> {
             Text(
               'Upgrade',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w700,
                 color: _kAccent,
@@ -260,6 +264,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       ? postsLabel
                       : '$postsLabel · $membersLabel',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w700,
                     color: _kAccent,
@@ -358,6 +363,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 Text(
                   'No posts yet',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w800,
                     color: _kTextPrimary,
@@ -368,6 +374,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   'Be the first to share something with the community.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 12.sp,
                     color: _kTextSecondary,
                     height: 1.4,
@@ -435,6 +442,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   const Text(
                     'REPLIES',
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: _kSage,
@@ -445,6 +453,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   Obx(() => Text(
                         '${post.replies.length}',
                         style: const TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: _kTextSecondary,
@@ -488,6 +497,7 @@ class _FeedScreenState extends State<FeedScreen> {
             Text(
               'No replies yet',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
                 color: _kTextPrimary,
@@ -496,7 +506,7 @@ class _FeedScreenState extends State<FeedScreen> {
             SizedBox(height: 4.h),
             Text(
               'Be the first to reply.',
-              style: TextStyle(fontSize: 12.sp, color: _kTextSecondary),
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 12.sp, color: _kTextSecondary),
             ),
           ],
         ),
@@ -530,6 +540,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: 'Poppins',
                           fontWeight: FontWeight.w700,
                           fontSize: 13.sp,
                           color: _kTextPrimary,
@@ -540,6 +551,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     Text(
                       _formatTime(r.createdAt),
                       style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 11.sp,
                         color: _kSage,
                       ),
@@ -550,6 +562,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 Text(
                   r.message,
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 12.sp,
                     color: _kTextPrimary,
                     height: 1.4,
@@ -581,11 +594,11 @@ class _FeedScreenState extends State<FeedScreen> {
                 maxLines: null,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
-                style: TextStyle(fontSize: 13.sp, color: _kTextPrimary),
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13.sp, color: _kTextPrimary),
                 decoration: InputDecoration(
                   hintText: 'Write a reply…',
                   hintStyle:
-                      TextStyle(color: _kSage, fontSize: 13.sp),
+                      TextStyle(fontFamily: 'Poppins', color: _kSage, fontSize: 13.sp),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 16.w, vertical: 10.h),
@@ -648,6 +661,7 @@ Widget _avatarCircle({required String initial, double size = 40}) {
     child: Text(
       initial,
       style: TextStyle(
+        fontFamily: 'Poppins',
         color: Colors.white,
         fontSize: size * 0.4,
         fontWeight: FontWeight.w700,
@@ -716,6 +730,7 @@ class _PostCardState extends State<_PostCard> {
                         ? '${p.text.substring(0, _readMoreThreshold)}…'
                         : p.text,
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                       color: _kTextPrimary,
@@ -731,6 +746,7 @@ class _PostCardState extends State<_PostCard> {
                         child: Text(
                           _expanded ? 'Show less' : 'Read more',
                           style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w700,
                             color: _kAccent,
@@ -826,6 +842,7 @@ class _PostCardState extends State<_PostCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,
                         fontSize: 13.sp,
                         color: _kTextPrimary,
@@ -846,6 +863,7 @@ class _PostCardState extends State<_PostCard> {
               Text(
                 _formatTime(p.createdAt),
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   color: _kSage,
                   fontSize: 11.sp,
                 ),
@@ -907,6 +925,7 @@ class _RoleBadge extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 9,
             fontWeight: FontWeight.w800,
             color: _kAccent,
@@ -948,6 +967,7 @@ class _ActionButton extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w700,
                 color: _kTextSecondary,

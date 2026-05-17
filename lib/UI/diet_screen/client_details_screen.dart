@@ -1,4 +1,6 @@
 import 'package:fitness_zone_2/UI/diet_screen/add_user_diet.dart';
+import 'package:fitness_zone_2/UI/diet_screen/dietitian_v2/generate_plan_screen.dart';
+import 'package:fitness_zone_2/UI/diet_screen/dietitian_v2/user_plan_history_screen.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/data/models/diet_appointments.dart';
@@ -78,15 +80,30 @@ class ClientDetailsScreen extends StatelessWidget {
                               color: Colors.black.withOpacity(0.4)),
                         ),
                         SizedBox(height: 15),
-                        // Clients and Slots Buttons
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        // Clients and Slots Buttons.
+                        // Wrap (not Row) so the action buttons reflow onto
+                        // a second line on narrow screens — the original
+                        // Row was overflowing by ~78px once Phase E.3
+                        // (Generate Plan) and Phase E.5 (Plan History)
+                        // added two more buttons next to "Diet Plan".
+                        Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.start,
+                            spacing: 10,
+                            runSpacing: 10,
                             children: [
                               if (slotDiet != null)
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
+                                    // 4 status-update buttons. Wrap (not
+                                    // Row) so they reflow onto a second
+                                    // line when the parent Wrap can't
+                                    // give them enough width — phones
+                                    // < 380dp can't fit all four.
+                                    Wrap(
+                                      spacing: 5,
+                                      runSpacing: 5,
                                       children: [
                                         CustomIconButton(
                                           onTap: () {
@@ -104,9 +121,6 @@ class ClientDetailsScreen extends StatelessWidget {
                                           iconData: Icons.phone,
                                           text: "Appointment",
                                         ),
-                                        const SizedBox(
-                                          width: 5,
-                                        ),
                                         CustomIconButton(
                                           onTap: () {
                                             Get.find<DietController>()
@@ -117,9 +131,6 @@ class ClientDetailsScreen extends StatelessWidget {
                                           iconData: Icons.done,
                                           text: "Completed",
                                         ),
-                                        const SizedBox(
-                                          width: 5,
-                                        ),
                                         CustomIconButton(
                                           onTap: () {
                                             Get.find<DietController>()
@@ -129,9 +140,6 @@ class ClientDetailsScreen extends StatelessWidget {
                                           },
                                           iconData: Icons.done,
                                           text: "Confirm",
-                                        ),
-                                        const SizedBox(
-                                          width: 5,
                                         ),
                                         CustomIconButton(
                                           onTap: () {
@@ -150,9 +158,6 @@ class ClientDetailsScreen extends StatelessWidget {
                                     Text("Current Status: ${(status?.capitalizeFirst ?? "")}")
                                   ],
                                 ),
-                              const SizedBox(
-                                width: 10,
-                              ),
                               if (planId != null)
                                 ElevatedButton(
                                   onPressed: () {
@@ -177,6 +182,68 @@ class ClientDetailsScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+                              // Phase E.3 — entry into the new AI diet-plan
+                              // workflow. `planId` here is the user's
+                              // UserPlan.id (see Cliet model — same row
+                              // carries buyingDate/expireDate). Hidden
+                              // when no active UserPlan is in scope.
+                              if (planId != null)
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Get.to(() => GeneratePlanScreen(
+                                          userId: clientUser.id,
+                                          userPlanId: planId!,
+                                          userDisplayName:
+                                              '${clientUser.firstName} ${clientUser.lastName}',
+                                        ));
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF163220),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 15, vertical: 10),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.auto_awesome,
+                                          color: Colors.white, size: 16),
+                                      SizedBox(width: 5),
+                                      Text('Generate Plan'),
+                                    ],
+                                  ),
+                                ),
+                              // Phase E.5 — sibling entry into the plan
+                              // history. Available regardless of whether
+                              // there's an active UserPlan in scope —
+                              // history is meaningful even for users
+                              // between plans.
+                              ElevatedButton(
+                                onPressed: () {
+                                  Get.to(() => UserPlanHistoryScreen(
+                                        userId: clientUser.id,
+                                        userDisplayName:
+                                            '${clientUser.firstName} ${clientUser.lastName}',
+                                      ));
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF6DC55A),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 15, vertical: 10),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.history_rounded,
+                                        color: Colors.white, size: 16),
+                                    SizedBox(width: 5),
+                                    Text('Plan History'),
+                                  ],
+                                ),
+                              ),
                             ]),
                         const SizedBox(
                           height: 10,

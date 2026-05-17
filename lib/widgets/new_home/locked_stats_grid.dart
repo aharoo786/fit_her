@@ -47,6 +47,7 @@ class _LockedTile extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: Color(0xFF9AB09A),

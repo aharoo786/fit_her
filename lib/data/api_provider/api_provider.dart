@@ -3,7 +3,36 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../../values/constants.dart';
+
+// MultipartFile.fromPath defaults to application/octet-stream when no
+// contentType is supplied — which the backend's image fileFilter (multer)
+// rejects with "Only image files (jpg, png, webp, gif) are allowed". Map
+// the extension to a real image MIME so multipart parts arrive correctly
+// labelled.
+MediaType _mediaTypeForPath(String filePath) {
+  final lower = filePath.toLowerCase();
+  final dot = lower.lastIndexOf('.');
+  final ext = dot >= 0 ? lower.substring(dot + 1) : '';
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return MediaType('image', 'jpeg');
+    case 'png':
+      return MediaType('image', 'png');
+    case 'webp':
+      return MediaType('image', 'webp');
+    case 'gif':
+      return MediaType('image', 'gif');
+    case 'heic':
+      return MediaType('image', 'heic');
+    case 'heif':
+      return MediaType('image', 'heif');
+    default:
+      return MediaType('application', 'octet-stream');
+  }
+}
 
 class ApiProvider extends GetxService {
   final String baseUrl = Constants.baseUrl;
@@ -30,6 +59,16 @@ class ApiProvider extends GetxService {
       ...?headers,
     };
     var response = await http.put(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders ?? {});
+    return handleData(url, response);
+  }
+
+  Future<Response> patchData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
+    debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
+    final defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...?headers,
+    };
+    var response = await http.patch(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders);
     return handleData(url, response);
   }
 
@@ -94,14 +133,29 @@ class ApiProvider extends GetxService {
       // Add files based on the isProgress flag
       if (isProgress) {
         if (formData['before'] != null && formData['after'] != null) {
-          request.files.add(await http.MultipartFile.fromPath('before', formData['before']));
-          request.files.add(await http.MultipartFile.fromPath('after', formData['after']));
+          final beforePath = formData['before'] as String;
+          final afterPath = formData['after'] as String;
+          request.files.add(await http.MultipartFile.fromPath(
+            'before',
+            beforePath,
+            contentType: _mediaTypeForPath(beforePath),
+          ));
+          request.files.add(await http.MultipartFile.fromPath(
+            'after',
+            afterPath,
+            contentType: _mediaTypeForPath(afterPath),
+          ));
         } else {
           throw Exception("Missing 'before' or 'after' file for progress upload.");
         }
       } else {
         if (formData['image'] != null) {
-          request.files.add(await http.MultipartFile.fromPath('image', formData['image']));
+          final imagePath = formData['image'] as String;
+          request.files.add(await http.MultipartFile.fromPath(
+            'image',
+            imagePath,
+            contentType: _mediaTypeForPath(imagePath),
+          ));
         } else {
           throw Exception("Missing 'image' file for upload.");
         }

@@ -60,6 +60,7 @@ class HeroTopBar extends StatelessWidget {
               child: const Text(
                 'S',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   color: Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,

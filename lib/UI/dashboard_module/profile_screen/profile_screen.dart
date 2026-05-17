@@ -89,6 +89,7 @@ class ProfileScreen extends StatelessWidget {
                                 Text(
                                   'Cycle Data',
                                   style: TextStyle(
+                                    fontFamily: 'Poppins',
                                     color: MyColors.textColor,
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
@@ -120,6 +121,7 @@ class ProfileScreen extends StatelessWidget {
                                 Text(
                                   'Notifications',
                                   style: TextStyle(
+                                    fontFamily: 'Poppins',
                                     color: MyColors.textColor,
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
@@ -290,6 +292,7 @@ class ProfileScreen extends StatelessWidget {
               Text(
                 text,
                 style: TextStyle(
+                    fontFamily: 'Poppins',
                     color: MyColors.textColor,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600),

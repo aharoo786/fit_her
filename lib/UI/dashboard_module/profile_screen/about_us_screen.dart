@@ -139,7 +139,7 @@ class AboutUsScreen extends StatelessWidget {
               padding: EdgeInsets.only(left: 20.w),
               child: Text(
                 "About FitHer",
-                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w700),
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 20.sp, fontWeight: FontWeight.w700),
               ),
             ),
             SizedBox(height: 16.h),
@@ -148,6 +148,7 @@ class AboutUsScreen extends StatelessWidget {
               child: Text(
                 "It's a package of your health, fitness, and beauty. You will reduce 4 to 7 kgs in a month with us. Here, you have live support of experts for dietary consultancy or advice, and you will get a customised plan, and it will be tracked through daily reminders. Also, you will have a gym at home on your cell phone, Your trainer will be available on-screen to guide you and help you maintain your postures. Live support of all our team(experts) will be available for you.",
                 style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w400,
                     color: Colors.grey[500]),

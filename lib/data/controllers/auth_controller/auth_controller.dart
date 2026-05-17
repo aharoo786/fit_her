@@ -22,6 +22,7 @@ import '../../GetServices/CheckConnectionService.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../Repos/auth_repo/auth_repo.dart';
+import '../../services/timezone_sync_service.dart';
 import '../../models/api_response/api_response_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fAuth;
@@ -163,6 +164,38 @@ class AuthController extends GetxController implements GetxService {
         Constants.useNewUnpaidHomeKey, model.useNewUnpaidHome);
     sharedPreferences.setBool(
         Constants.useNewProgressHubKey, model.useNewProgressHub);
+    // Phase F.3 — persist the IANA zone so the very-first DietPlanUser
+    // load on cold-start uses the right zone instead of falling back
+    // to device-local. TimezoneSyncService keeps it fresh post-login.
+    sharedPreferences.setString(Constants.userTimeZoneKey, model.timeZone);
+    // Kick the sync service. Idempotent — safe to call after every
+    // login (Email/Password, Google, Apple, etc.).
+    try {
+      Get.find<TimezoneSyncService>().start();
+    } catch (_) {
+      // DI not ready (cold-start race) — service will be wired up the
+      // next time addLocalStorage runs.
+    }
+  }
+
+  /// Phase F.3 — IANA zone the dietitian set on `User.timeZone`. In-memory
+  /// `logInUser` is the authoritative source while logged in; the
+  /// SharedPreferences fallback covers the cold-start window before
+  /// `logInUser` rehydrates from a fresh login.
+  String get userTimeZone {
+    final inMem = logInUser?.timeZone;
+    if (inMem != null && inMem.isNotEmpty) return inMem;
+    final cached = sharedPreferences.getString(Constants.userTimeZoneKey);
+    if (cached != null && cached.isNotEmpty) return cached;
+    return 'Asia/Karachi';
+  }
+
+  /// Phase F.3 — called by TimezoneSyncService when the device drifts.
+  /// Updates the in-memory model + the cached SharedPreferences value
+  /// in lockstep so the rest of the app sees the new zone instantly.
+  void setUserTimeZoneLocal(String tzName) {
+    if (logInUser != null) logInUser!.timeZone = tzName;
+    sharedPreferences.setString(Constants.userTimeZoneKey, tzName);
   }
 
   login({String? userType, String? email, String? password}) {

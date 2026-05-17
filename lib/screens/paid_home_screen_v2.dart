@@ -6,15 +6,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../UI/consultation_module/popup_orchestrator.dart';
+import '../UI/consultation_module/popups/medical_concern_sheet.dart';
 import '../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../utils/app_clock.dart';
 import '../widgets/paid_home_v2/paid_feel_selector.dart';
 import '../widgets/paid_home_v2/paid_footer.dart';
 import '../widgets/paid_home_v2/paid_hero.dart';
 import '../widgets/paid_home_v2/paid_insight_card.dart';
+import '../widgets/paid_home_v2/paid_meal_log_card.dart';
 import '../widgets/paid_home_v2/paid_sleep_card.dart';
 import '../widgets/paid_home_v2/paid_stats_row.dart';
 import '../widgets/paid_home_v2/paid_water_card.dart';
+import '../widgets/v2/medical_concern_fab.dart';
+import '../widgets/v2/v2_today_meals_section.dart' show V2Day7TriggerBanner;
 
 /// PaidHomeScreenV2 — phase-themed dashboard for paid users behind the
 /// `useNewPaidHome` feature flag. Phase B2.3 ships only the hero section
@@ -40,6 +45,12 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
   Timer? _heartbeatTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   DateTime? _lastContactAt;
+  // Guard against overlapping heartbeats. The 30s timer + foreground
+  // resume + connectivity-reconnect triggers can all fire in tight
+  // succession on flaky networks; without this, multiple concurrent
+  // dashboard fetches stack up and a later one's success can mask an
+  // earlier failure.
+  bool _heartbeatInFlight = false;
 
   static const Duration _kHeartbeatInterval = Duration(seconds: 30);
   static const Duration _kStaleAfter = Duration(seconds: 60);
@@ -74,11 +85,16 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
   }
 
   Future<void> _heartbeat({String reason = 'tick'}) async {
-    if (!mounted) return;
-    debugPrint('[PaidHomeV2] heartbeat ($reason)');
-    final ok = await _controller.silentRefresh();
-    if (!mounted || !ok) return;
-    setState(() => _lastContactAt = AppClock.now());
+    if (!mounted || _heartbeatInFlight) return;
+    _heartbeatInFlight = true;
+    try {
+      debugPrint('[PaidHomeV2] heartbeat ($reason)');
+      final ok = await _controller.silentRefresh();
+      if (!mounted || !ok) return;
+      setState(() => _lastContactAt = AppClock.now());
+    } finally {
+      _heartbeatInFlight = false;
+    }
   }
 
   @override
@@ -128,23 +144,34 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
           // Cream body bg matches the H-01 reference scroll area below the
           // hero. Unchanged.
           backgroundColor: const Color(0xFFEAF7E4),
-          body: Stack(
-            children: [
-              _buildBody(),
-              // Reconnecting banner — overlay so it stays pinned at the
-              // top of the screen instead of scrolling away with the
-              // hero. SafeArea so it clears the status bar.
-              if (_isStale)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SafeArea(
-                    bottom: false,
-                    child: _buildReconnectingBanner(),
-                  ),
-                ),
-            ],
+          // Phase 2D wiring (consultation flow):
+          //   • PendingPopupOrchestrator watches dashboard.pendingPopups
+          //     and dispatches the right sheet by variable name.
+          //   • MedicalConcernFAB renders the floating "urgent help"
+          //     button per Decision 8 — paid surfaces only, hidden
+          //     during fullscreen modals via the static `suppress` flag.
+          body: PendingPopupOrchestrator(
+            child: MedicalConcernFAB(
+              onTap: () => MedicalConcernSheet.show(),
+              child: Stack(
+                children: [
+                  _buildBody(),
+                  // Reconnecting banner — overlay so it stays pinned at
+                  // the top of the screen instead of scrolling away with
+                  // the hero. SafeArea so it clears the status bar.
+                  if (_isStale)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SafeArea(
+                        bottom: false,
+                        child: _buildReconnectingBanner(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -213,6 +240,13 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                 // Cream scroll body. Insight card is the first section;
                 // everything below the `SizedBox` is a placeholder that
                 // future phases fill in (mood, water/sleep, stats, etc.).
+                // Phase H — Day 7 check-in trigger. Mounted as a
+                // sibling of the cream-body Padding (not inside it)
+                // because V2Day7TriggerBanner already has its own
+                // 16w margin — putting it inside the 16-padded inner
+                // Column would double-pad. Self-hides when ineligible,
+                // so this slot only contributes layout on Day 7+.
+                const V2Day7TriggerBanner(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   child: Column(
@@ -239,6 +273,12 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                       ),
                       const SizedBox(height: 8),
                       PaidStatsRow(dashboard: dashboard),
+                      const SizedBox(height: 8),
+                      // Meal log tile (Phase 2D, Section 6.1). Drives
+                      // adherence into Day 7 review + Day 15/30 progress
+                      // submissions. Uses MealLogController internally
+                      // so it doesn't depend on `dashboard` prop.
+                      const PaidMealLogCard(),
                       const SizedBox(height: 8),
                       // PaidCycleCard removed from this position —
                       // PaidStatsRow now embeds it in Row 2 alongside

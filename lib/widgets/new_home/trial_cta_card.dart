@@ -53,6 +53,7 @@ class TrialCtaCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     color: accent,
@@ -65,6 +66,7 @@ class TrialCtaCard extends StatelessWidget {
           const Text(
             'Unlock phase-matched live classes, AI insights, and your hormonal dashboard.',
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -82,6 +84,7 @@ class TrialCtaCard extends StatelessWidget {
             child: const Text(
               'Start 7-day free trial →',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
@@ -93,6 +96,7 @@ class TrialCtaCard extends StatelessWidget {
             child: Text(
               'Cancel anytime · No card charged today',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 10,
                 color: Colors.white.withOpacity(0.35),
               ),
