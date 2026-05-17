@@ -20,6 +20,38 @@ class DietPlansOfUser extends StatefulWidget {
 
 class _DietPlansOfUserState extends State<DietPlansOfUser> {
   DietController dietController = Get.find();
+  int? _singleUserPlanId;
+  bool _requestedSinglePlanDetails = false;
+
+  Widget _animatedBody(Widget child, {required String keyValue}) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final fade = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+        final slide = Tween<Offset>(
+          begin: const Offset(0, 0.03),
+          end: Offset.zero,
+        ).animate(fade);
+        return FadeTransition(
+          opacity: fade,
+          child: SlideTransition(
+            position: slide,
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey(keyValue),
+        child: child,
+      ),
+    );
+  }
+
   @override
   void initState() {
     dietController.getDietAllPlansFunc();
@@ -29,41 +61,74 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: HelpingWidgets().appBarWidget(
-          widget.showBackButton
-              ? () {
-                  Get.back();
-                }
-              : null,
-          text: "Your Plans"),
-      body:
-          //Center(child: Text("Coming Soon. Stay Awaited!"),)
+    return Obx(() {
+      if (dietController.dietOfUserLoad.value &&
+          dietController.getDietAllPlans != null) {
+        final userPlans = dietController.getDietAllPlans!.userPlans;
+        if (userPlans.length == 1) {
+          final singlePlanId = userPlans.first.id;
+          if (_singleUserPlanId != singlePlanId) {
+            _singleUserPlanId = singlePlanId;
+            _requestedSinglePlanDetails = false;
+          }
+          if (!_requestedSinglePlanDetails) {
+            _requestedSinglePlanDetails = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted || _singleUserPlanId == null) return;
+              dietController.getDietPlanDetailsFunc(_singleUserPlanId.toString());
+            });
+          }
+          return _animatedBody(
+            DietBottomBarScreen(
+              userPlanId: singlePlanId,
+              showBackButton: widget.showBackButton,
+            ),
+            keyValue: 'diet-detail-$singlePlanId',
+          );
+        }
+      }
 
-          Obx(() => dietController.dietOfUserLoad.value
+      return Scaffold(
+        appBar: HelpingWidgets().appBarWidget(
+            widget.showBackButton
+                ? () {
+                    Get.back();
+                  }
+                : null,
+            text: "Your Plans"),
+        body: _animatedBody(
+          dietController.dietOfUserLoad.value
               ? dietController.getDietAllPlans!.userPlans.isEmpty
                   ? HelpingWidgets().getOurPlans(context, textTheme)
                   : ListView.separated(
-                      padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
-                      itemCount: dietController.getDietAllPlans!.userPlans.length,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
+                      itemCount:
+                          dietController.getDietAllPlans!.userPlans.length,
                       itemBuilder: (BuildContext context, int index) {
-                        var plan = dietController.getDietAllPlans!.userPlans[index].dietPlanOfUser;
+                        var plan = dietController
+                            .getDietAllPlans!.userPlans[index].dietPlanOfUser;
                         return GestureDetector(
                           onTap: () {
-                            // CustomToast.successToast(
-                            //     msg: "Stay Awaited! Coming soon");
                             Get.to(() => DietBottomBarScreen(
-                                  userPlanId: dietController.getDietAllPlans!.userPlans[index].id,
+                                  userPlanId: dietController
+                                      .getDietAllPlans!.userPlans[index].id,
                                 ));
-                            dietController.getDietPlanDetailsFunc(dietController.getDietAllPlans!.userPlans[index].id.toString());
+                            dietController.getDietPlanDetailsFunc(dietController
+                                .getDietAllPlans!.userPlans[index].id
+                                .toString());
                           },
                           child: Container(
-                            // height: 200,
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                boxShadow: [BoxShadow(offset: Offset(0, 2), blurRadius: 4, color: Colors.black.withOpacity(0.1))]),
+                                boxShadow: [
+                                  BoxShadow(
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                      color: Colors.black.withOpacity(0.1))
+                                ]),
                             child: Row(children: [
                               SizedBox(
                                 width: 70.w,
@@ -90,18 +155,6 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    // Text(
-                                    //   "Duration: ${plan.duration}",
-                                    //   style: textTheme.titleLarge!.copyWith(),
-                                    //   maxLines: 2,
-                                    //   overflow: TextOverflow.ellipsis,
-                                    // ),
-                                    // Text(
-                                    //   "PKR ${plan.price}",
-                                    //   style: textTheme.titleLarge!.copyWith(
-                                    //     fontWeight: FontWeight.w500,
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                               )
@@ -117,7 +170,14 @@ class _DietPlansOfUserState extends State<DietPlansOfUser> {
                     )
               : const Center(
                   child: CircularProgress(),
-                )),
-    );
+                ),
+          keyValue: dietController.dietOfUserLoad.value
+              ? (dietController.getDietAllPlans!.userPlans.isEmpty
+                  ? 'diet-empty'
+                  : 'diet-list')
+              : 'diet-loading',
+        ),
+      );
+    });
   }
 }

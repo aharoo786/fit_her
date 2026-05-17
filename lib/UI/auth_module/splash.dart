@@ -56,6 +56,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     _setupAnimations();
     _runAnimationSequence();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && Get.context != null) {
+        AppLinkHandler().init(Get.context!);
+      }
+    });
 
     // ── Original navigation logic ──
     NotificationServices().requestNotificationPermission();
@@ -69,9 +74,6 @@ class _SplashScreenState extends State<SplashScreen>
           share.getString(Constants.password) == null ||
           share.getString(Constants.loginAsa) == null) {
         Get.offAll(() => const WalkThroughScreen());
-        Future.delayed(const Duration(seconds: 1), () {
-          AppLinkHandler().init(Get.context!);
-        });
       } else {
         if (share.getString(Constants.password)!.isEmpty ||
             share.getString(Constants.password) == "google" ||

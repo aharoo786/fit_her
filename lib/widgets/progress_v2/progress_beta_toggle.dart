@@ -71,9 +71,7 @@ class _ProgressBetaToggleState extends State<ProgressBetaToggle> {
         // a missing instance as a no-op is fine for tests.
       }
       _showSnack(
-        next
-            ? 'You\'re on the new Progress hub. Tap the Progress tab to see it.'
-            : 'Reverted to the classic Progress screen.',
+        next ? 'You\'re on the new Progress hub. Tap the Progress tab to see it.' : 'Reverted to the classic Progress screen.',
       );
     } else {
       // Revert the optimistic flip.
@@ -122,8 +120,7 @@ class _ProgressBetaToggleState extends State<ProgressBetaToggle> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.science_outlined,
-              color: Color(0xFF6DC55A), size: 22),
+          const Icon(Icons.science_outlined, color: Color(0xFF6DC55A), size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -131,18 +128,12 @@ class _ProgressBetaToggleState extends State<ProgressBetaToggle> {
               children: [
                 const Text(
                   'Try the new Progress (Beta)',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF000000)),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF000000)),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  value
-                      ? 'You\'re on the new hub. Toggle off to revert.'
-                      : 'Single-scroll dashboard with rings, charts, and AI tips.',
-                  style: const TextStyle(
-                      fontSize: 11, color: Color(0xFF969696), height: 1.3),
+                  value ? 'You\'re on the new hub. Toggle off to revert.' : 'Single-scroll dashboard with rings, charts, and AI tips.',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF969696), height: 1.3),
                 ),
               ],
             ),
@@ -152,7 +143,7 @@ class _ProgressBetaToggleState extends State<ProgressBetaToggle> {
             value: value,
             // activeThumbColor replaces the soft-deprecated activeColor
             // post-Flutter 3.31. Same green either way.
-            activeThumbColor: const Color(0xFF6DC55A),
+            activeTrackColor: const Color(0xFF6DC55A),
             onChanged: _saving ? null : _onChanged,
           ),
         ],

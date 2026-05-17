@@ -24,8 +24,13 @@ import '../../../widgets/circular_progress.dart';
 /// screen never had any) are preserved exactly. Only the widget tree is
 /// replaced.
 class WorkOutBottomScreen extends StatefulWidget {
-  const WorkOutBottomScreen({super.key, required this.planId});
+  const WorkOutBottomScreen({
+    super.key,
+    required this.planId,
+    this.showBackButton = true,
+  });
   final String planId;
+  final bool showBackButton;
 
   @override
   State<WorkOutBottomScreen> createState() => _WorkOutBottomScreenState();
@@ -142,8 +147,10 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _circleButton(icon: Icons.arrow_back, onTap: () => Get.back()),
-          SizedBox(width: 12.w),
+          if (widget.showBackButton) ...[
+            _circleButton(icon: Icons.arrow_back, onTap: () => Get.back()),
+            SizedBox(width: 12.w),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -690,6 +697,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
     final fg = isEnabled
         ? _liveBgDark
         : (dark ? Colors.white.withValues(alpha: 0.7) : _textMuted);
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -726,6 +734,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
     final intensity = _intensityFromSlotType(slot.type);
     final duration = _durationMinutes(slot);
     final trainer = _trainerName(slot);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Stack(
