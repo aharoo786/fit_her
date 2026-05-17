@@ -15,6 +15,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:get/get.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
+import '../../../data/models/get_all_dietitian_trainers/get_diet_plan_details.dart';
 import '../../../helper/custom_print.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
@@ -33,8 +34,13 @@ import '../../../widgets/toasts.dart';
 /// Schedule redesign.
 class DietBottomBarScreen extends StatefulWidget {
   final int userPlanId;
+  final bool showBackButton;
 
-  const DietBottomBarScreen({super.key, required this.userPlanId});
+  const DietBottomBarScreen({
+    super.key,
+    required this.userPlanId,
+    this.showBackButton = true,
+  });
 
   @override
   State<DietBottomBarScreen> createState() => _DietBottomBarScreenState();
@@ -73,9 +79,13 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: HelpingWidgets().appBarWidget(() {
-          Get.back();
-        }, text: "Diet Plan"),
+        appBar: HelpingWidgets().appBarWidget(
+            widget.showBackButton
+                ? () {
+                    Get.back();
+                  }
+                : null,
+            text: "Diet Plan"),
         body: Obx(() => dietController.dietPlanDetailsLoad.value
             ? GetBuilder<DietController>(
                 id: "dietBottomScreen",
@@ -118,8 +128,7 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
                                               onDocumentLoaded: (details) {
                                                 // Track diet plan delivered when user views PDF
                                                 AnalyticsHelper.trackDietPlanDelivered('day',
-                                                    userPlanId: widget.userPlanId,
-                                                    dietitianId: dietController.getDietPlanDetails?.dietDetails.id);
+                                                    userPlanId: widget.userPlanId, dietitianId: dietController.getDietPlanDetails?.dietDetails.id);
                                               },
                                               onDocumentLoadFailed: (details) {},
                                             ),
@@ -139,15 +148,12 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
                                         ],
                                       );
                                     } else {
-                                      final isBooked =
-                                          dietController.getDietPlanDetails?.isBooked ?? false;
+                                      final isBooked = dietController.getDietPlanDetails?.isBooked ?? false;
                                       return Column(
                                         children: [
-                                          if (isBooked)
-                                            _buildBookingConfirmationCard(context),
+                                          if (isBooked) _buildBookingConfirmationCard(context),
                                           const CaloryWidget(),
-                                          if (!isBooked)
-                                            _buildSlotBookingSurface(context),
+                                          if (!isBooked) _buildSlotBookingSurface(context),
                                         ],
                                       );
                                     }
@@ -243,10 +249,7 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
           SizedBox(height: 14.h),
           _buildDayStrip(selectedWeekday),
           SizedBox(height: 18.h),
-          if (selectedSlots.isEmpty)
-            _buildPerDayEmptyState()
-          else
-            _buildSlotList(selectedSlots, selectedWeekday),
+          if (selectedSlots.isEmpty) _buildPerDayEmptyState() else _buildSlotList(selectedSlots, selectedWeekday),
           SizedBox(height: 18.h),
         ],
       ),
@@ -539,9 +542,8 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
   //   • today's weekday (if dietitian has slots for today), else
   //   • first weekday with slots, else
   //   • first weekday in tDieti as a last resort.
-  String _resolveSelectedWeekday(List<dynamic> tDieti) {
-    if (_selectedWeekday != null &&
-        tDieti.any((t) => t.day == _selectedWeekday)) {
+  String _resolveSelectedWeekday(List<TimeDietition> tDieti) {
+    if (_selectedWeekday != null && tDieti.any((t) => t.day == _selectedWeekday)) {
       return _selectedWeekday!;
     }
     final today = DateFormat('EEEE').format(DateTime.now());
@@ -555,8 +557,8 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
     return firstWithSlots.day;
   }
 
-  List<dynamic> _slotsForWeekday(List<dynamic> tDieti, String weekday) {
-    final match = tDieti.where((t) => t.day == weekday).toList();
+  List<dynamic> _slotsForWeekday(List<TimeDietition> tDieti, String weekday) {
+    final match = tDieti.where((TimeDietition t) => t.day == weekday).toList();
     if (match.isEmpty) return [];
     return match.first.slots as List<dynamic>;
   }
@@ -586,8 +588,7 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 280.w),
             child: Text(
-              "Get personalized meal plans with detailed daily guidance to achieve your nutrition goals."
-                  .tr,
+              "Get personalized meal plans with detailed daily guidance to achieve your nutrition goals.".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Poppins',
@@ -698,8 +699,7 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
         ),
         // Preserved verbatim — same deeplink call, same arg pattern.
         onPressed: () async {
-          openWhatsAppChat(
-              "${dietController.getDietPlanDetails?.dietDetails.phone}");
+          openWhatsAppChat("${dietController.getDietPlanDetails?.dietDetails.phone}");
         },
         child: Text(
           "WhatsApp".tr,
@@ -805,8 +805,7 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
               SizedBox(width: 10.w),
               Expanded(
                 child: Text(
-                  "Your appointment has been booked. You'll receive a notification when it's time for your session."
-                      .tr,
+                  "Your appointment has been booked. You'll receive a notification when it's time for your session.".tr,
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 12.sp,
@@ -857,14 +856,11 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
         ),
         // Behavior preserved verbatim from the prior banner Join button.
         onPressed: () async {
-          var trainerLink =
-              dietController.getDietPlanDetails!.bookedSlot?.dietitionLink;
+          var trainerLink = dietController.getDietPlanDetails!.bookedSlot?.dietitionLink;
           if (homeController.userHomeData!.userData.freeze.value) {
-            CustomToast.failToast(
-                msg: "Your account is frozen please unfreeze first");
+            CustomToast.failToast(msg: "Your account is frozen please unfreeze first");
           } else {
-            if (homeController.userHomeData!.userAllPlans.first.remainingDays ==
-                0) {
+            if (homeController.userHomeData!.userAllPlans.first.remainingDays == 0) {
               CustomToast.failToast(msg: "Please renew your plan");
               return;
             }

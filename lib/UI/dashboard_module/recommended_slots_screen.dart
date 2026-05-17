@@ -67,15 +67,10 @@ class _RecommendedSlotsScreenState extends State<RecommendedSlotsScreen> {
     );
 
     List<Slot> allSlots = [];
-    if (slotsResponse.body != null &&
-        slotsResponse.body['status'] == '1' &&
-        slotsResponse.body['data'] != null) {
+    if (slotsResponse.body != null && slotsResponse.body['status'] == '1' && slotsResponse.body['data'] != null) {
       final data = slotsResponse.body['data'];
       if (data['trainerSlots'] is List) {
-        final trainerSlots = (data['trainerSlots'] as List)
-            .whereType<Map<String, dynamic>>()
-            .map((ts) => TrainerSlot.fromJson(ts))
-            .toList();
+        final trainerSlots = (data['trainerSlots'] as List).whereType<Map<String, dynamic>>().map((ts) => TrainerSlot.fromJson(ts)).toList();
         for (final ts in trainerSlots) {
           allSlots.addAll(ts.slots);
         }

@@ -571,14 +571,48 @@ class HelpingWidgets {
     String meetingNumber,
     String slotId,
   ) async {
-    Get.back();
-    var success = await Get.find<ZoomMeetingGetxController>().joinMeeting(meetingNumber, Get.find<AuthController>().logInUser?.fullName ?? "");
+    final authController = Get.find<AuthController>();
+    final homeController = Get.find<HomeController>();
+    final displayName = _buildMeetingDisplayName(
+      authController: authController,
+      homeController: homeController,
+    );
+
+    var success = await Get.find<ZoomMeetingGetxController>()
+        .joinMeeting(meetingNumber, displayName);
     if (success) {
       Future.delayed(Duration(minutes: 5), () {
         Get.bottomSheet(isScrollControlled: true, FeedbackBottomSheet("0", "0"));
       });
     }
     Get.find<MotivationController>().markAttendance(slotId: slotId);
+  }
+
+  static String _buildMeetingDisplayName({
+    required AuthController authController,
+    required HomeController homeController,
+  }) {
+    final loginUser = authController.logInUser;
+    final baseName = (loginUser?.fullName.trim().isNotEmpty ?? false)
+        ? loginUser!.fullName.trim()
+        : 'User';
+
+    final tags = <String>[];
+    final goal = loginUser?.mainGoal?.trim();
+    final hasFreeTrial = homeController.userHomeData?.userAllPlans.any(
+          (plan) => plan.title.trim().toLowerCase() == 'free trial',
+        ) ??
+        false;
+
+    if (hasFreeTrial) {
+      tags.add('Free Trial');
+    }
+    if (goal != null && goal.isNotEmpty) {
+      tags.add(goal);
+    }
+
+    if (tags.isEmpty) return baseName;
+    return '$baseName (${tags.join(', ')})';
   }
 
   static StatusType getStatusTypeFromString(String status) {
