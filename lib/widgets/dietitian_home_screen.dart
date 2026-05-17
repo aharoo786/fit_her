@@ -1,5 +1,6 @@
 import 'package:fitness_zone_2/UI/diet_screen/client_details_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/clients_screen.dart';
+import 'package:fitness_zone_2/UI/diet_screen/dietitian_v2/drafts_dashboard_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/new_appointment_request.dart';
 import 'package:fitness_zone_2/UI/diet_screen/slots_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
@@ -119,6 +120,62 @@ class DietitianProfileScreen extends StatelessWidget {
                       ]),
                       const SizedBox(
                         height: 10,
+                      ),
+                      // Phase E.2 — temporary entry into the new diet-plan
+                      // workflow. Will be folded into a redesigned dietitian
+                      // home in a later session.
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: const Color(0xFFD8EDD4), width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF163220).withOpacity(0.05),
+                              offset: const Offset(0, 2),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF7E4),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.assignment_outlined,
+                              color: Color(0xFF6DC55A),
+                            ),
+                          ),
+                          title: const Text(
+                            'Drafts to Review',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF163220),
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'AI-generated diet plans pending your review',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              color: Color(0xFF6F8B7A),
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF9AB09A),
+                          ),
+                          onTap: () =>
+                              Get.to(() => const DraftsDashboardScreen()),
+                        ),
                       ),
 
                       Obx(() => dietController.appointmentLoad.value

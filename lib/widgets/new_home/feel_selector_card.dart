@@ -35,6 +35,7 @@ class FeelSelectorCard extends StatelessWidget {
           const Text(
             'HOW I FEEL TODAY',
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 9,
               fontWeight: FontWeight.w700,
               color: Color(0xFF9AB09A),
@@ -107,6 +108,7 @@ class _MoodCell extends StatelessWidget {
           Text(
             mood.label,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 8,
               fontWeight:
                   selected ? FontWeight.w700 : FontWeight.w500,

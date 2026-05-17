@@ -10,6 +10,7 @@ import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart'
 import 'package:fitness_zone_2/data/services/cycle_engine.dart';
 import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/widgets/new_home/phase_theme.dart';
+import 'package:fitness_zone_2/widgets/v2/v2_assigned_plan_card.dart';
 
 /// Profile — visual rewrite to match the Paid Home V2 / Progress V2
 /// aesthetic (cream body, white cards with mint border + soft shadow,
@@ -134,6 +135,8 @@ class ProfileScreenUser extends StatelessWidget {
               ),
               _personalInfoCard(),
               const SizedBox(height: 12),
+              const V2AssignedPlanCard(),
+              const SizedBox(height: 12),
               _notificationsTile(),
               const SizedBox(height: 18),
               _primaryAction(
@@ -179,6 +182,7 @@ class ProfileScreenUser extends StatelessWidget {
         const Text(
           'Profile',
           style: TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 12,
             fontWeight: FontWeight.w700,
             color: _kSage,
@@ -259,6 +263,7 @@ class ProfileScreenUser extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -272,6 +277,7 @@ class ProfileScreenUser extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withOpacity(0.55),
@@ -324,6 +330,7 @@ class ProfileScreenUser extends StatelessWidget {
                         Text(
                           theme.phaseLabel,
                           style: const TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: _kTextPrimary,
@@ -340,6 +347,7 @@ class ProfileScreenUser extends StatelessWidget {
                           child: Text(
                             'Day $day',
                             style: TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: theme.accent,
@@ -353,6 +361,7 @@ class ProfileScreenUser extends StatelessWidget {
                       Text(
                         subtitle,
                         style: const TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 11,
                           color: _kTextMuted,
                           height: 1.4,
@@ -451,6 +460,7 @@ class ProfileScreenUser extends StatelessWidget {
               child: Text(
                 'Notifications',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: _kTextPrimary,
@@ -487,6 +497,7 @@ class ProfileScreenUser extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 15,
             fontWeight: FontWeight.w800,
             color: Colors.white,
@@ -512,6 +523,7 @@ class ProfileScreenUser extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: _kTextPrimary,
@@ -531,6 +543,7 @@ class ProfileScreenUser extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 13,
             fontWeight: FontWeight.w700,
             color: _kDanger,
@@ -554,6 +567,7 @@ class _CardLabel extends StatelessWidget {
     return Text(
       text.toUpperCase(),
       style: const TextStyle(
+        fontFamily: 'Poppins',
         fontSize: 10,
         fontWeight: FontWeight.w700,
         color: Color(0xFF9AB09A),
@@ -585,6 +599,7 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               data.label,
               style: const TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF6F8B7A),
@@ -599,6 +614,7 @@ class _InfoRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF163220),

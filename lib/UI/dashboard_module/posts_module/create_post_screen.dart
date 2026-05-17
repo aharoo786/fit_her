@@ -103,6 +103,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           const Text(
             'NEW POST',
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: _kSage,
@@ -144,6 +145,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
             style: TextStyle(
+              fontFamily: 'Poppins',
               color: _kTextPrimary,
               fontSize: 14.sp,
               fontWeight: FontWeight.w500,
@@ -152,6 +154,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             decoration: InputDecoration(
               hintText: "What's on your mind? Share your thoughts…",
               hintStyle: TextStyle(
+                fontFamily: 'Poppins',
                 color: _kSage,
                 fontSize: 13.sp,
               ),
@@ -167,6 +170,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               child: Text(
                 "${value.text.length}/1000",
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   color: _kSage,
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w500,
@@ -264,6 +268,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               Text(
                 'Add a photo',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   color: _kTextPrimary,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w800,
@@ -273,6 +278,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               Text(
                 'Tap to choose from camera or gallery',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   color: _kTextSecondary,
                   fontSize: 11.sp,
                 ),
@@ -316,6 +322,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   child: Text(
                     'Publish',
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: Colors.white,
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w800,
@@ -340,20 +347,26 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           msg: "You need to add content and image to create a post.");
       return;
     }
-    final ok = await controller.createPost(text: content.text);
-    if (ok) {
-      HelpingWidgets.showCustomDialog(
-        context,
-        () {
-          Get.back();
-          Get.back();
-        },
-        "Wait for Approval!",
-        "Your post will be displayed once approved by Admin.",
-        MyImgs.doneTick,
-        buttonText: "Got it!",
-      );
+    final post = await controller.createPost(text: content.text);
+    if (post == null) return;
+    // Only show the moderation popup when the backend actually held the post
+    // for admin review (regular paid user posting an image). Trainers,
+    // dietitians and text-only posts are auto-approved → just close.
+    if (post.approved) {
+      Get.back();
+      return;
     }
+    HelpingWidgets.showCustomDialog(
+      context,
+      () {
+        Get.back();
+        Get.back();
+      },
+      "Wait for Approval!",
+      "Your post will be displayed once approved by Admin.",
+      MyImgs.doneTick,
+      buttonText: "Got it!",
+    );
   }
 
   // ─── Media picker bottom sheet ─────────────────────────────────────────
@@ -383,6 +396,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             const Text(
               'ADD PHOTO FROM',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: _kSage,
@@ -442,6 +456,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           Text(
             label,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
               color: _kTextPrimary,

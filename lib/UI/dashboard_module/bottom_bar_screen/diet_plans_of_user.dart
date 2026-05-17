@@ -1,183 +1,53 @@
-import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_bottom_bar.dart';
-import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
-import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../values/my_colors.dart';
-import '../../../values/my_imgs.dart';
-import '../../../widgets/app_bar_widget.dart';
-import '../../../widgets/circular_progress.dart';
+import '../../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
+import '../../../widgets/v2/v2_diet_hero.dart';
+import '../../../widgets/v2/v2_today_meals_section.dart';
 
-class DietPlansOfUser extends StatefulWidget {
-  DietPlansOfUser({super.key, this.showBackButton = true});
-  bool showBackButton;
+/// User's Diet bottom-nav tab.
+///
+/// Phase F.1 hard-switched this surface from the legacy assigned-plans
+/// list to the structured-plan "today's meals" view. Phase H upgrades
+/// the visual shell to mirror the paid-home v2 layout: edge-to-edge
+/// dark phase-themed `V2DietHero` at the top, cream body below with
+/// the existing meal-section content.
+///
+/// The class name + constructor signature stay stable so
+/// `bottom_bar_screen.dart` doesn't need to know about the swap.
+class DietPlansOfUser extends StatelessWidget {
+  // Kept for source compatibility with the existing call site at
+  // bottom_bar_screen.dart:69. When mounted as a bottom-nav tab the
+  // back button is hidden; when pushed (legacy entry points) it shows.
+  final bool showBackButton;
 
-  @override
-  State<DietPlansOfUser> createState() => _DietPlansOfUserState();
-}
+  const DietPlansOfUser({super.key, this.showBackButton = true});
 
-class _DietPlansOfUserState extends State<DietPlansOfUser> {
-  DietController dietController = Get.find();
-  int? _singleUserPlanId;
-  bool _requestedSinglePlanDetails = false;
-
-  Widget _animatedBody(Widget child, {required String keyValue}) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 280),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      transitionBuilder: (child, animation) {
-        final fade = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-        );
-        final slide = Tween<Offset>(
-          begin: const Offset(0, 0.03),
-          end: Offset.zero,
-        ).animate(fade);
-        return FadeTransition(
-          opacity: fade,
-          child: SlideTransition(
-            position: slide,
-            child: child,
-          ),
-        );
-      },
-      child: KeyedSubtree(
-        key: ValueKey(keyValue),
-        child: child,
-      ),
-    );
-  }
-
-  @override
-  void initState() {
-    dietController.getDietAllPlansFunc();
-    super.initState();
-  }
+  static const Color _kCream = Color(0xFFEAF7E4);
+  static const Color _kAccent = Color(0xFF6DC55A);
 
   @override
   Widget build(BuildContext context) {
-    var textTheme = Theme.of(context).textTheme;
-    return Obx(() {
-      if (dietController.dietOfUserLoad.value &&
-          dietController.getDietAllPlans != null) {
-        final userPlans = dietController.getDietAllPlans!.userPlans;
-        if (userPlans.length == 1) {
-          final singlePlanId = userPlans.first.id;
-          if (_singleUserPlanId != singlePlanId) {
-            _singleUserPlanId = singlePlanId;
-            _requestedSinglePlanDetails = false;
-          }
-          if (!_requestedSinglePlanDetails) {
-            _requestedSinglePlanDetails = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || _singleUserPlanId == null) return;
-              dietController.getDietPlanDetailsFunc(_singleUserPlanId.toString());
-            });
-          }
-          return _animatedBody(
-            DietBottomBarScreen(
-              userPlanId: singlePlanId,
-              showBackButton: widget.showBackButton,
-            ),
-            keyValue: 'diet-detail-$singlePlanId',
-          );
-        }
-      }
-
-      return Scaffold(
-        appBar: HelpingWidgets().appBarWidget(
-            widget.showBackButton
-                ? () {
-                    Get.back();
-                  }
-                : null,
-            text: "Your Plans"),
-        body: _animatedBody(
-          dietController.dietOfUserLoad.value
-              ? dietController.getDietAllPlans!.userPlans.isEmpty
-                  ? HelpingWidgets().getOurPlans(context, textTheme)
-                  : ListView.separated(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
-                      itemCount:
-                          dietController.getDietAllPlans!.userPlans.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        var plan = dietController
-                            .getDietAllPlans!.userPlans[index].dietPlanOfUser;
-                        return GestureDetector(
-                          onTap: () {
-                            Get.to(() => DietBottomBarScreen(
-                                  userPlanId: dietController
-                                      .getDietAllPlans!.userPlans[index].id,
-                                ));
-                            dietController.getDietPlanDetailsFunc(dietController
-                                .getDietAllPlans!.userPlans[index].id
-                                .toString());
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                      color: Colors.black.withOpacity(0.1))
-                                ]),
-                            child: Row(children: [
-                              SizedBox(
-                                width: 70.w,
-                                child: Image.asset(MyImgs.logo),
-                              ),
-                              SizedBox(
-                                width: 10.w,
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      plan.title,
-                                      style: textTheme.bodyLarge!.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      plan.shortDescription,
-                                      style: textTheme.bodySmall!.copyWith(),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ]),
-                          ),
-                        );
-                      },
-                      separatorBuilder: (BuildContext context, int index) {
-                        return SizedBox(
-                          height: 20.w,
-                        );
-                      },
-                    )
-              : const Center(
-                  child: CircularProgress(),
-                ),
-          keyValue: dietController.dietOfUserLoad.value
-              ? (dietController.getDietAllPlans!.userPlans.isEmpty
-                  ? 'diet-empty'
-                  : 'diet-list')
-              : 'diet-loading',
+    final ctrl = Get.find<DietPlanUserController>();
+    // Hero paints edge-to-edge under the system status bar (matches
+    // paid_home_screen_v2.dart). No outer SafeArea — the hero handles
+    // its own top padding via MediaQuery.padding.top inside _TopBar.
+    return Scaffold(
+      backgroundColor: _kCream,
+      body: RefreshIndicator(
+        color: _kAccent,
+        onRefresh: () => ctrl.loadActivePlan(refresh: true),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              V2DietHero(showBackButton: showBackButton),
+              const V2TodayMealsSection(),
+            ],
+          ),
         ),
-      );
-    });
+      ),
+    );
   }
 }

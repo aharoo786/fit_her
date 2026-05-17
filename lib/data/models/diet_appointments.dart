@@ -53,13 +53,18 @@ class Appointment {
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
-    id: json["id"],
+    // Same `?? 0` defensive pattern already used for userId below.
+    // Backend has been observed returning null timeSlotId for some
+    // appointment rows (e.g. unassigned slot deleted server-side);
+    // without the guard, the int cast crashes the whole list parse
+    // and no appointments render at all.
+    id: json["id"] ?? 0,
     date: DateTime.parse(json["date"]),
-    status: json["status"],
+    status: json["status"] ?? "",
     userId: json["userId"]??0,
     message: json["message"]??"N/A",
-    dietitionId: json["dietitionId"],
-    timeSlotId: json["timeSlotId"],
+    dietitionId: json["dietitionId"] ?? 0,
+    timeSlotId: json["timeSlotId"] ?? 0,
     clientUser:json["ClientUser"]==null?null: ClientUser.fromJson(json["ClientUser"]),
     slotDiet: json["SlotDiet"]==null?null:SlotDiet.fromJson(json["SlotDiet"]),
   );

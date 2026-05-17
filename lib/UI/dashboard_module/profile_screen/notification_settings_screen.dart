@@ -193,6 +193,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 Text(
                   'Notification Types',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -245,6 +246,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 Text(
                   'Quiet Hours',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -254,6 +256,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 Text(
                   'No notifications during these hours (except cancellations)',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 12.sp,
                     color: AppColors.textHint,
                   ),
@@ -302,6 +305,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   Text(
                     title,
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
@@ -311,6 +315,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   Text(
                     description,
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 12.sp,
                       color: AppColors.textHint,
                     ),
@@ -350,6 +355,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             Text(
               label,
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
@@ -360,6 +366,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 Text(
                   value,
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,

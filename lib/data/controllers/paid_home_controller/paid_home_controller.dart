@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../utils/app_clock.dart';
 import '../../../values/constants.dart';
 import '../../Repos/checkin_repo/checkin_repository.dart';
 import '../../Repos/home_repo/home_repo.dart';
@@ -52,6 +53,23 @@ class PaidHomeController extends GetxController {
 
   Future<void> refreshDashboard() => loadDashboard();
 
+  /// Heartbeat-friendly refresh. Skips the [isLoading] toggle so polling
+  /// timers don't fight pull-to-refresh, and never overwrites the
+  /// existing [dashboard] with `null` on transient failures. Returns
+  /// true on a successful payload — UI uses that to drive the
+  /// "Reconnecting…" banner.
+  Future<bool> silentRefresh() async {
+    try {
+      final result = await homeRepo.getPaidHomeDashboard();
+      if (result == null) return false;
+      dashboard.value = result;
+      return true;
+    } catch (e) {
+      debugPrint('[PaidHomeController.silentRefresh] $e');
+      return false;
+    }
+  }
+
   /// Persists today's mood via the existing CheckinRepository (upsert on
   /// `(userId, today)` server-side). On success refetches the dashboard so
   /// `todayCheckin.moodLevel` reflects the new value. Returns true on
@@ -95,7 +113,10 @@ class PaidHomeController extends GetxController {
   }
 
   String _todayLocalDateOnly() {
-    final now = DateTime.now();
+    // Server-anchored: a drifted device clock would otherwise persist
+    // checkins under the wrong date and they'd vanish from the dashboard
+    // once the device clock corrected itself.
+    final now = AppClock.now();
     final y = now.year.toString().padLeft(4, '0');
     final m = now.month.toString().padLeft(2, '0');
     final d = now.day.toString().padLeft(2, '0');

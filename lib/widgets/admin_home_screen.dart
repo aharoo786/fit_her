@@ -1,5 +1,7 @@
 import 'package:fitness_zone_2/UI/dashboard_module/add_package/add_package.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/get_all_new_user_images/get_new_user_images.dart';
+import 'package:fitness_zone_2/UI/admin_module/admin_v2/admin_escalations_screen.dart';
+import 'package:fitness_zone_2/UI/admin_module/admin_v2/admin_metrics_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/posts_module/admin_approve_posts.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/posts_module/feed_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/dietry_module/dietaryCheckScreen.dart';
@@ -235,6 +237,24 @@ class AdminHomeScreen extends StatelessWidget {
                 Get.to(() => AdminApprovePosts());
               },
               child: containerWidget(const Color(0xffE6EEFF), "Posts Check", MyImgs.annoucements),
+            ),
+            SizedBox(
+              height: 20.h,
+            ),
+            GestureDetector(
+              onTap: () {
+                Get.to(() => const AdminMetricsScreen());
+              },
+              child: containerWidget(const Color(0xffE0F2D8), "Metrics Overview", MyImgs.annoucements),
+            ),
+            SizedBox(
+              height: 20.h,
+            ),
+            GestureDetector(
+              onTap: () {
+                Get.to(() => const AdminEscalationsScreen());
+              },
+              child: containerWidget(const Color(0xffFFF1EE), "Escalations", MyImgs.annoucements),
             ),
             // Obx(
             //   () => homeController.trialPlanLoad.value

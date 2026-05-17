@@ -91,6 +91,9 @@ bool _wasOrIsLive(String? trimmedStatus) =>
 
 bool _hasLink(String? link) => link != null && link.trim().isNotEmpty;
 
+bool _isSameCalendarDate(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 SlotUIState resolveSlotUIState({
   required SlotInput slot,
   required DateTime now,
@@ -101,8 +104,16 @@ SlotUIState resolveSlotUIState({
   // through and grant the wrong state.
   final status = slot.status?.trim();
 
-  // Cancelled overrides every time/state check below.
-  if (status == SlotStatus.cancelled) return SlotUIState.cancelled;
+  // Cancelled overrides — but only when viewing the slot's actual date.
+  // Slots are recurring weekly templates that share one row; without
+  // this guard, a Cancelled flip on today's session would leak across
+  // to next week's view of the same row until the midnight cron resets
+  // the status. Cross-date views fall through to the normal time-window
+  // logic, so future occurrences correctly read as upcoming.
+  if (status == SlotStatus.cancelled &&
+      _isSameCalendarDate(now, slot.start)) {
+    return SlotUIState.cancelled;
+  }
 
   // After the window. The end is treated as the cutoff: at exactly `now
   // == slot.end` the class is over.

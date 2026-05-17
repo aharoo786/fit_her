@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,6 +12,7 @@ import '../../../data/controllers/motivation_controller/motivation_controller.da
 import '../../../data/controllers/workout_controller/work_out_controller.dart';
 import '../../../data/models/get_user_plan/get_workout_user_plan_details.dart';
 import '../../../data/services/recommendation_service.dart';
+import '../../../utils/app_clock.dart';
 import '../../../utils/slot_input_builder.dart';
 import '../../../utils/slot_ui_state.dart';
 import '../../../widgets/app_bar_widget.dart';
@@ -36,7 +38,8 @@ class WorkOutBottomScreen extends StatefulWidget {
   State<WorkOutBottomScreen> createState() => _WorkOutBottomScreenState();
 }
 
-class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
+class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
+    with WidgetsBindingObserver {
   // Preserved Get.find() bindings (HomeController is required by the
   // showWorkoutBottomSheet call).
   final HomeController homeController = Get.find();
@@ -63,14 +66,43 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
 
   late DateTime _selectedDate;
   late DateTime _weekStart; // Monday of the displayed week
-  Timer? _liveTickTimer;
+
+  // Step 4 sync layers — see [_kHeartbeatInterval] / [_kClockTickerInterval]
+  // / [_kStaleAfter] for cadence rationale.
+  Timer? _heartbeatTimer;
+  Timer? _clockTickerTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
+  // Wall-clock timestamp of the last successful heartbeat fetch. Drives
+  // the "Reconnecting…" banner via [_isStale].
+  DateTime? _lastContactAt;
+
+  // In-flight guard. Without this, a slow heartbeat can be still
+  // awaiting its API call when the next 30s tick (or a reconnect /
+  // resume trigger) fires another one. Two concurrent fetches waste
+  // bandwidth and can let a later success hide an earlier failure.
+  bool _heartbeatInFlight = false;
+
+  // Heartbeat refetches the schedule every 30s. Lighter on the eyes than
+  // 60s when status flips happen mid-class.
+  static const Duration _kHeartbeatInterval = Duration(seconds: 30);
+
+  // Local-only re-evaluation of the time window so the LIVE/STARTING
+  // SOON badge and "N min" countdown stay current without a network
+  // call. 30s matches heartbeat for predictability.
+  static const Duration _kClockTickerInterval = Duration(seconds: 30);
+
+  // No successful contact in 60s = show banner. Two missed heartbeats.
+  static const Duration _kStaleAfter = Duration(seconds: 60);
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = AppClock.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _weekStart = _mondayOfWeek(_selectedDate);
+
+    WidgetsBinding.instance.addObserver(this);
 
     // Attendance stats power the past-class ✓ checkmark (per-date, not
     // per-slot — a Phase D backend ticket will add per-slot precision).
@@ -79,16 +111,76 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
       motivationController.fetchMotivationStats();
     }
 
-    // Refresh the LIVE card's "N min" countdown every 60s.
-    _liveTickTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    // Heartbeat — silent schedule refetch. 30s cadence catches
+    // admin-side flips (start session / add link / cancel) within
+    // half a minute even with the realtime socket offline.
+    _heartbeatTimer = Timer.periodic(_kHeartbeatInterval, (_) => _heartbeat());
+
+    // Clock ticker — local-only setState. Drives the LIVE/STARTING
+    // SOON badge transition and the "N min" countdown. Decoupled from
+    // network so we never block the UI on a stalled fetch.
+    _clockTickerTimer =
+        Timer.periodic(_kClockTickerInterval, (_) {
       if (mounted) setState(() {});
     });
+
+    // Network reconnect trigger.
+    _connectivitySub = Connectivity()
+        .onConnectivityChanged
+        .listen(_onConnectivityChanged);
   }
 
   @override
   void dispose() {
-    _liveTickTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _heartbeatTimer?.cancel();
+    _clockTickerTimer?.cancel();
+    _connectivitySub?.cancel();
     super.dispose();
+  }
+
+  // ── Step 4 sync triggers ────────────────────────────────────────────────
+  // All three triggers funnel into [_heartbeat]: a silent schedule refetch
+  // that updates [_lastContactAt] on success so the banner can hide.
+
+  Future<void> _heartbeat({String reason = 'tick'}) async {
+    if (!mounted || _heartbeatInFlight) return;
+    _heartbeatInFlight = true;
+    try {
+      debugPrint('[WorkoutSchedule] heartbeat ($reason)');
+      final ok = await workOutController.getDietPlanDetailsFunc(
+        widget.planId,
+        silent: true,
+      );
+      if (!mounted || !ok) return;
+      setState(() => _lastContactAt = AppClock.now());
+    } finally {
+      _heartbeatInFlight = false;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Foreground trigger — we may have missed many heartbeats while
+    // backgrounded; refetch now so the screen is current on first
+    // glance after resume.
+    if (state == AppLifecycleState.resumed) {
+      _heartbeat(reason: 'resumed');
+    }
+  }
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
+    final reachable = results.any(
+      (r) => r != ConnectivityResult.none,
+    );
+    if (reachable) {
+      _heartbeat(reason: 'reconnect');
+    }
+  }
+
+  bool get _isStale {
+    if (_lastContactAt == null) return false; // pre-first-contact, hide banner
+    return AppClock.now().difference(_lastContactAt!) > _kStaleAfter;
   }
 
   static DateTime _mondayOfWeek(DateTime d) =>
@@ -110,6 +202,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
         return SafeArea(
           child: Column(
             children: [
+              if (_isStale) _buildReconnectingBanner(),
               _buildHeader(),
               _buildDayStrip(),
               SizedBox(height: 12.h),
@@ -137,6 +230,41 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
           ),
         );
       }),
+    );
+  }
+
+  // ── "Reconnecting…" banner ─────────────────────────────────────────────
+  // Shown above the header when no successful heartbeat has landed in
+  // [_kStaleAfter]. Hides automatically when the next heartbeat
+  // succeeds (it sets [_lastContactAt] and rebuild flips [_isStale] off).
+  Widget _buildReconnectingBanner() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      color: _moderate,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 12.w,
+            height: 12.w,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            'Reconnecting…',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -333,7 +461,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
     final access = buildUserAccess(homeController);
     final input = buildSlotInput(slot, _selectedDate);
     final mins = (state == SlotUIState.upcomingSoon && input != null)
-        ? minutesUntilStart(input.start, DateTime.now())
+        ? minutesUntilStart(input.start, AppClock.now())
         : null;
     final presentation = presentationForState(
       state,
@@ -609,6 +737,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
                   TextSpan(
                     text: _intensityLabel(intensity),
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: intensityColor,
                       fontWeight: FontWeight.w700,
                     ),
@@ -751,11 +880,15 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
               children: [
                 Row(
                   children: [
-                    _liveBadge(),
+                    _buildLiveCardBadge(presentation),
                     SizedBox(width: 8.w),
                     Flexible(
                       child: Text(
-                        _liveCommunityCopy,
+                        // Drop the social-proof copy when not actually
+                        // joinable — it's misleading next to a grey button.
+                        presentation.appearance == SlotButtonAppearance.enabled
+                            ? _liveCommunityCopy
+                            : 'Trainer is setting up',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 11.sp,
@@ -813,27 +946,37 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
     );
   }
 
-  Widget _liveBadge() {
+  // Pill rendered top-left of the dark live card. Drives off the same
+  // [SlotPresentation] the button uses, so it can never disagree with
+  // the button's enabled state. Red "LIVE" only when the button is
+  // actually joinable; otherwise an amber "STARTING SOON" pill.
+  Widget _buildLiveCardBadge(SlotPresentation presentation) {
+    final isLive =
+        presentation.appearance == SlotButtonAppearance.enabled;
+    final bgColor = isLive ? _liveRed : _moderate;
+    final label = isLive ? 'LIVE' : 'STARTING SOON';
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
       decoration: BoxDecoration(
-        color: _liveRed,
+        color: bgColor,
         borderRadius: BorderRadius.circular(100),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 5.w,
-            height: 5.w,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
+          if (isLive) ...[
+            Container(
+              width: 5.w,
+              height: 5.w,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
             ),
-          ),
-          SizedBox(width: 5.w),
+            SizedBox(width: 5.w),
+          ],
           Text(
-            'LIVE',
+            label,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 9.sp,
@@ -847,8 +990,17 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
     );
   }
 
-  // ── Slot tap handler — preserved exactly ───────────────────────────────
+  // Popup-open smart trigger: refresh just this slot's status before
+  // rendering the sheet, so the in-popup button never lags the schedule
+  // card. Lightweight per-slot endpoint — single round-trip. The popup
+  // opens immediately; when the patch returns we call setState so any
+  // freshly-flipped status reaches the bottom-sheet's button.
   void _onSlotTap(Slot slot) {
+    final id = slot.id;
+    workOutController.refreshSlotStatus(id).then((patch) {
+      if (!mounted || patch == null) return;
+      setState(() => _lastContactAt = AppClock.now());
+    });
     HelpingWidgets.showWorkoutBottomSheet(
       context: context,
       slot: slot,
@@ -902,7 +1054,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
     if (input == null) return SlotUIState.upcomingFar;
     return resolveSlotUIState(
       slot: input,
-      now: DateTime.now(),
+      now: AppClock.now(),
       user: buildUserAccess(homeController),
     );
   }
@@ -918,7 +1070,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen> {
   int? _liveMinutesLeft(Slot slot) {
     final e = parseSlotWallClock(slot.end, _selectedDate);
     if (e == null) return null;
-    final left = e.difference(DateTime.now()).inMinutes;
+    final left = e.difference(AppClock.now()).inMinutes;
     return left > 0 ? left : 0;
   }
 

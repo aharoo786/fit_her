@@ -9,7 +9,10 @@ class CommunityFooter extends StatelessWidget {
       padding: EdgeInsets.only(top: 4, bottom: 22),
       child: Text.rich(
         TextSpan(
-          style: TextStyle(fontSize: 11, color: Color(0xFF9AB09A)),
+          style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11,
+              color: Color(0xFF9AB09A)),
           children: [
             TextSpan(
               text: '2,400 women',

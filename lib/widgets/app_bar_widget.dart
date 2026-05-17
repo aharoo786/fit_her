@@ -6,6 +6,7 @@ import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/data/controllers/zoom_controller.dart';
 import 'package:fitness_zone_2/data/services/youtube_tutorial_service.dart';
+import 'package:fitness_zone_2/utils/app_clock.dart';
 import 'package:fitness_zone_2/utils/slot_input_builder.dart';
 import 'package:fitness_zone_2/utils/slot_ui_state.dart';
 import 'package:fitness_zone_2/widgets/review_bottom_sheet.dart';
@@ -89,7 +90,7 @@ class HelpingWidgets {
     int? selectedDay = weekdayMap[selectedDayName];
     if (selectedDay == null) throw Exception('Invalid weekday name: $selectedDayName');
 
-    DateTime today = DateTime.now();
+    DateTime today = AppClock.now();
     int currentWeekday = today.weekday;
 
     // Calculate how many days to add to get to the next selected day
@@ -368,18 +369,18 @@ class HelpingWidgets {
     required HomeController homeController,
     DateTime? anchorDate,
   }) {
-    final anchor = anchorDate ?? DateTime.now();
+    final anchor = anchorDate ?? AppClock.now();
     final access = buildUserAccess(homeController);
     final input = slot != null ? buildSlotInput(slot, anchor) : null;
     final state = input != null
         ? resolveSlotUIState(
             slot: input,
-            now: DateTime.now(),
+            now: AppClock.now(),
             user: access,
           )
         : SlotUIState.upcomingFar;
     final mins = (state == SlotUIState.upcomingSoon && input != null)
-        ? minutesUntilStart(input.start, DateTime.now())
+        ? minutesUntilStart(input.start, AppClock.now())
         : null;
     final presentation = presentationForState(
       state,

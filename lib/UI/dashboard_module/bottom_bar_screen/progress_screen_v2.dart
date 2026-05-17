@@ -203,11 +203,14 @@ class _ErrorRow extends StatelessWidget {
         Expanded(
           child: Text(message,
               style: const TextStyle(
-                  fontSize: 13, color: _kTextPrimary, fontWeight: FontWeight.w500)),
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: _kTextPrimary,
+                  fontWeight: FontWeight.w500)),
         ),
         TextButton(
           onPressed: onRetry,
-          child: const Text('Retry', style: TextStyle(color: _kAccent)),
+          child: const Text('Retry', style: TextStyle(fontFamily: 'Poppins', color: _kAccent)),
         ),
       ],
     );
@@ -232,6 +235,7 @@ class _CardTitle extends StatelessWidget {
     final title = Text(
       text.toUpperCase(),
       style: const TextStyle(
+        fontFamily: 'Poppins',
         fontSize: 9,
         fontWeight: FontWeight.w700,
         color: _kTextMuted,
@@ -273,6 +277,7 @@ class _SoonPill extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         style: const TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 9,
           fontWeight: FontWeight.w700,
           color: Color(0xFFB38A00),
@@ -305,7 +310,7 @@ class _PeriodDateLabel extends StatelessWidget {
     final label = '${months[parsed.month - 1]} ${parsed.year}';
     return Text(
       label,
-      style: const TextStyle(fontSize: 10, color: _kTextMuted),
+      style: const TextStyle(fontFamily: 'Poppins', fontSize: 10, color: _kTextMuted),
     );
   }
 }
@@ -345,6 +350,7 @@ class _PhaseLegend extends StatelessWidget {
                   Text(
                     e.$2,
                     style: const TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 9,
                       color: _kTextMuted,
                     ),
@@ -371,7 +377,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(message,
-                style: const TextStyle(fontSize: 13, color: _kTextMuted)),
+                style: const TextStyle(fontFamily: 'Poppins', fontSize: 13, color: _kTextMuted)),
           ),
         ],
       ),
@@ -494,8 +500,9 @@ class _HeroCard extends StatelessWidget {
     return Text(
       headerLine,
       style: TextStyle(
+        fontFamily: 'Poppins',
         fontSize: 11,
-        fontWeight: FontWeight.w300,
+        fontWeight: FontWeight.w500,
         color: Colors.white.withOpacity(0.22),
       ),
     );
@@ -575,6 +582,7 @@ class _HeroCard extends StatelessWidget {
                 // mid-onboarding users without a complete goal row.
                 _formatGoalSubtitle(goal),
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 11,
                   color: Colors.white.withOpacity(0.30),
                 ),
@@ -584,6 +592,7 @@ class _HeroCard extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   style: const TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 36,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -595,8 +604,9 @@ class _HeroCard extends StatelessWidget {
                     TextSpan(
                       text: ' kg',
                       style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 18,
-                        fontWeight: FontWeight.w300,
+                        fontWeight: FontWeight.w500,
                         color: Colors.white.withOpacity(0.5),
                       ),
                     ),
@@ -622,12 +632,14 @@ class _HeroCard extends StatelessWidget {
           size: 82,
           trackColor: Colors.white.withOpacity(0.08),
           centerTextStyle: const TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 16,
             fontWeight: FontWeight.w800,
             color: Colors.white,
             height: 1,
           ),
           labelTextStyle: TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 9,
             color: Colors.white.withOpacity(0.4),
             height: 1.1,
@@ -652,6 +664,7 @@ class _HeroCard extends StatelessWidget {
             child: Text(
               'Set a goal to start tracking',
               style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 13,
                   color: Colors.white,
                   fontWeight: FontWeight.w500),
@@ -805,6 +818,7 @@ class _HeroPacePill extends StatelessWidget {
           Text(
             message,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: color,
@@ -845,6 +859,7 @@ class _HeroStatTile extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 9,
               color: Colors.white.withOpacity(0.3),
               height: 1.1,
@@ -855,6 +870,7 @@ class _HeroStatTile extends StatelessWidget {
             textAlign: TextAlign.center,
             text: TextSpan(
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: valueColor,
@@ -866,6 +882,7 @@ class _HeroStatTile extends StatelessWidget {
                   TextSpan(
                     text: valueSuffix,
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 10,
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withOpacity(0.4),
@@ -1003,6 +1020,7 @@ class _WeightTrendCard extends StatelessWidget {
             Text(
               deltaText,
               style: const TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
                 color: _kTextPrimary,
@@ -1014,6 +1032,7 @@ class _WeightTrendCard extends StatelessWidget {
               Text(
                 '$subArrow $subText',
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: subColor,
@@ -1146,12 +1165,14 @@ class _GlanceCard extends StatelessWidget {
         const SizedBox(height: 6),
         Text(ring.label,
             style: const TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: _kTextPrimary)),
         if (statusText.isNotEmpty)
           Text(statusText,
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: statusColor,
@@ -1159,6 +1180,7 @@ class _GlanceCard extends StatelessWidget {
         if (ring.nudge != null)
           Text(ring.nudge!,
               style: const TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 9,
                   color: Color(0xFFFAC775),
                   fontWeight: FontWeight.w600)),
@@ -1334,12 +1356,15 @@ class _HydrationCard extends StatelessWidget {
                     child: Text(
                       '💧 Water',
                       style: TextStyle(
-                          fontSize: 10, color: Color(0xFF9AB09A)),
+                          fontFamily: 'Poppins',
+                          fontSize: 10,
+                          color: Color(0xFF9AB09A)),
                     ),
                   ),
                   Text(
                     '${(pct * 100).round()}%${isLow ? ' · drink more' : ''}',
                     style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: isLow ? amberText : _kAccent,
@@ -1351,6 +1376,7 @@ class _HydrationCard extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   style: const TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     color: _kTextPrimary,
@@ -1362,6 +1388,7 @@ class _HydrationCard extends StatelessWidget {
                     TextSpan(
                       text: ' / ${(data.targetL ?? 0).toStringAsFixed(1)}L target',
                       style: const TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                         color: Color(0xFF9AB09A),
@@ -1411,6 +1438,7 @@ class _HydrationCard extends StatelessWidget {
                 Expanded(
                   child: Text(data.phaseTip!.tip!,
                       style: const TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 12,
                           color: _kTextPrimary,
                           height: 1.4)),
@@ -1428,6 +1456,7 @@ class _HydrationCard extends StatelessWidget {
               const SizedBox(width: 6),
               Text(data.mealsCard?.copy ?? 'Meals · coming soon',
                   style: const TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 11,
                       color: _kTextMuted,
                       fontStyle: FontStyle.italic)),
@@ -1643,6 +1672,7 @@ class _AiInsightsCard extends StatelessWidget {
             const Text(
               'FitHer AI',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: _kHeroAccent,
@@ -1651,6 +1681,7 @@ class _AiInsightsCard extends StatelessWidget {
             Text(
               tipCount > 0 ? '$tipCount tips for your phase' : 'Tips for your phase',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 9,
                 color: Colors.white.withOpacity(0.30),
               ),
@@ -1682,6 +1713,7 @@ class _AiInsightsCard extends StatelessWidget {
       child: Text(
         display,
         style: TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 10,
           color: mint.withOpacity(0.75),
           height: 1.5,
@@ -1704,6 +1736,7 @@ class _AiInsightsCard extends StatelessWidget {
               child: Text(
                 "We're learning your phase. First tips at 14 days of check-ins.",
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 13,
                   color: Colors.white.withOpacity(0.60),
                 ),
@@ -1751,6 +1784,7 @@ class _AiInsightsCard extends StatelessWidget {
                       Text(
                         ins.headline ?? '',
                         style: const TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -1762,6 +1796,7 @@ class _AiInsightsCard extends StatelessWidget {
                           child: Text(
                             ins.subtitle!,
                             style: TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 10,
                               color: Colors.white.withOpacity(0.30),
                             ),
@@ -1775,6 +1810,7 @@ class _AiInsightsCard extends StatelessWidget {
             bodyBuilder: (_) => Text(
               ins.body ?? '',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 11,
                 color: Colors.white.withOpacity(0.60),
                 height: 1.65,
@@ -1816,7 +1852,7 @@ class _ShareReportCard extends StatelessWidget {
             const SizedBox(height: 4),
             const Text(
               'Generate a 2-page PDF for your records or doctor visit.',
-              style: TextStyle(fontSize: 12, color: _kTextMuted),
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: _kTextMuted),
             ),
             const SizedBox(height: 12),
             Row(
@@ -1941,6 +1977,7 @@ class _DownloadPdfButton extends StatelessWidget {
             child: Text(
               'Download PDF',
               style: TextStyle(
+                fontFamily: 'Poppins',
                 color: _kAccent,
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
@@ -2005,6 +2042,7 @@ class _DoctorShareButton extends StatelessWidget {
                 Text(
                   'Share with doctor',
                   style: TextStyle(
+                    fontFamily: 'Poppins',
                     color: _kTextPrimary,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
@@ -2037,7 +2075,10 @@ class _Footer extends StatelessWidget {
                 ? 'Based on $n check-ins this period'
                 : 'Daily check-ins power your trends',
             style: const TextStyle(
-                fontSize: 11, color: _kTextMuted, fontStyle: FontStyle.italic),
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: _kTextMuted,
+                fontStyle: FontStyle.italic),
           );
         }),
         const SizedBox(height: 12),
@@ -2057,6 +2098,7 @@ class _Footer extends StatelessWidget {
                 SizedBox(width: 6),
                 Text('Photos & measurements',
                     style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: _kAccent)),

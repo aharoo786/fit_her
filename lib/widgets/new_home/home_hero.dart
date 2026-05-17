@@ -40,7 +40,7 @@ class HomeHero extends StatelessWidget {
       child: ClipRRect(
         borderRadius: radius,
         child: DefaultTextStyle(
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
           child: Stack(
             children: [
               // 1. Radial-gradient overlay. Alpha-only fade so the bg below

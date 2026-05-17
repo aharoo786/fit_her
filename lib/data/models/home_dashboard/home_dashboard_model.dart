@@ -1,3 +1,5 @@
+import '../consultation/pending_popup.dart';
+
 /// Model for GET /users/home/dashboard (PaidHomeScreenV2 data layer).
 /// Every nested subobject is independently nullable because the backend
 /// degrades per-subobject on failure (Promise.allSettled-style tolerance)
@@ -18,6 +20,10 @@ class HomeDashboardModel {
   final NutritionInfo? nutrition;
   final SocialInfo? social;
   final int? unreadNotifications;
+  // Consultation flow — server-computed list of popups the client should
+  // surface. Sorted by priority server-side; client shows the first one
+  // and re-fetches after dismiss/complete (Phase 2D orchestrator).
+  final List<PendingPopup> pendingPopups;
 
   const HomeDashboardModel({
     this.user,
@@ -34,6 +40,7 @@ class HomeDashboardModel {
     this.nutrition,
     this.social,
     this.unreadNotifications,
+    this.pendingPopups = const [],
   });
 
   /// Safe initial state before first fetch. All nested refs null, comingUp [].
@@ -58,6 +65,7 @@ class HomeDashboardModel {
       nutrition: _parseObject(json['nutrition'], NutritionInfo.fromJson),
       social: _parseObject(json['social'], SocialInfo.fromJson),
       unreadNotifications: _toInt(json['unreadNotifications']),
+      pendingPopups: _parseList(json['pendingPopups'], PendingPopup.fromJson),
     );
   }
 }

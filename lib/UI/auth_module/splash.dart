@@ -47,6 +47,13 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _dotsController;
   late final AnimationController _loaderController;
 
+  // ── Timers (stored so dispose() can cancel them; prevents the
+  // `_elements.contains(...)` assertion error that fires when an
+  // un-cancelled Timer wakes up after the State is gone) ──
+  Timer? _navigationTimer;
+  Timer? _appLinkTimer;
+  Timer? _watchdogTimer;
+
   AuthController authController = Get.find();
 
   @override
@@ -56,42 +63,79 @@ class _SplashScreenState extends State<SplashScreen>
 
     _setupAnimations();
     _runAnimationSequence();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && Get.context != null) {
-        AppLinkHandler().init(Get.context!);
-      }
-    });
 
     // ── Original navigation logic ──
     NotificationServices().requestNotificationPermission();
-    NotificationServices().firebaseInit(Get.context!);
+    // Use the widget's own context (safer than Get.context!, which can
+    // be null or stale during navigation transitions).
+    NotificationServices().firebaseInit(context);
     NotificationScheduler.initialize();
 
-    Timer(const Duration(seconds: 3), () async {
-      var share = authController.sharedPreferences;
+    _navigationTimer = Timer(const Duration(seconds: 3), () async {
+      // Bail out if the user backgrounded the app or the splash already
+      // disposed. Without this guard, calling Get.offAll on a dead
+      // widget tree throws the `_elements.contains(...)` AssertionError
+      // we were seeing in Sentry.
+      if (!mounted) return;
 
-      if (share.getString(Constants.email) == null ||
-          share.getString(Constants.password) == null ||
-          share.getString(Constants.loginAsa) == null) {
-        Get.offAll(() => const WalkThroughScreen());
-      } else {
-        if (share.getString(Constants.password)!.isEmpty ||
-            share.getString(Constants.password) == "google" ||
-            share.getString(Constants.password) == "apple") {
-          Get.find<AuthController>().signInUsingGoogle(
-            share.getString(Constants.email) ?? "",
-            "",
-            "",
-            userType: share.getString(Constants.loginAsa),
-            fromLocal: true,
-          );
+      try {
+        var share = authController.sharedPreferences;
+
+        final email = share.getString(Constants.email);
+        final password = share.getString(Constants.password);
+        final loginAsa = share.getString(Constants.loginAsa);
+
+        if (email == null || password == null || loginAsa == null) {
+          if (!mounted) return;
+          Get.offAll(() => const WalkThroughScreen());
+
+          // Init the deep-link handler one second after the new screen
+          // has mounted. We store the Timer so dispose() can cancel it.
+          _appLinkTimer = Timer(const Duration(seconds: 1), () {
+            final ctx = Get.context;
+            if (ctx != null) {
+              AppLinkHandler().init(ctx);
+            }
+          });
         } else {
-          Get.find<AuthController>().login(
-            userType: share.getString(Constants.loginAsa),
-            email: share.getString(Constants.email),
-            password: share.getString(Constants.password),
-          );
+          // ── Watchdog: if login() / signInUsingGoogle() silently fail
+          // or the network hangs (e.g. checkConnection returns false and
+          // only fires a toast), the splash would otherwise sit forever.
+          // After 20s with no navigation, force a fallback to
+          // WalkThroughScreen so the user is never trapped on splash.
+          _watchdogTimer = Timer(const Duration(seconds: 20), () {
+            if (!mounted) return;
+            // Only fall back if we are STILL the active route — i.e.
+            // login never navigated us anywhere.
+            if (Get.currentRoute == '/') {
+              Get.offAll(() => const WalkThroughScreen());
+            }
+          });
+
+          if (password.isEmpty ||
+              password == "google" ||
+              password == "apple") {
+            Get.find<AuthController>().signInUsingGoogle(
+              email,
+              "",
+              "",
+              userType: loginAsa,
+              fromLocal: true,
+            );
+          } else {
+            Get.find<AuthController>().login(
+              userType: loginAsa,
+              email: email,
+              password: password,
+            );
+          }
         }
+      } catch (e, stack) {
+        // Any unexpected error → log + send the user to WalkThroughScreen
+        // so they're never stranded on a frozen splash.
+        debugPrint('SplashScreen navigation error: $e\n$stack');
+        if (!mounted) return;
+        Get.offAll(() => const WalkThroughScreen());
       }
     });
   }
@@ -177,6 +221,12 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    // Cancel timers FIRST so a late callback can never touch a disposed
+    // State (which is what was throwing `_elements.contains(...)`).
+    _navigationTimer?.cancel();
+    _appLinkTimer?.cancel();
+    _watchdogTimer?.cancel();
+
     _circleController.dispose();
     _logoController.dispose();
     _dividerController.dispose();

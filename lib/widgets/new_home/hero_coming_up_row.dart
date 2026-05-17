@@ -59,6 +59,7 @@ class HeroComingUpRow extends StatelessWidget {
                 "Tomorrow's classes",
                 textAlign: TextAlign.center,
                 style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 11,
                   color: Colors.white.withOpacity(0.55),
                 ),
@@ -135,6 +136,7 @@ class _ClassTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 11,
               fontWeight: FontWeight.w600,
               height: 1.2,
@@ -147,6 +149,7 @@ class _ClassTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 10,
               fontWeight: FontWeight.w600,
               color: palette.base.withOpacity(palette.timeOpacity),
