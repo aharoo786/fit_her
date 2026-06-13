@@ -1,16 +1,26 @@
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
-import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../values/constants.dart';
 import '../../../values/my_imgs.dart';
 
-class NotificationScreen extends StatelessWidget {
-  NotificationScreen({super.key});
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
   final AuthController authController = Get.find();
+
+  @override
+  void initState() {
+    super.initState();
+    authController.fetchNotifications(markRead: true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +30,9 @@ class NotificationScreen extends StatelessWidget {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: CustomButton(
-          text: "Remove All",
+          text: "Mark All Read",
           onPressed: () {
-            authController.sharedPreferences.remove(Constants.notificationList);
-            authController.sharedPrefNotifier.value=null;
+            authController.markAllNotificationsRead();
           },
           color: Colors.red,
           borderColor: Colors.red,
