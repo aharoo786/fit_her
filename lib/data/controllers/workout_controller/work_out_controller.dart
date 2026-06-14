@@ -1,6 +1,5 @@
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
-import 'package:fitness_zone_2/UI/free_trail/free_trail_question.dart';
-import 'package:fitness_zone_2/UI/free_trail/free_trial_slots.dart';
+import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
 import 'package:fitness_zone_2/data/models/get_user_plan/get_workout_user_plan_details.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -74,8 +73,7 @@ class WorkOutController extends GetxController implements GetxService {
               print(
                   'WorkOutController.getWorkoutAllPlansFunc ${(workoutPlans?.plans.isNotEmpty)}');
               if (isFree && !(workoutPlans?.plans.isNotEmpty ?? true)) {
-                Get.to(() => FreeTrialSlots());
-                getDietPlanDetailsFunc("0", showSlots: true);
+                Get.to(() => const TrialJourneyScreen());
               }
             }
           }
@@ -94,7 +92,8 @@ class WorkOutController extends GetxController implements GetxService {
     bool showSlots = false,
     bool silent = false,
   }) async {
-    print('WorkOutController.getDietPlanDetailsFunc${silent ? ' (silent)' : ''}');
+    print(
+        'WorkOutController.getDietPlanDetailsFunc${silent ? ' (silent)' : ''}');
     if (!silent) workOutPlanDetailsLoad.value = false;
     final hasInternet = await connectionService.checkConnection();
     if (!hasInternet) {
@@ -121,8 +120,8 @@ class WorkOutController extends GetxController implements GetxService {
       if (showSlots) {
         final nowAtServer = AppClock.now();
         final today = DateFormat('EEEE').format(nowAtServer);
-        final tomorrow = DateFormat('EEEE')
-            .format(nowAtServer.add(const Duration(days: 1)));
+        final tomorrow =
+            DateFormat('EEEE').format(nowAtServer.add(const Duration(days: 1)));
         final filter = getUserWorkoutPlanDetailsPlan?.trainerSlots
                 .where((t) => t.day == today || t.day == tomorrow)
                 .toList() ??
@@ -158,8 +157,10 @@ class WorkOutController extends GetxController implements GetxService {
       for (final daySlot in plan.trainerSlots) {
         for (final slot in daySlot.slots) {
           if (slot.id == slotId) {
-            if (patch.containsKey('status')) slot.status = patch['status'] as String?;
-            if (patch.containsKey('trainerLink')) slot.trainerLink = patch['trainerLink'] as String?;
+            if (patch.containsKey('status'))
+              slot.status = patch['status'] as String?;
+            if (patch.containsKey('trainerLink'))
+              slot.trainerLink = patch['trainerLink'] as String?;
             if (patch.containsKey('isTrainerJoined')) {
               slot.isTrainerJoined = patch['isTrainerJoined'] as bool?;
             }
@@ -322,8 +323,7 @@ class WorkOutController extends GetxController implements GetxService {
         // silently inside the .then chain — which previously left the
         // screen on a perpetual spinner.
         print('getAllTimesSlotsTrainerFunc failed: $error\n$stackTrace');
-        CustomToast.failToast(
-            msg: "Couldn't load slots. Please try again.");
+        CustomToast.failToast(msg: "Couldn't load slots. Please try again.");
         update();
       });
     }).catchError((error, stackTrace) {

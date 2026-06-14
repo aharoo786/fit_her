@@ -7,6 +7,8 @@ import MobileRTC
 @objc class AppDelegate: FlutterAppDelegate {
 
     private let CHANNEL = "zoom_meeting"
+    private let EVENTS_CHANNEL = "zoom_meeting/events"
+    private var zoomEventSink: FlutterEventSink?
 
     override func application(
         _ application: UIApplication,
@@ -16,6 +18,8 @@ import MobileRTC
 
         let controller = window?.rootViewController as! FlutterViewController
         let channel = FlutterMethodChannel(name: CHANNEL, binaryMessenger: controller.binaryMessenger)
+        let eventsChannel = FlutterEventChannel(name: EVENTS_CHANNEL, binaryMessenger: controller.binaryMessenger)
+        eventsChannel.setStreamHandler(self)
 
         channel.setMethodCallHandler { [weak self] (call, result) in
             guard let self = self else { return }
@@ -110,5 +114,50 @@ extension AppDelegate: MobileRTCAuthDelegate {
 extension AppDelegate: MobileRTCMeetingServiceDelegate {
     func onMeetingError(_ error: MobileRTCMeetError, message: String?) {
         print("Zoom meeting error: \(error.rawValue) - \(message ?? "")")
+        sendZoomEvent([
+            "event": "meeting_failed",
+            "errorCode": error.rawValue,
+            "message": message ?? ""
+        ])
+    }
+
+    func onMeetingStateChange(_ state: MobileRTCMeetingState) {
+        switch state {
+        case .inMeeting:
+            sendZoomEvent(["event": "meeting_in", "status": state.rawValue])
+        case .ended, .idle:
+            sendZoomEvent(["event": "meeting_left", "status": state.rawValue])
+        case .failed:
+            sendZoomEvent(["event": "meeting_failed", "status": state.rawValue])
+        default:
+            break
+        }
+    }
+
+    func onJoinMeetingConfirmed() {
+        sendZoomEvent(["event": "meeting_in"])
+    }
+
+    func onMeetingReady() {
+        sendZoomEvent(["event": "meeting_ready"])
+    }
+}
+
+// MARK: - FlutterStreamHandler
+extension AppDelegate: FlutterStreamHandler {
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        zoomEventSink = events
+        return nil
+    }
+
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        zoomEventSink = nil
+        return nil
+    }
+
+    private func sendZoomEvent(_ payload: [String: Any]) {
+        DispatchQueue.main.async { [weak self] in
+            self?.zoomEventSink?(payload)
+        }
     }
 }

@@ -8,12 +8,14 @@ import '../../Repos/home_repo/home_repo.dart';
 import '../../GetServices/CheckConnectionService.dart';
 import '../../models/api_response/api_response_model.dart';
 import '../../models/motivation_stats/motivation_stats_model.dart';
+import '../home_controller/home_controller.dart';
 
 class MotivationController extends GetxController implements GetxService {
   final SharedPreferences sharedPreferences;
   final HomeRepo homeRepo;
 
-  MotivationController({required this.sharedPreferences, required this.homeRepo});
+  MotivationController(
+      {required this.sharedPreferences, required this.homeRepo});
 
   final CheckConnectionService connectionService = CheckConnectionService();
 
@@ -34,16 +36,20 @@ class MotivationController extends GetxController implements GetxService {
     }
 
     try {
-      final String accessToken = sharedPreferences.getString(Constants.accessToken) ?? "";
+      final String accessToken =
+          sharedPreferences.getString(Constants.accessToken) ?? "";
       final String userId = sharedPreferences.getString(Constants.userId) ?? "";
 
-      final response = await homeRepo.getMotivationStats(accessToken: accessToken, userId: userId);
+      final response = await homeRepo.getMotivationStats(
+          accessToken: accessToken, userId: userId);
 
       if (response.body["status"] == "0") {
-        CustomToast.failToast(msg: response.body["message"] ?? "Failed to fetch stats");
+        CustomToast.failToast(
+            msg: response.body["message"] ?? "Failed to fetch stats");
       } else {
         // Parse the response using the model
-        final ApiResponse<MotivationStatsData> model = ApiResponse.fromJson(response.body, MotivationStatsData.fromJson);
+        final ApiResponse<MotivationStatsData> model =
+            ApiResponse.fromJson(response.body, MotivationStatsData.fromJson);
 
         if (model.status == "1") {
           motivationStats.value = model.data;
@@ -66,13 +72,15 @@ class MotivationController extends GetxController implements GetxService {
     }
 
     try {
-      final String accessToken = sharedPreferences.getString(Constants.accessToken) ?? "";
+      final String accessToken =
+          sharedPreferences.getString(Constants.accessToken) ?? "";
       final String userId = sharedPreferences.getString(Constants.userId) ?? "";
       final Map<String, dynamic> body = {
         if (slotId != null) "slotId": slotId,
       };
 
-      final response = await homeRepo.markMotivationAttendance(accessToken: accessToken, userId: userId, map: body);
+      final response = await homeRepo.markMotivationAttendance(
+          accessToken: accessToken, userId: userId, map: body);
 
       if (response.body["status"] == "0") {
         // CustomToast.failToast(
@@ -90,10 +98,66 @@ class MotivationController extends GetxController implements GetxService {
     }
   }
 
+  Future<void> classPresenceJoin({
+    required String slotId,
+    String? meetingNumber,
+  }) async {
+    final accessToken =
+        sharedPreferences.getString(Constants.accessToken) ?? "";
+    if (accessToken.isEmpty) return;
+
+    try {
+      await homeRepo.classPresenceJoin(
+        accessToken: accessToken,
+        map: {
+          "slotId": slotId,
+          if (meetingNumber != null && meetingNumber.isNotEmpty)
+            "meetingNumber": meetingNumber,
+          "source": "zoom_native",
+        },
+      );
+    } catch (_) {
+      // Presence reporting is best-effort and should never block class entry.
+    }
+  }
+
+  Future<void> classPresenceLeave({
+    required String slotId,
+    String? meetingNumber,
+  }) async {
+    final accessToken =
+        sharedPreferences.getString(Constants.accessToken) ?? "";
+    if (accessToken.isEmpty) return;
+
+    try {
+      final response = await homeRepo.classPresenceLeave(
+        accessToken: accessToken,
+        map: {
+          "slotId": slotId,
+          if (meetingNumber != null && meetingNumber.isNotEmpty)
+            "meetingNumber": meetingNumber,
+          "source": "zoom_native",
+        },
+      );
+      final body = response.body;
+      final data = body is Map ? body["data"] : null;
+      final trialAttendance = data is Map ? data["trialAttendance"] : null;
+      final marked =
+          trialAttendance is Map && trialAttendance["marked"] == true;
+      if (marked && Get.isRegistered<HomeController>()) {
+        await Get.find<HomeController>().getMyTrialJourney();
+      }
+    } catch (_) {
+      // Presence reporting is best-effort and should stay silent on failure.
+    }
+  }
+
   // Getters for easy access to stats data
   int get streak => motivationStats.value?.streak ?? 0;
   int get daysAttendedLast7 => motivationStats.value?.daysAttendedLast7 ?? 0;
   int get daysAttendedLast30 => motivationStats.value?.daysAttendedLast30 ?? 0;
-  int get regularityPercentage => motivationStats.value?.regularityPercentage ?? 0;
-  List<AttendanceHistoryItem> get attendanceHistory => motivationStats.value?.attendanceHistory ?? [];
+  int get regularityPercentage =>
+      motivationStats.value?.regularityPercentage ?? 0;
+  List<AttendanceHistoryItem> get attendanceHistory =>
+      motivationStats.value?.attendanceHistory ?? [];
 }

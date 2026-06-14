@@ -245,6 +245,8 @@ class Constants {
   /// Motivation module
   static String getMotivationStats = "/attendance/motivation";
   static String markMotivationAttendance = "/attendance/mark";
+  static String classPresenceJoin = "/attendance/presence/join";
+  static String classPresenceLeave = "/attendance/presence/leave";
 
   ///  Country ///
   static String country = "/country";

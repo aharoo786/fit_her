@@ -2,6 +2,16 @@ import 'package:flutter/services.dart';
 
 class ZoomMeeting {
   static const MethodChannel _channel = MethodChannel('zoom_meeting');
+  static const EventChannel _events = EventChannel('zoom_meeting/events');
+
+  static Stream<Map<String, dynamic>> get events {
+    return _events.receiveBroadcastStream().map((event) {
+      if (event is Map) {
+        return Map<String, dynamic>.from(event);
+      }
+      return <String, dynamic>{"event": event.toString()};
+    });
+  }
 
   // Initialize Zoom SDK
   static Future<bool> initializeZoom(String jwtToken) async {
@@ -9,7 +19,8 @@ class ZoomMeeting {
       final Map<String, dynamic> arguments = {
         'jwtToken': jwtToken,
       };
-      final bool result = await _channel.invokeMethod('initializeZoom', arguments);
+      final bool result =
+          await _channel.invokeMethod('initializeZoom', arguments);
       return result;
     } on PlatformException catch (e) {
       print('Failed to initialize Zoom: ${e.message}');
