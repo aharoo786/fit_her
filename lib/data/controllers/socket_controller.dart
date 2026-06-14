@@ -137,13 +137,8 @@ class SocketController extends GetxController {
 
     socket?.on("toggleLike", (message) {
       if (message != null) {
+    
         final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == int.parse(message["postId"]));
-        final dynamic postIdValue = message["postId"];
-        final int? postId = postIdValue is int ? postIdValue : int.tryParse(postIdValue.toString());
-        if (postId == null) {
-          return;
-        }
-        final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == postId);
         print('SocketController.socketInit ${post}');
         if (post != null) {
           if (message["like"]) {
