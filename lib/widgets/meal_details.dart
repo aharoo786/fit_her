@@ -214,9 +214,8 @@ class DietDetails extends StatelessWidget {
                         )),
                   ]))),
               CustomButton(
-                text: 'Upload Slip',
+                text: 'Continue',
                 onPressed: () {
-                  // Get.find<HomeController>().makePayment();
                   Get.to(() => SelectPaymentMode(
                         planId: planId,
                         price: price,

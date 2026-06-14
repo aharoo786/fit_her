@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../data/Repos/progress_v2/progress_repository.dart';
 import '../../../data/api_provider/api_provider.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
+import '../../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../../../data/controllers/progress_v2/progress_controller_v2.dart';
 import '../../../data/models/progress_v2/progress_models.dart';
 import '../../../helper/analytics_helper.dart';
@@ -416,7 +417,11 @@ class _HeroCard extends StatelessWidget {
     // — same default the rest of the codebase uses.
     return Obx(() {
       final state = controller.summary.value;
-      final theme = PhaseTheme.forPhaseString(state.data?.cycle?.phase);
+      // Read from CycleThemeController (global reactive source of truth) so
+      // this hero updates instantly when the user changes cycle settings —
+      // ProgressControllerV2.summary is NOT refreshed on settings save, so
+      // reading phase from it would keep stale colors until next full reload.
+      final theme = Get.find<CycleThemeController>().theme.value;
 
       return ClipRRect(
         borderRadius: const BorderRadius.only(

@@ -1,6 +1,7 @@
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
+import 'package:fitness_zone_2/UI/auth_module/time_preference_screen.dart';
 import 'package:fitness_zone_2/values/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,7 +14,7 @@ import 'weight_screen.dart';
 
 /// Orchestrates the onboarding question flow:
 /// GoalScreen (step 1, handled before this) →
-/// Age (2) → Weight (3) → Height (4) → Cycle (5) → HealthConditions (6)
+/// Age (2) → Weight (3) → Height (4) → Cycle (5) → HealthConditions (6) → TimePreference (7)
 ///
 /// Each step is a standalone screen using the shared OnboardingScaffold design.
 class SignUpScreenQuestions extends StatefulWidget {
@@ -26,7 +27,7 @@ class SignUpScreenQuestions extends StatefulWidget {
 }
 
 class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
-  static const int _totalSteps = 6;
+  static const int _totalSteps = 7;
 
   late final String _goal;
   late final int _initialAge;
@@ -95,8 +96,18 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
           currentStep: 6,
           totalSteps: _totalSteps,
           initialConditions: _initialConditions,
-          onNext: (conditions) =>
-              _finish(conditions, age, weight, height),
+          onNext: (conditions) => _goToTimePreference(conditions, age, weight, height),
+        ));
+  }
+
+  void _goToTimePreference(String conditions, int age, double weight, double height) {
+    Get.to(() => TimePreferenceScreen(
+          currentStep: 7,
+          totalSteps: _totalSteps,
+          // TimePreference saves timeBlock to SharedPreferences first,
+          // then calls this. updateUserDetails() will see hasTimeBlock = true
+          // and navigate straight to BottomBarScreen.
+          onCompleted: (_) => _finish(conditions, age, weight, height),
         ));
   }
 
@@ -116,7 +127,9 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
 
     final auth = Get.find<AuthController>();
 
-    // Send to API
+    // Send to API — on success, updateUserDetails() navigates to BottomBarScreen.
+    // timeBlock is already saved to SharedPreferences so the TimePreferenceScreen
+    // check in updateUserDetails() is skipped.
     Get.find<HomeController>().addUserDetails(
       status: false,
       age: age.toString(),

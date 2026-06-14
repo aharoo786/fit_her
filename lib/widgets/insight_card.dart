@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 
+import '../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../data/services/cycle_engine.dart';
 import '../data/services/insight_service.dart';
 import '../theme/app_colors.dart';
@@ -32,13 +34,20 @@ class _InsightCardState extends State<InsightCard> {
 
   @override
   Widget build(BuildContext context) {
+    return Obx(() {
+      final accent = Get.find<CycleThemeController>().theme.value.accent;
+      return _buildCard(accent);
+    });
+  }
+
+  Widget _buildCard(Color accent) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: const Border(
-          left: BorderSide(color: AppColors.primary, width: 4),
+        border: Border(
+          left: BorderSide(color: accent, width: 4),
         ),
         boxShadow: [
           BoxShadow(
@@ -88,7 +97,7 @@ class _InsightCardState extends State<InsightCard> {
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.primary,
+                    color: accent,
                   ),
                 ),
               ),
@@ -169,7 +178,7 @@ class _InsightCardState extends State<InsightCard> {
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
+                  color: Get.find<CycleThemeController>().theme.value.accent,
                 ),
               ),
             ),
@@ -265,7 +274,7 @@ class _InsightCardState extends State<InsightCard> {
         style: TextStyle(
           fontSize: 13.sp,
           fontWeight: FontWeight.w500,
-          color: AppColors.primary,
+          color: Get.find<CycleThemeController>().theme.value.accent,
         ),
       ),
     );

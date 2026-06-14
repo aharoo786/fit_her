@@ -102,6 +102,38 @@ class NotificationServices {
     );
   }
 
+  /// Show a local notification from socket events (not FCM).
+  /// Used by SocketController to fire notifications filtered by timeBlock.
+  Future<void> showLocalNotification({
+    required String title,
+    required String body,
+  }) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'high_importance_channel',
+      'High Importance Notifications',
+      channelDescription: 'This channel is used for important notifications.',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      icon: '@mipmap/ic_launcher',
+    );
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    const NotificationDetails platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+    await _flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF, // unique id
+      title,
+      body,
+      platformDetails,
+    );
+  }
+
   /// Display a notification when the app is in the foreground.
   Future<void> showNotification(RemoteMessage message) async {
     AndroidNotificationChannel channel = AndroidNotificationChannel(

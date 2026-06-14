@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../../data/Repos/cycle_repo/cycle_data_repository.dart';
 import '../../data/controllers/auth_controller/auth_controller.dart';
+import '../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
+import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../../data/services/cycle_engine.dart';
 import '../../values/constants.dart';
 import '../../values/dimens.dart';
@@ -130,6 +132,15 @@ class _CycleSettingsScreenState extends State<CycleSettingsScreen> {
         backgroundColor: MyColors.buttonColor,
         colorText: Colors.white,
       );
+      // Compute new phase client-side and push to global theme immediately.
+      final length = int.tryParse(_cycleLengthController.text) ?? 28;
+      final cycleInfo = CycleEngine.calculate(
+        lastPeriodDate: _selectedDate,
+        cycleLength: length,
+      );
+      try { Get.find<CycleThemeController>().setPhase(cycleInfo?.phase); } catch (_) {}
+      // Refresh paid home dashboard in the background.
+      try { Get.find<PaidHomeController>().refreshDashboard(); } catch (_) {}
       setState(() {
         _editing = false;
         _loading = true;

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_plans_of_user.dart';
-import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/progress_screen_v1.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/progress_screen_v2.dart';
+import 'package:fitness_zone_2/screens/unpaid_progress_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/workout_plans_of_user.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/posts_module/feed_screen.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
@@ -14,6 +14,7 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
+import '../../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
@@ -68,13 +69,14 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                 WorkPlansOfUser(showBackButton: false,),
                 DietPlansOfUser(showBackButton: false,),
                 // Progress tab — paid users (status=true) see the new V2
-                // hub; free users see the legacy V1 measurement screen.
+                // hub; unpaid users see a preview of the Day-14 report
+                // (UnpaidProgressScreen) instead of the legacy V1.
                 // Mirrors the home_screen.dart paid-vs-free pattern. The
                 // useNewProgressHub flag is retained in the DB/model for
                 // backward compat but no longer drives routing.
                 ((authController.logInUser?.status ?? false)
                     ? const ProgressScreenV2()
-                    : ProgressScreenV1()),
+                    : const UnpaidProgressScreen()),
                 FeedScreen()
                 // ChatRoom(
                 //     chatRoomId: widget.roomId ?? "",
@@ -285,11 +287,19 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
     );
   }
 
-  /// Active-state circle behind the icon — accent-coloured, white icon.
+  Color get _phaseAccent {
+    try {
+      return Get.find<CycleThemeController>().theme.value.accent;
+    } catch (_) {
+      return MyColors.buttonColor;
+    }
+  }
+
+  /// Active-state circle behind the icon — phase-accent coloured, white icon.
   Widget _activeIconCircle(String svgAsset) => Container(
         padding: const EdgeInsets.all(5),
-        decoration: const BoxDecoration(
-            shape: BoxShape.circle, color: MyColors.buttonColor),
+        decoration: BoxDecoration(
+            shape: BoxShape.circle, color: _phaseAccent),
         child: SvgPicture.asset(
           svgAsset,
           height: 30,
@@ -302,8 +312,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
   /// icons instead of SVG (Chat, Profile — no SVG asset exists).
   Widget _activeMaterialIconCircle(IconData icon) => Container(
         padding: const EdgeInsets.all(5),
-        decoration: const BoxDecoration(
-            shape: BoxShape.circle, color: MyColors.buttonColor),
+        decoration: BoxDecoration(
+            shape: BoxShape.circle, color: _phaseAccent),
         child: Icon(icon, color: Colors.white, size: 24),
       );
 

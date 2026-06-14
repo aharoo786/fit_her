@@ -4,36 +4,29 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../data/controllers/auth_controller/auth_controller.dart';
+import '../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
 import '../new_home/phase_theme.dart';
 
-/// Phase H — Diet tab dark phase-themed hero, mirroring `PaidHero`'s
-/// visual language so the user recognises the Diet tab as the same
-/// surface family as paid home.
-///
-/// Stays self-contained: doesn't load cycle data (Diet flow has no
-/// dashboard fetch), and doesn't render the LIVE / Coming-up sections
-/// since those belong to home, not diet. Phase tint defaults to
-/// follicular for now — the phase plumbing through the Diet tab is a
-/// follow-up.
+/// Diet tab hero — colors follow the global CycleThemeController so
+/// the phase accent stays consistent across all screens.
 class V2DietHero extends StatelessWidget {
   final bool showBackButton;
   const V2DietHero({super.key, this.showBackButton = false});
 
   @override
   Widget build(BuildContext context) {
-    // Default to follicular — DietPlanUserController has no cycle phase
-    // source today. When the diet-plan response surfaces phase, swap
-    // this for `PhaseTheme.forPhaseString(controller.cyclePhase)`.
-    const theme = PhaseTheme.follicular;
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: _HeroShell(theme: theme, showBackButton: showBackButton),
-    );
+    return Obx(() {
+      final theme = Get.find<CycleThemeController>().theme.value;
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: _HeroShell(theme: theme, showBackButton: showBackButton),
+      );
+    });
   }
 }
 

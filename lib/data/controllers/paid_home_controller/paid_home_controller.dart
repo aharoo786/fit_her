@@ -7,6 +7,7 @@ import '../../../values/constants.dart';
 import '../../Repos/checkin_repo/checkin_repository.dart';
 import '../../Repos/home_repo/home_repo.dart';
 import '../../models/home_dashboard/home_dashboard_model.dart';
+import '../cycle_theme_controller/cycle_theme_controller.dart';
 
 /// Owns the reactive state for PaidHomeScreenV2. One call to loadDashboard()
 /// populates `dashboard`. UI reads via Obx / GetBuilder / dashboard.value.
@@ -40,6 +41,10 @@ class PaidHomeController extends GetxController {
       final result = await homeRepo.getPaidHomeDashboard();
       if (result != null) {
         dashboard.value = result;
+        // Push phase to the global theme controller so every screen updates.
+        try {
+          Get.find<CycleThemeController>().setPhase(result.cycle?.phase);
+        } catch (_) {}
       } else {
         errorMessage.value = 'Could not load dashboard';
       }

@@ -29,7 +29,6 @@ import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../UI/auth_module/sign_up_screen/BMI_result.dart';
 import '../../../UI/auth_module/sign_up_screen/goal_screen.dart';
 import '../../../UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
 import '../../../helper/analytics_helper.dart';
@@ -978,9 +977,7 @@ class HomeController extends GetxController implements GetxService {
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
 
-                Get.offAll(() => BmiResult(
-                      bmi: bmiResult ?? "0",
-                    ));
+                Get.find<AuthController>().updateUserDetails(updateFields: false);
               }
             }
           } else {
@@ -1683,6 +1680,36 @@ class HomeController extends GetxController implements GetxService {
           Get.back();
 
           if (response.statusCode == 200) {
+            // Surface the backend's OCR + auto-approval payload in the
+            // debug console so we can see at a glance whether Cloud Vision
+            // ran on this upload, what it extracted, and whether the slip
+            // got auto-approved or sent to the admin queue.
+            // Shape: data.{ autoApproved, verificationStatus,
+            //   userPlanActivated, planImageId,
+            //   ocrSummary: { confidence, amount, bank, date, refNumber } | null }
+            try {
+              final decoded = jsonDecode(response.bodyString!);
+              final data = decoded is Map ? decoded['data'] : null;
+              if (data is Map) {
+                final ocr = data['ocrSummary'];
+                debugPrint('🧾 SLIP UPLOAD · verificationStatus='
+                    '${data['verificationStatus']} · '
+                    'autoApproved=${data['autoApproved']} · '
+                    'userPlanActivated=${data['userPlanActivated']} · '
+                    'planImageId=${data['planImageId']}');
+                if (ocr == null) {
+                  debugPrint('🧾 OCR · skipped (no Vision response — check '
+                      'GOOGLE_VISION_API_KEY on backend or network)');
+                } else if (ocr is Map) {
+                  debugPrint('🧾 OCR · confidence=${ocr['confidence']} · '
+                      'amount=${ocr['amount']} · bank=${ocr['bank']} · '
+                      'date=${ocr['date']} · refNumber=${ocr['refNumber']}');
+                }
+              }
+            } catch (e) {
+              debugPrint('🧾 SLIP UPLOAD · failed to parse OCR summary: $e');
+            }
+
             ApiResponse model = ApiResponse.fromJson(jsonDecode(response.bodyString!), (p0) {});
             if (model.status == "0") {
               CustomToast.failToast(msg: model.message);
@@ -1691,6 +1718,25 @@ class HomeController extends GetxController implements GetxService {
               // CustomToast.successToast(msg: model.message);
               planPicture = null;
               success = true;
+
+              // Auto-promote the user to paid + V2 home if Cloud Vision /
+              // admin queue auto-approved the slip and the backend already
+              // activated the plan. `markPaid()` flips `logInUser.status`,
+              // `useNewPaidHome`, and the reactive `isPaid` Rx → the home
+              // Obx rebuilds straight into `PaidHomeScreenV2`.
+              try {
+                final decoded = jsonDecode(response.bodyString!);
+                final data = decoded is Map ? decoded['data'] : null;
+                if (data is Map &&
+                    data['userPlanActivated'] == true &&
+                    data['autoApproved'] == true) {
+                  Get.find<AuthController>().markPaid();
+                  debugPrint('🧾 SLIP UPLOAD · auto-promoted to paid · '
+                      'home will swap to PaidHomeScreenV2');
+                }
+              } catch (e) {
+                debugPrint('🧾 SLIP UPLOAD · auto-promote skipped: $e');
+              }
             }
           } else {
             CustomToast.failToast(msg: "Something wrong happened");

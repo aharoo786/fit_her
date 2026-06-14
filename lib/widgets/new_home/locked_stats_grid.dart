@@ -1,29 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../data/controllers/auth_controller/auth_controller.dart';
+
+/// Water + Sleep two-tile row beneath the locked insight card.
+/// • Pre-activation: dimmed to 0.45 opacity, padlock value, no real numbers.
+/// • Post-activation: full opacity, zero-state values ("0 mL" / "0h") so
+///   the user sees real tracking surfaces ready to take data.
 class LockedStatsGrid extends StatelessWidget {
   const LockedStatsGrid({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Opacity(
-        opacity: 0.45,
-        child: Row(
-          children: const [
-            Expanded(child: _LockedTile(label: '💧 Water')),
-            SizedBox(width: 8),
-            Expanded(child: _LockedTile(label: '🌙 Sleep')),
-          ],
+    return Obx(() {
+      final activated =
+          Get.find<AuthController>().trialActivated.value;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Opacity(
+          // 1.0 once unlocked so the tiles read as live tracking widgets.
+          opacity: activated ? 1.0 : 0.45,
+          child: Row(
+            children: [
+              Expanded(
+                child: _StatTile(
+                  label: '💧 Water',
+                  value: activated ? '0 mL' : '🔒',
+                  unlocked: activated,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StatTile(
+                  label: '🌙 Sleep',
+                  value: activated ? '0h' : '🔒',
+                  unlocked: activated,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
-class _LockedTile extends StatelessWidget {
+class _StatTile extends StatelessWidget {
   final String label;
-  const _LockedTile({required this.label});
+  final String value;
+  final bool unlocked;
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.unlocked,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,19 +76,25 @@ class _LockedTile extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF9AB09A),
+              color: unlocked
+                  ? const Color(0xFF4A6B4A)
+                  : const Color(0xFF9AB09A),
             ),
           ),
           const SizedBox(height: 3),
-          const Text(
-            '🔒',
+          Text(
+            value,
             style: TextStyle(
-              fontSize: 18,
+              fontFamily: 'Poppins',
+              fontSize: unlocked ? 16 : 18,
               fontWeight: FontWeight.w800,
+              color: unlocked
+                  ? const Color(0xFF163220)
+                  : const Color(0xFF9AB09A),
             ),
           ),
         ],

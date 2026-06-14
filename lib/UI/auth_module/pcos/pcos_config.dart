@@ -13,9 +13,12 @@ final pcosConfig = ScreeningConfig(
     titleAfter: '\nsymptoms',
     subtitle:
         "Answer 5 simple questions. We'll tell you if your symptoms are consistent with Polycystic Ovary Syndrome.",
-    accentColor: const Color(0xFFE05050),
-    accentBgLight: const Color(0xFFFFE8E8),
-    accentBgDark: const Color(0xFFFFF5F5),
+    // Aligned to the green theme used by every other screening flow
+    // (thyroid / postpartum / menopause / endometriosis). PCOS was the
+    // last config still using the legacy red `#E05050` accent.
+    accentColor: const Color(0xFF6DC55A),
+    accentBgLight: const Color(0xFFEAF7E4),
+    accentBgDark: const Color(0xFFEAF7E4),
     checkItems: const [
       ScreeningCheckItem(
         title: 'Period regularity',

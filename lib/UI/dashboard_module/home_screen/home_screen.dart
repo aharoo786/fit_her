@@ -37,12 +37,17 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
         backgroundColor: Color(0xffF5EEEE),
         body: Obx(() {
+          // Touch isPaid.value so this Obx rebuilds when slip auto-approval
+          // calls `markPaid()` — without this line, mutating logInUser.status
+          // wouldn't trigger a re-render and the user would stay stuck on
+          // the unpaid home until the next cold start.
+          final _ = authController.isPaid.value;
           if (authController.loginAsA.value == Constants.user) {
             final user = authController.logInUser;
-            if (user != null && user.status == true && user.useNewPaidHome == true) {
+            if (user != null && user.status == true) {
               return const PaidHomeScreenV2();
             }
-            if (user != null && user.status == false && user.useNewUnpaidHome == true) {
+            if (user != null && user.status == false) {
               return const UnpaidHomeScreenV2();
             }
             return UserHomeScreen();

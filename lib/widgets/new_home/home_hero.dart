@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../../data/services/cycle_engine.dart';
 import 'hero_coming_up_row.dart';
 import 'hero_greeting_block.dart';
 import 'hero_live_section.dart';
 import 'hero_top_bar.dart';
+import 'phase_theme.dart';
 
-/// H-35 hero. Layered to match the HTML reference:
-///   background: radial-gradient(ellipse 130% 90% at 105% -5%,
-///               rgba(70,130,60,0.3) 0%, transparent 55%), #163220;
-///   + a faint 220×220 accent ring at top:-70 right:-50, clipped by corners.
+/// Hero widget used by both paid and unpaid home screens.
+/// Colors are read from [CycleThemeController] — a globally registered
+/// GetX controller that restores the last known phase from SharedPreferences
+/// on `onInit()`. This means the correct phase colors are displayed on the
+/// very first frame, with no green→phase flicker while the API call is in
+/// flight. The [cycleInfo] param is still used for the day label and phase
+/// text in [HeroGreetingBlock]; it just no longer drives colors.
 class HomeHero extends StatelessWidget {
   final String? firstName;
   final CycleInfo? cycleInfo;
@@ -24,8 +30,10 @@ class HomeHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const bg = Color(0xFF163220);
-    const accent = Color(0xFF6DC55A);
+    return Obx(() {
+      final phaseTheme = Get.find<CycleThemeController>().theme.value;
+      final bg = phaseTheme.heroBackground;
+      final accent = phaseTheme.accent;
 
     const radius = BorderRadius.only(
       bottomLeft: Radius.circular(36),
@@ -33,7 +41,7 @@ class HomeHero extends StatelessWidget {
     );
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: bg,
         borderRadius: radius,
       ),
@@ -43,20 +51,19 @@ class HomeHero extends StatelessWidget {
           style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
           child: Stack(
             children: [
-              // 1. Radial-gradient overlay. Alpha-only fade so the bg below
-              // shows through naturally — matches CSS "…,#163220" stacking.
-              const Positioned.fill(
+              // 1. Radial-gradient overlay tinted with phase accent.
+              Positioned.fill(
                 child: IgnorePointer(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
-                        center: Alignment(1.1, -1.05),
+                        center: const Alignment(1.1, -1.05),
                         radius: 1.3,
                         colors: [
-                          Color.fromRGBO(70, 130, 60, 0.30),
-                          Color.fromRGBO(70, 130, 60, 0.00),
+                          accent.withOpacity(0.30),
+                          accent.withOpacity(0.00),
                         ],
-                        stops: [0.0, 0.55],
+                        stops: const [0.0, 0.55],
                       ),
                     ),
                   ),
@@ -80,9 +87,7 @@ class HomeHero extends StatelessWidget {
                   ),
                 ),
               ),
-              // 3. Content — the one non-positioned child, so the Stack sizes
-              // to its height. SizedBox(width: double.infinity) guards against
-              // the loose-constraint collapse we hit previously.
+              // 3. Content
               SizedBox(
                 width: double.infinity,
                 child: Column(
@@ -117,5 +122,6 @@ class HomeHero extends StatelessWidget {
         ),
       ),
     );
+    }); // closes Obx
   }
 }
