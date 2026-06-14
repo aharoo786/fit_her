@@ -8,15 +8,16 @@ import 'package:get/get.dart';
 
 import '../UI/consultation_module/popup_orchestrator.dart';
 import '../UI/consultation_module/popups/medical_concern_sheet.dart';
+import '../UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import '../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../utils/app_clock.dart';
 import '../widgets/paid_home_v2/paid_feel_selector.dart';
 import '../widgets/paid_home_v2/paid_footer.dart';
 import '../widgets/paid_home_v2/paid_hero.dart';
 import '../widgets/paid_home_v2/paid_insight_card.dart';
-import '../widgets/paid_home_v2/paid_meal_log_card.dart';
 import '../widgets/paid_home_v2/paid_sleep_card.dart';
-import '../widgets/paid_home_v2/paid_stats_row.dart';
+import '../widgets/paid_home_v2/paid_stats_row.dart'
+    show PaidStatsRow, PaidNutritionCard, PaidMealSummaryCard;
 import '../widgets/paid_home_v2/paid_water_card.dart';
 import '../widgets/v2/medical_concern_fab.dart';
 import '../widgets/v2/v2_today_meals_section.dart' show V2Day7TriggerBanner;
@@ -151,6 +152,11 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
           //     button per Decision 8 — paid surfaces only, hidden
           //     during fullscreen modals via the static `suppress` flag.
           body: PendingPopupOrchestrator(
+            // Inactivity popup's "View today's classes" CTA — switch the
+            // bottom-bar to the Workout tab so the user lands on their
+            // schedule. WorkPlansOfUser → tap into the plan → today's class.
+            onOpenWorkoutSchedule: () =>
+                Get.offAll<dynamic>(() => BottomBarScreen(index: 1)),
             child: MedicalConcernFAB(
               onTap: () => MedicalConcernSheet.show(),
               child: Stack(
@@ -274,11 +280,24 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                       const SizedBox(height: 8),
                       PaidStatsRow(dashboard: dashboard),
                       const SizedBox(height: 8),
-                      // Meal log tile (Phase 2D, Section 6.1). Drives
-                      // adherence into Day 7 review + Day 15/30 progress
-                      // submissions. Uses MealLogController internally
-                      // so it doesn't depend on `dashboard` prop.
-                      const PaidMealLogCard(),
+                      // Nutrition + compact Today's Meals summary, side
+                      // by side. Tapping either opens the shared meal-
+                      // log sheet (full PaidMealLogCard rendered inside
+                      // a DraggableScrollableSheet). PaidMealLogCard is
+                      // no longer embedded on the home surface — the
+                      // sheet is the canonical place to log meals now.
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                                child: PaidNutritionCard(
+                                    dashboard: dashboard)),
+                            const SizedBox(width: 8),
+                            const Expanded(child: PaidMealSummaryCard()),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       // PaidCycleCard removed from this position —
                       // PaidStatsRow now embeds it in Row 2 alongside

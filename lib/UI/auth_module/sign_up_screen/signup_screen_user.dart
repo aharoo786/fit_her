@@ -289,6 +289,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                               controller: _phoneFieldController,
                               initialCountryCode: 'PK',
                               disableLengthCheck: false,
+                              autovalidateMode: AutovalidateMode.disabled,
                               style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontSize: 14.sp,

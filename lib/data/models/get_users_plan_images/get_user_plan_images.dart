@@ -35,7 +35,10 @@ class Datum {
   String? image;
   ClientUser? user;
   Plan? plan;
-  DurationModel priceDuration;
+  // Backend has been observed sending records with `PriceDuration: null`
+  // (e.g. when a plan's price tier was deleted but the image record
+  // remained). Treat as nullable instead of crashing the whole list parse.
+  DurationModel? priceDuration;
 
   Datum({
     required this.id,
@@ -48,9 +51,11 @@ class Datum {
   factory Datum.fromJson(Map<String, dynamic> json) => Datum(
     id: json["id"],
     image: json["image"],
-    user:json["User"]==null?null: ClientUser.fromJson(json["User"]),
-    plan:json["Plan"]==null?null: Plan.fromJson(json["Plan"]),
-    priceDuration: DurationModel.fromJson(json["PriceDuration"]),
+    user: json["User"] == null ? null : ClientUser.fromJson(json["User"]),
+    plan: json["Plan"] == null ? null : Plan.fromJson(json["Plan"]),
+    priceDuration: json["PriceDuration"] == null
+        ? null
+        : DurationModel.fromJson(json["PriceDuration"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -58,7 +63,7 @@ class Datum {
     "image": image,
     "User": user?.toJson(),
     "Plan": plan?.toJson(),
-    "PriceDuration": priceDuration.toJson(),
+    "PriceDuration": priceDuration?.toJson(),
   };
 }
 

@@ -14,6 +14,7 @@ import 'package:fitness_zone_2/data/controllers/consultation_controller/consulta
 import 'package:fitness_zone_2/data/controllers/dietitian_dashboard_controller/dietitian_dashboard_controller.dart';
 import 'package:fitness_zone_2/data/controllers/meal_log_controller/meal_log_controller.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
+import 'package:fitness_zone_2/data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import 'package:fitness_zone_2/data/controllers/paid_home_controller/paid_home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/plan_controller/plan_controller.dart';
 import 'package:fitness_zone_2/data/controllers/post_controller.dart';
@@ -55,48 +56,120 @@ Future init() async {
   Get.lazyPut(() => YouTubeTutorialService());
   Get.lazyPut(() => AnalyticsService());
 
-  Get.lazyPut(() => AuthController(
-      sharedPreferences: sharedPreferences, authRepo: Get.find(), notificationServices: notificationServices, chatApiProvider: Get.find()));
-  Get.lazyPut(() => HomeController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => DietController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => ProgressController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => WorkOutController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => MotivationController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => PlanController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => RatingController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => PostController(sharedPreferences: sharedPreferences, homeRepo: Get.find()));
-  Get.lazyPut(() => PaidHomeController(
-        homeRepo: Get.find(),
-        checkinRepo: Get.find(),
+  // fenix: true on every controller below — survives any GetX scope
+  // teardown (logout flow, hot-restart in dev, idle eviction on low-mem
+  // devices). Without it, once the instance is removed, the next
+  // `Get.find<XController>()` from a tab-content widget throws
+  // "XController not found" and that tab crashes. Repos/services above
+  // stay as bare lazyPut — they're stateless and don't ship symptoms.
+  Get.lazyPut(
+    () => AuthController(
         sharedPreferences: sharedPreferences,
-      ));
-  Get.lazyPut(() => ConsultationController(
-        homeRepo: Get.find(),
-        sharedPreferences: sharedPreferences,
-      ));
-  Get.lazyPut(() => MealLogController(
-        homeRepo: Get.find(),
-        sharedPreferences: sharedPreferences,
-      ));
-  Get.lazyPut(() => DietitianDashboardController(
-        homeRepo: Get.find(),
-        sharedPreferences: sharedPreferences,
-      ));
-  Get.lazyPut(() => DietPlanAdminController(
-        repo: Get.find<DietPlanAdminRepository>(),
-        auth: Get.find<AuthController>(),
-      ));
-  Get.lazyPut(() => DietPlanUserController(
-        repo: Get.find<DietPlanUserRepository>(),
-        auth: Get.find<AuthController>(),
-      ));
-  Get.lazyPut(() => Day7ReviewController(
-        repo: Get.find<DietPlanUserRepository>(),
-        auth: Get.find<AuthController>(),
-      ));
-  Get.lazyPut(() => TimezoneSyncService(
-        auth: Get.find<AuthController>(),
-        repo: Get.find<DietPlanUserRepository>(),
-      ));
-  Get.lazyPut(() => ZoomMeetingGetxController());
+        authRepo: Get.find(),
+        notificationServices: notificationServices,
+        chatApiProvider: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => HomeController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => DietController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => ProgressController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => WorkOutController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => MotivationController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => PlanController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => RatingController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => PostController(
+        sharedPreferences: sharedPreferences, homeRepo: Get.find()),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => CycleThemeController(prefs: sharedPreferences),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => PaidHomeController(
+      homeRepo: Get.find(),
+      checkinRepo: Get.find(),
+      sharedPreferences: sharedPreferences,
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => ConsultationController(
+      homeRepo: Get.find(),
+      sharedPreferences: sharedPreferences,
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => MealLogController(
+      homeRepo: Get.find(),
+      sharedPreferences: sharedPreferences,
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => DietitianDashboardController(
+      homeRepo: Get.find(),
+      sharedPreferences: sharedPreferences,
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => DietPlanAdminController(
+      repo: Get.find<DietPlanAdminRepository>(),
+      auth: Get.find<AuthController>(),
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => DietPlanUserController(
+      repo: Get.find<DietPlanUserRepository>(),
+      auth: Get.find<AuthController>(),
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => Day7ReviewController(
+      repo: Get.find<DietPlanUserRepository>(),
+      auth: Get.find<AuthController>(),
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(
+    () => TimezoneSyncService(
+      auth: Get.find<AuthController>(),
+      repo: Get.find<DietPlanUserRepository>(),
+    ),
+    fenix: true,
+  );
+  Get.lazyPut(() => ZoomMeetingGetxController(), fenix: true);
 }

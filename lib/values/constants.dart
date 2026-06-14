@@ -16,6 +16,7 @@ class Constants {
   static String screenShot = "screenShot";
   static String notificationList = "notificationList";
   static String upcomingSlot = "upcomingSlot";
+  static const String timeBlock = "timeBlock"; // 'morning'|'afternoon'|'evening'|'night'|'all'
   static String type = "type";
   static String recording = "recording";
   static String fullName = "fullName";
@@ -47,6 +48,14 @@ class Constants {
   // (legacy) and progress_screen_v2.dart (new hub). Default false; opt-in
   // per-user via the backend flag.
   static const String useNewProgressHubKey = 'useNewProgressHub';
+  // Local-only "trial activated" flag. Flipped client-side when the user
+  // taps Start 3-day free trial on the unpaid home; flips locked tiles +
+  // insight, retitles CTAs, and persists across cold starts so the demo
+  // state survives an app restart. No backend tie-in.
+  static const String trialActivatedKey = 'trialActivated';
+  // Global cycle phase cache — persisted so CycleThemeController can restore
+  // the correct phase colors on cold start before any API response arrives.
+  static const String lastKnownPhase = 'lastKnownPhase';
   // Phase F.3 — IANA timezone last seen for the logged-in user.
   // Populated on login from the server, kept in sync by
   // TimezoneSyncService when the device timezone drifts. Survives

@@ -683,6 +683,23 @@ Widget _avatarCircle({required String initial, double size = 40}) {
   );
 }
 
+// Normalises a post image URL so old http:// rows still render. Strips
+// any scheme+host and re-prepends the current Constants.baseUrl. Works
+// for both absolute (http/https) and already-relative paths.
+String _normalisePostImageUrl(String raw) {
+  String path = raw;
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      path = Uri.parse(raw).path;
+    } catch (_) {
+      // Malformed URL — fall back to using the raw string as a path.
+      path = raw;
+    }
+  }
+  final cleanPath = path.replaceFirst(RegExp(r'^/'), '');
+  return '${Constants.baseUrl}/$cleanPath';
+}
+
 // ─── Post card (with read-more local state) ───────────────────────────────
 
 class _PostCard extends StatefulWidget {
@@ -773,9 +790,13 @@ class _PostCardState extends State<_PostCard> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: CachedNetworkImage(
-                      imageUrl: p.imageUrl!.startsWith('http')
-                          ? p.imageUrl!
-                          : '${Constants.baseUrl}/${p.imageUrl!.replaceFirst(RegExp(r'^/'), '')}',
+                      // Always normalise to <baseUrl>/<path>. Older posts
+                      // stored a fully-qualified http:// URL (the backend
+                      // used req.protocol, which is "http" behind a proxy
+                      // without trust-proxy). iOS ATS / Android cleartext
+                      // protection silently block those, so we strip the
+                      // host and re-prepend our current baseUrl (https).
+                      imageUrl: _normalisePostImageUrl(p.imageUrl!),
                       placeholder: (_, __) => Container(
                         height: 200.h,
                         color: _kCream,

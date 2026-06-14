@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/controllers/consultation_controller/consultation_controller.dart';
 import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
@@ -60,14 +61,74 @@ class _PendingPopupOrchestratorState extends State<PendingPopupOrchestrator> {
   Worker? _worker;
   bool _showing = false;
 
-  /// Variables already shown this app session — prevents the same popup
-  /// from re-firing every dashboard refresh while it's pending.
-  final Set<String> _shownThisSession = <String>{};
+  // Persisted-across-sessions cooldown so a popup that fired once doesn't
+  // refire every time the user lands on Home. Server still owns long-term
+  // eligibility (dismissCount caps, completedAt, etc.); this is a local
+  // floor on cadence so the UI doesn't become a popup carousel.
+  static const String _kShownPrefix = 'popup_shown_';
+  static const Duration _defaultCooldown = Duration(hours: 24);
+
+  // Per-popup overrides for cases where the default 24h is wrong:
+  //   - Reminders that should nag faster get a shorter window
+  //   - Non-urgent nudges that already have server-side cadence get a longer one
+  // Server-side gates (e.g. POPUP_BOOK_INITIAL_REMINDER's 2-day lastShownAt)
+  // still apply on top — this map only widens the local floor where needed.
+  static const Map<String, Duration> _perPopupCooldown = {
+    'POPUP_CONSULTANT_NO_SHOW': Duration(minutes: 15),
+    'POPUP_PLAN_DELAYED': Duration(hours: 12),
+    'POPUP_BOOK_INITIAL_REMINDER': Duration(days: 2),
+    'POPUP_INACTIVITY_REMINDER': Duration(days: 3),
+    'POPUP_RENEW_PLAN': Duration(days: 7),
+    'POPUP_DAILY_LOG_REMINDER': Duration(hours: 20),
+  };
+
+  // In-memory cache mirroring SharedPreferences. Key = variable[+cycle],
+  // value = epoch millis when the popup was last shown on this device.
+  final Map<String, int> _shownAt = {};
+  bool _shownLoaded = false;
+
+  Future<void> _loadShown() async {
+    if (_shownLoaded) return;
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in prefs.getKeys()) {
+      if (!key.startsWith(_kShownPrefix)) continue;
+      final ts = prefs.getInt(key);
+      if (ts == null) continue;
+      _shownAt[key.substring(_kShownPrefix.length)] = ts;
+    }
+    _shownLoaded = true;
+  }
+
+  // Cycle-aware key so Day7/Day15/Day30 popups don't block each other and
+  // a new cycle of the same popup type can re-fire after the previous one
+  // expired its cooldown.
+  String _composeKey(PendingPopup p) {
+    final cycle = (p.metadata?['cycle'] ?? '').toString();
+    return cycle.isEmpty ? p.variable : '${p.variable}_$cycle';
+  }
+
+  bool _wasRecentlyShown(PendingPopup p) {
+    final key = _composeKey(p);
+    final ts = _shownAt[key];
+    if (ts == null) return false;
+    final cooldown = _perPopupCooldown[p.variable] ?? _defaultCooldown;
+    final shownAt = DateTime.fromMillisecondsSinceEpoch(ts);
+    return DateTime.now().difference(shownAt) < cooldown;
+  }
+
+  Future<void> _markShown(PendingPopup p) async {
+    final key = _composeKey(p);
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    _shownAt[key] = ts;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('$_kShownPrefix$key', ts);
+  }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadShown();
       final paid = Get.find<PaidHomeController>();
       // Fire on every dashboard change. ever() de-duplicates per-tick;
       // _showing guards against re-entry while a sheet is already up.
@@ -85,20 +146,21 @@ class _PendingPopupOrchestratorState extends State<PendingPopupOrchestrator> {
 
   Future<void> _maybeShowNext() async {
     if (_showing) return;
+    await _loadShown();
     final paid = Get.find<PaidHomeController>();
     final dashboard = paid.dashboard.value;
     if (dashboard == null) return;
     final list = dashboard.pendingPopups;
     if (list.isEmpty) return;
 
-    // First popup we haven't yet shown this session — list is already
+    // First popup not within its per-popup cooldown — list is already
     // priority-sorted server-side.
     final next = list.firstWhereOrNull(
-      (p) => !_shownThisSession.contains(p.variable),
+      (p) => !_wasRecentlyShown(p),
     );
     if (next == null) return;
 
-    _shownThisSession.add(next.variable);
+    await _markShown(next);
     _showing = true;
     try {
       await _dispatch(next);

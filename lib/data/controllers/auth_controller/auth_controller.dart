@@ -4,6 +4,7 @@ import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
+import 'package:fitness_zone_2/UI/auth_module/time_preference_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
@@ -102,6 +103,41 @@ class AuthController extends GetxController implements GetxService {
 
   var loginAsA = Constants.user.obs;
 
+  /// Local-only "trial activated" flag, flipped by tapping Start 3-day free
+  /// trial on the unpaid home. Drives the activated variants of LIVE row,
+  /// locked tiles, insight card, and CTA banner. Persisted in prefs so a
+  /// cold start keeps the activated state; cleared on logout.
+  /// See [Constants.trialActivatedKey].
+  late final RxBool trialActivated = RxBool(
+      sharedPreferences.getBool(Constants.trialActivatedKey) ?? false);
+
+  /// Flip the local trial flag on. Called by `TrialCtaCard` after the
+  /// "Trial activated" dialog is acknowledged.
+  void activateTrial() {
+    trialActivated.value = true;
+    sharedPreferences.setBool(Constants.trialActivatedKey, true);
+  }
+
+  /// Reactive mirror of `logInUser?.status`. Plain `LoginModel.status` is a
+  /// non-observable bool, so home_screen.dart's `Obx` can't rebuild off it
+  /// when payment auto-approval flips the user from unpaid → paid. Read
+  /// this inside the home routing Obx so the screen swaps to
+  /// `PaidHomeScreenV2` the instant `markPaid()` fires.
+  var isPaid = false.obs;
+
+  /// Promote the in-memory user to a paid state after the backend confirms
+  /// auto-approval (`userPlanActivated == true` in the slip-upload
+  /// response). Also persists `useNewPaidHome=true` so a cold start lands
+  /// on the new V2 paid home rather than the legacy `UserHomeScreen`.
+  void markPaid() {
+    final u = logInUser;
+    if (u == null) return;
+    u.status = true;
+    u.useNewPaidHome = true;
+    sharedPreferences.setBool(Constants.useNewPaidHomeKey, true);
+    isPaid.value = true;
+  }
+
   List<String> packageState = [
     "Start",
     "Pause",
@@ -166,6 +202,11 @@ class AuthController extends GetxController implements GetxService {
     sharedPreferences.setString(Constants.email, model.email.toString());
     sharedPreferences.setString(Constants.password, password);
     sharedPreferences.setString(Constants.loginAsa, loginAsA.value);
+
+    // Seed the reactive paid-state mirror from the freshly-loaded user.
+    // Every login path funnels through here, so this single line keeps
+    // [isPaid] in sync with `logInUser.status` on each sign-in.
+    isPaid.value = model.status;
 
     sharedPreferences.setBool(Constants.isGuest, false);
     // Persist Option-C feature flags so the router can honor them on cold
@@ -554,7 +595,14 @@ class AuthController extends GetxController implements GetxService {
       healthConditions.value = logInUser?.healthConditions ?? "";
     }
     Get.find<HomeController>().getUserHomeFunc();
-    Get.offAll(() => BottomBarScreen());
+    // Show time preference screen once on first login.
+    // If already set, go straight to home.
+    final hasTimeBlock = sharedPreferences.containsKey(Constants.timeBlock);
+    if (!hasTimeBlock) {
+      Get.offAll(() => const TimePreferenceScreen());
+    } else {
+      Get.offAll(() => BottomBarScreen());
+    }
   }
 
   guestLogin(String result) {
@@ -721,6 +769,8 @@ class AuthController extends GetxController implements GetxService {
                 if (response.body["status"] == "1") {
                   CustomToast.successToast(msg: response.body["message"]);
                   sharedPreferences.clear();
+                  trialActivated.value = false;
+                  isPaid.value = false;
                   Get.offAll(() => Login());
                   NotificationServices().getDeviceToken();
                   await init();
@@ -739,6 +789,8 @@ class AuthController extends GetxController implements GetxService {
     } else {
       CustomToast.failToast(msg: "Successfully Logout");
       sharedPreferences.clear();
+      trialActivated.value = false;
+      isPaid.value = false;
       await init();
       loginAsA.value = Constants.user;
       Get.offAll(() => Login());
@@ -765,6 +817,8 @@ class AuthController extends GetxController implements GetxService {
               } else if (response.body["status"] != "0") {
                 if (response.body["status"] == "1") {
                   sharedPreferences.clear();
+                  trialActivated.value = false;
+                  isPaid.value = false;
                   Get.offAll(() => const WalkThroughScreen());
                 }
               }

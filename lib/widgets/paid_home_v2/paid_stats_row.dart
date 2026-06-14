@@ -6,6 +6,7 @@ import '../../data/models/home_dashboard/home_dashboard_model.dart';
 import '../../data/models/meal_log/meal_log.dart';
 import 'log_weight_modal.dart';
 import 'paid_cycle_card.dart';
+import 'paid_meal_log_card.dart';
 import 'set_target_weight_modal.dart';
 
 // TODO: Replace static values with real data
@@ -61,24 +62,13 @@ class PaidStatsRow extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 7),
-        // Row 2 — Cycle + Nutrition side-by-side. Falls back to
-        // Nutrition full-width if cycle data is missing (PaidCycleCard
-        // would otherwise collapse to a 0-width void inside its
-        // Expanded slot, leaving an unbalanced half-row).
-        if ((dashboard.cycle?.cycleDay) != null)
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: PaidCycleCard(dashboard: dashboard)),
-                const SizedBox(width: 7),
-                Expanded(child: _NutritionCard(dashboard: dashboard)),
-              ],
-            ),
-          )
-        else
-          _NutritionCard(dashboard: dashboard),
+        // Row 2 — Cycle only (when present). Nutrition has been
+        // promoted out of this row; paid_home_screen_v2.dart now
+        // renders it alongside PaidMealLogCard in a shared row below.
+        if ((dashboard.cycle?.cycleDay) != null) ...[
+          const SizedBox(height: 7),
+          PaidCycleCard(dashboard: dashboard),
+        ],
       ],
     );
   }
@@ -165,9 +155,13 @@ class _CaloriesCard extends StatelessWidget {
 
 // ─── Row 2 ───────────────────────────────────────────────────────────────
 
-class _NutritionCard extends StatelessWidget {
+/// Promoted from `_NutritionCard` so paid_home_screen_v2.dart can render
+/// it directly next to PaidMealLogCard in a shared row. PaidStatsRow no
+/// longer emits it in Row 2; the home screen owns its placement now.
+class PaidNutritionCard extends StatelessWidget {
   final HomeDashboardModel dashboard;
-  const _NutritionCard({required this.dashboard});
+  const PaidNutritionCard({Key? key, required this.dashboard})
+      : super(key: key);
 
   static String _slotName(MealType t) {
     switch (t) {
@@ -197,9 +191,12 @@ class _NutritionCard extends StatelessWidget {
         sharedPreferences: Get.find(),
       ));
     }
-    final ctrl = Get.find<MealLogController>();
     return _CardShell(
-      onTap: ctrl.toggleTodayMeals,
+      // Tap-anywhere opens the shared meal-log sheet — same target as the
+      // adjacent PaidMealSummaryCard. PaidMealLogCard is no longer
+      // embedded on the home screen, so toggling the in-place accordion
+      // would have no visible effect.
+      onTap: () => _openMealLogSheet(context),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -212,38 +209,155 @@ class _NutritionCard extends StatelessWidget {
             subFontSize: 10,
           ),
           const SizedBox(height: 6),
-          Obx(() {
-            final expanded = ctrl.todayMealsExpanded.value;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Log ${_slotName(slot)}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF163220),
-                  ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Log ${_slotName(slot)}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF163220),
                 ),
-                const SizedBox(width: 4),
-                AnimatedRotation(
-                  // 0.25 turns = 90° clockwise → arrow points down.
-                  turns: expanded ? 0.25 : 0.0,
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeInOutCubic,
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 13,
-                    color: Color(0xFF163220),
-                  ),
-                ),
-              ],
-            );
-          }),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                size: 13,
+                color: Color(0xFF163220),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
+}
+
+/// Compact "today's meals" summary that pairs visually with
+/// PaidNutritionCard in a half-width row. Tapping opens the same shared
+/// meal-log sheet (`_openMealLogSheet`) — single entry point so both
+/// cards behave identically.
+class PaidMealSummaryCard extends StatelessWidget {
+  const PaidMealSummaryCard({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Same defensive lookup as PaidNutritionCard — controller can fall
+    // out of GetX's registry on hot-reload.
+    if (!Get.isRegistered<MealLogController>()) {
+      Get.put(MealLogController(
+        homeRepo: Get.find(),
+        sharedPreferences: Get.find(),
+      ));
+    }
+    final ctrl = Get.find<MealLogController>();
+    return _CardShell(
+      onTap: () => _openMealLogSheet(context),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Obx(() {
+            // Legacy counter (always available). If the user is on a
+            // structured plan, the sheet itself shows the precise per-meal
+            // data via DietPlanUserController. Showing the legacy count
+            // here as a headline number is a safe baseline.
+            final total = MealType.values.length;
+            final logged = ctrl.todayMeals.values
+                .where((m) => m.status != MealStatus.pending)
+                .length;
+            return _StatColumn(
+              label: '🍽 Meals',
+              value: '$logged/$total',
+              sub: 'logged today',
+              valueFontSize: 26,
+              subFontSize: 10,
+            );
+          }),
+          const SizedBox(height: 6),
+          const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Log meals',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF163220),
+                ),
+              ),
+              SizedBox(width: 4),
+              Icon(
+                Icons.arrow_forward_rounded,
+                size: 13,
+                color: Color(0xFF163220),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shared "open meal log" sheet used by PaidNutritionCard +
+/// PaidMealSummaryCard. Forces the embedded PaidMealLogCard into its
+/// expanded state on open so the user lands directly on the meals
+/// to log — they shouldn't need to tap a header to expand inside a
+/// sheet that's already dedicated to logging.
+void _openMealLogSheet(BuildContext context) {
+  if (Get.isRegistered<MealLogController>()) {
+    final ctrl = Get.find<MealLogController>();
+    if (!ctrl.todayMealsExpanded.value) {
+      ctrl.toggleTodayMeals();
+    }
+  }
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetCtx) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFF9FCF7),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF4EC),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const PaidMealLogCard(),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 // ─── Shared bits ─────────────────────────────────────────────────────────

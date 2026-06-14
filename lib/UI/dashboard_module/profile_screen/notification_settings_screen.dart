@@ -9,6 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+const List<Map<String, String>> _kTimeBlocks = [
+  {'value': 'morning',   'label': 'Morning',    'sub': '6 AM – 11 AM',          'icon': '🌅'},
+  {'value': 'afternoon', 'label': 'Afternoon',  'sub': '11 AM – 4 PM',          'icon': '☀️'},
+  {'value': 'evening',   'label': 'Evening',    'sub': '4 PM – 8 PM',           'icon': '🌇'},
+  {'value': 'night',     'label': 'Night',      'sub': '8 PM – 11 PM',          'icon': '🌙'},
+  {'value': 'all',       'label': 'All Classes','sub': 'Notify for every class', 'icon': '🔔'},
+];
+
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -29,6 +37,7 @@ class _NotificationSettingsScreenState
   int _weeklyCheckin = 1;
   String _quietStart = '22:00';
   String _quietEnd = '07:00';
+  String _timeBlock = 'all';
 
   @override
   void initState() {
@@ -61,6 +70,7 @@ class _NotificationSettingsScreenState
           _weeklyCheckin = data['weeklyCheckin'] ?? 1;
           _quietStart = data['quietStart'] ?? '22:00';
           _quietEnd = data['quietEnd'] ?? '07:00';
+          _timeBlock = data['timeBlock'] ?? 'all';
           _isLoading = false;
         });
       }
@@ -84,7 +94,11 @@ class _NotificationSettingsScreenState
       'weeklyCheckin': _weeklyCheckin,
       'quietStart': _quietStart,
       'quietEnd': _quietEnd,
+      'timeBlock': _timeBlock,
     };
+
+    // Persist timeBlock locally so socket_controller picks it up immediately
+    authController.sharedPreferences.setString(Constants.timeBlock, _timeBlock);
 
     await apiProvider.postData(
       '/users/notification_preferences',
@@ -253,6 +267,85 @@ class _NotificationSettingsScreenState
                   value: _weeklyCheckin == 1,
                   onChanged: (v) => _onToggle('weeklyCheckin', v),
                 ),
+                SizedBox(height: 24.h),
+
+                // ── Preferred Time Block ─────────────────────────────────
+                Text(
+                  'Preferred Class Time',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  'Only get notified about classes in this time block',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12.sp,
+                    color: AppColors.textHint,
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                Wrap(
+                  spacing: 10.w,
+                  runSpacing: 10.h,
+                  children: _kTimeBlocks.map((block) {
+                    final isSelected = _timeBlock == block['value'];
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _timeBlock = block['value']!);
+                        _savePreferences();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary.withOpacity(0.12)
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(block['icon']!, style: TextStyle(fontSize: 16.sp)),
+                            SizedBox(width: 6.w),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  block['label']!,
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  block['sub']!,
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 11.sp,
+                                    color: AppColors.textHint,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+
                 SizedBox(height: 24.h),
                 Text(
                   'Quiet Hours',

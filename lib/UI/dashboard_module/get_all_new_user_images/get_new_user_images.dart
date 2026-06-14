@@ -86,7 +86,7 @@ class AllNewUserImages extends StatelessWidget {
                                   "Plan Duration",
                                   plan.plan == null
                                       ? "N/A"
-                                      : plan.priceDuration.duration??"",
+                                      : (plan.priceDuration?.duration ?? "N/A"),
                                   context),
                               SizedBox(
                                 height: 20.h,

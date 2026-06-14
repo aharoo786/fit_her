@@ -36,24 +36,30 @@ class WalkThroughScreen extends StatelessWidget {
   static const Color _ovulationLabel = Color(0xFF5A8C66);
   static const Color _lutealLabel = Color(0xFF9C7430);
 
-  // Real cycle proportions matching CyclePhaseCalculator's 0.18/0.46/0.57
-  // boundaries (founder Q5 fix vs the mockup's eyeballed wedges):
-  //   menstrual  0–18%   →   0° →  65°
-  //   follicular 18–46%  →  65° → 165°
-  //   ovulation  46–57%  → 165° → 205°
-  //   luteal     57–100% → 205° → 360°
+  // Arc wedges match S01_Welcome_V3_Refined.html exactly. The HTML uses
+  // `conic-gradient(from -90deg, …)` so pink/red starts at 9 o'clock and
+  // sweeps clockwise. Flutter's SweepGradient CLAMPS angles outside the
+  // [startAngle, endAngle] range (doesn't wrap), so we can't just rotate
+  // the startAngle — we keep it at -π/2 (12 o'clock) and instead shift
+  // the colour stops so each phase lands in the right visual quadrant:
+  //
+  //   gradient position → visual angle (clockwise from 12 o'clock)
+  //   0.00 → 0.25         12 → 3 o'clock         → green  (follicular)
+  //   0.25 → 0.3056       3 → just past 3        → mint   (ovulation, 5.55%)
+  //   0.3056 → 0.75       rest of bottom + left  → orange (luteal, 44.44%)
+  //   0.75 → 1.00         9 → 12 o'clock         → pink   (menstrual, 25%)
   // Duplicate stops produce hard arc boundaries.
   static const List<double> _wheelStops = [
-    0.0, 0.1806,
-    0.1806, 0.4583,
-    0.4583, 0.5694,
-    0.5694, 1.0,
+    0.0, 0.25,
+    0.25, 0.3056,
+    0.3056, 0.75,
+    0.75, 1.0,
   ];
   static const List<Color> _wheelColors = [
-    _menstrualArc, _menstrualArc,
     _follicularArc, _follicularArc,
     _ovulationArc, _ovulationArc,
     _lutealArc, _lutealArc,
+    _menstrualArc, _menstrualArc,
   ];
 
   @override
@@ -142,7 +148,8 @@ class WalkThroughScreen extends StatelessWidget {
 
   // ── Cycle wheel ────────────────────────────────────────────────────────
   // 280-px conic ring + 244-px white inner mask + 4 phase pills positioned
-  // at the midpoint angle of each arc (real-cycle proportions per Q5).
+  // to match S01_Welcome_V3_Refined.html (top/right/bottom/left offsets,
+  // not on a uniform polar rim).
   Widget _buildWheel() {
     return SizedBox(
       // 280 wheel + 40-px buffer on each side so the pills can extend
@@ -158,6 +165,9 @@ class WalkThroughScreen extends StatelessWidget {
             height: 280.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
+              // startAngle stays at -π/2 (12 o'clock); the visual rotation
+              // to match CSS `from -90deg` is encoded in _wheelStops instead.
+              // See the _wheelStops comment for the full quadrant mapping.
               gradient: const SweepGradient(
                 startAngle: -math.pi / 2,
                 endAngle: 3 * math.pi / 2,
@@ -177,93 +187,93 @@ class WalkThroughScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: Center(
-              child: Container(
-                width: 244.w,
-                height: 244.w,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _bgTop,
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '28',
-                        style: GoogleFonts.fraunces(
-                          textStyle: TextStyle(
-                            fontSize: 60.sp,
-                            fontWeight: FontWeight.w300,
-                            color: _textDark,
-                            letterSpacing: -2.4, // -0.04em × 60
-                            height: 1.0,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Inner white mask + "28 DAYS · YOUR CYCLE"
+                Center(
+                  child: Container(
+                    width: 244.w,
+                    height: 244.w,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _bgTop,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '28',
+                            style: GoogleFonts.fraunces(
+                              textStyle: TextStyle(
+                                fontSize: 60.sp,
+                                fontWeight: FontWeight.w300,
+                                color: _textDark,
+                                letterSpacing: -2.4, // -0.04em × 60
+                                height: 1.0,
+                              ),
+                            ),
                           ),
-                        ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'DAYS · YOUR CYCLE',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w700,
+                              color: _textSub,
+                              letterSpacing: 1.62, // 0.18em × 9
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        'DAYS · YOUR CYCLE',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 9.sp,
-                          fontWeight: FontWeight.w700,
-                          color: _textSub,
-                          letterSpacing: 1.62, // 0.18em × 9
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
 
-          // Phase labels at midpoint angles of each real-proportion arc.
-          //   menstrual mid  =  32.5° (between   0° and  65°)
-          //   follicular mid = 115°  (between  65° and 165°)
-          //   ovulation mid  = 185°  (between 165° and 205°)
-          //   luteal mid     = 282.5°(between 205° and 360°)
-          _positionPill(
-            angleDeg: 32.5,
-            label: 'MENSTRUAL',
-            color: _menstrualLabel,
-          ),
-          _positionPill(
-            angleDeg: 115.0,
-            label: 'FOLLICULAR',
-            color: _follicularLabel,
-          ),
-          _positionPill(
-            angleDeg: 185.0,
-            label: 'OVULATION',
-            color: _ovulationLabel,
-          ),
-          _positionPill(
-            angleDeg: 282.5,
-            label: 'LUTEAL',
-            color: _lutealLabel,
+                // Phase pills — positioned to match HTML .pl-1..4 exactly.
+                // pl-1 Menstrual: top:8 inside wheel, centred horizontally.
+                Positioned(
+                  top: 8.h,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _buildPhasePill('MENSTRUAL', _menstrualLabel),
+                  ),
+                ),
+                // pl-2 Follicular: right:-12 (sticks out past wheel), centred vertically.
+                Positioned(
+                  right: -12.w,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _buildPhasePill('FOLLICULAR', _follicularLabel),
+                  ),
+                ),
+                // pl-3 Ovulation: bottom:8 inside wheel, centred horizontally.
+                Positioned(
+                  bottom: 8.h,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _buildPhasePill('OVULATION', _ovulationLabel),
+                  ),
+                ),
+                // pl-4 Luteal: left:-8 (sticks out past wheel), centred vertically.
+                Positioned(
+                  left: -8.w,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _buildPhasePill('LUTEAL', _lutealLabel),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _positionPill({
-    required double angleDeg,
-    required String label,
-    required Color color,
-  }) {
-    // Place the pill's centre on the wheel's outer rim (radius 140).
-    // Angle is measured clockwise from the 12 o'clock (top) position,
-    // so x = sin θ and y = -cos θ.
-    final theta = angleDeg * math.pi / 180.0;
-    final dx = 140.w * math.sin(theta);
-    final dy = -140.w * math.cos(theta);
-
-    return Transform.translate(
-      offset: Offset(dx, dy),
-      child: _buildPhasePill(label, color),
     );
   }
 

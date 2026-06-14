@@ -1,31 +1,44 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import 'package:fitness_zone_2/UI/plans_module/upload_slip_screen.dart';
+import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:fitness_zone_2/widgets/toasts.dart';
 
-import '../../data/controllers/auth_controller/auth_controller.dart';
-import '../../data/controllers/home_controller/home_controller.dart';
-import '../../helper/permissions.dart';
-import '../../values/my_colors.dart';
-import '../../values/my_imgs.dart';
-import '../../widgets/toasts.dart';
-
+/// Payment-method picker — V2 redesign.
+///
+/// Previous version jammed the "Direct Pay" CTA, a divider, and the slip
+/// uploader onto the same screen. This version shows two clear method
+/// cards and routes accordingly:
+///   • Pay online  → existing _DirectPayPhoneDialog (JazzCash/EasyPaisa)
+///   • Upload slip → new UploadSlipScreen
+///
+/// Both downstream surfaces use the original HomeController calls — no
+/// API contract changes.
 class SelectPaymentMode extends StatelessWidget {
-  SelectPaymentMode(
-      {super.key,
-      required this.planId,
-      required this.durationId,
-      required this.price});
-  HomeController homeController = Get.find();
-  String planId;
-  String price;
-  int durationId;
+  SelectPaymentMode({
+    super.key,
+    required this.planId,
+    required this.durationId,
+    required this.price,
+  });
 
-  void _showDirectPayPhoneDialog(BuildContext context, TextTheme textTheme) {
+  final String planId;
+  final String price;
+  final int durationId;
+
+  static const _kCanvas = Color(0xFFF9FCF7);
+  static const _kCardBorder = Color(0xFFEFF4EC);
+  static const _kIconWashBg = Color(0xFFF6FBF3);
+  static const _kTextPrimary = Color(0xFF1A3A22);
+  static const _kSage = Color(0xFF7A8C78);
+  static const _kAccent = Color(0xFF6DC55A);
+  static const _kAccentSoft = Color(0xFFA8F0C0);
+
+  void _showDirectPayPhoneDialog(BuildContext context) {
     final initialPhone = HomeController.normalizeMsisdn(
             Get.find<AuthController>().logInUser?.phone) ??
         '';
@@ -42,116 +55,74 @@ class SelectPaymentMode extends StatelessWidget {
     );
   }
 
+  void _openUploadSlip() {
+    // Clear any leftover image from a previous attempt so the slip
+    // screen starts fresh.
+    final home = Get.find<HomeController>();
+    home.planPicture = null;
+    home.update();
+    Get.to(() => UploadSlipScreen(
+          planId: planId,
+          durationId: durationId,
+          price: price,
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
-    var textTheme = Theme.of(context).textTheme;
-
-    return SafeArea(
-      child: Scaffold(
-        appBar: HelpingWidgets().appBarWidget(() {
-          homeController.planPicture == null;
-          Get.back();
-        }, text: "Select Payment"),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18.0),
+    return Scaffold(
+      backgroundColor: _kCanvas,
+      appBar: HelpingWidgets().appBarWidget(() {
+        Get.back();
+      }, text: "Select Payment"),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 24),
-              Center(
-                child: CustomButton(
-                  text: "Pay with JazzCash / EasyPaisa (Direct Pay)",
-                  onPressed: () => _showDirectPayPhoneDialog(context, textTheme),
+              const Text(
+                'How would you like to pay?',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: _kTextPrimary,
+                  letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  const Expanded(
-                      child: Divider(height: 1.5, color: Colors.black54)),
-                  const SizedBox(width: 10),
-                  Text("Or", style: textTheme.titleSmall),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                      child: Divider(height: 1.5, color: Colors.black54)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: GetBuilder<HomeController>(builder: (cont) {
-                  return GestureDetector(
-                    onTap: () {
-                      selectMediaBottomSheet(
-                          _getFromGallery, _getFromCamera, context);
-                    },
-                    child: homeController.planPicture != null
-                        ? Container(
-                            alignment: Alignment.center,
-                            height: 100,
-                            width: 100,
-                            decoration: BoxDecoration(
-                                // / borderRadius: BorderRadius.circular(13),
-                                color: MyColors.bodyBackground,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.4),
-                                    blurRadius: 2.0,
-                                    spreadRadius: 0.0,
-                                    offset: const Offset(0.0,
-                                        2.0), // shadow direction: bottom right
-                                  )
-                                ],
-                                image: DecorationImage(
-                                  fit: BoxFit.cover,
-                                  image: FileImage(
-                                    File(homeController.planPicture!.path),
-                                  ),
-                                )),
-                          )
-                        : SizedBox(
-                            height: 100,
-                            child: SvgPicture.asset(
-                              MyImgs.upload,
-                            ),
-                          ),
-                  );
-                }),
-              ),
-              SizedBox(
-                width: 190,
-                child: Text(
-                  "Click here to upload the slip",
-                  style: textTheme.titleLarge!.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
+              const SizedBox(height: 6),
+              const Text(
+                'Pick a payment method. You can switch later from your '
+                'profile.',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: _kSage,
+                  height: 1.5,
                 ),
               ),
-              Spacer(),
-              CustomButton(
-                  text: "Upload",
-                  onPressed: () async {
-                    if (homeController.planPicture == null) {
-                      CustomToast.failToast(msg: "Please select image");
-                    } else {
-                      var success = await homeController.addPlanBuyImage(
-                          planId, durationId, price);
-                      if (success) {
-                        HelpingWidgets.showCustomDialog(context, () {
-                          Get.back();
-                          Get.back();
-                        },
-                            "Successfully Uploaded!",
-                            "Our team is reviewing your payment, and you will receive a confirmation shortly. Please wait for approval.",
-                            MyImgs.logo,
-                            buttonText: "OK");
-                      }
-                    }
-                  }),
-              SizedBox(
-                height: 20,
+              const SizedBox(height: 22),
+              _methodCard(
+                title: 'Pay online',
+                subtitle: 'JazzCash / EasyPaisa — instant activation.',
+                icon: Icons.bolt_rounded,
+                accent: _kAccent,
+                badge: 'Recommended',
+                onTap: () => _showDirectPayPhoneDialog(context),
               ),
+              const SizedBox(height: 12),
+              _methodCard(
+                title: 'Upload payment slip',
+                subtitle:
+                    'Bank transfer / counter deposit. Verified within a '
+                    'few hours.',
+                icon: Icons.receipt_long_outlined,
+                accent: _kTextPrimary,
+                onTap: _openUploadSlip,
+              ),
+              const Spacer(),
+              const _AmountFooter(),
             ],
           ),
         ),
@@ -159,119 +130,145 @@ class SelectPaymentMode extends StatelessWidget {
     );
   }
 
-  selectMediaBottomSheet(
-      Function gallery, Function camera, BuildContext context) {
-    Get.bottomSheet(Container(
-      height: 150,
-      color: MyColors.bodyBackground,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.photo_camera,
-                  size: 30,
-                ),
-                onPressed: () {
-                  Get.back();
-                  camera(context);
-                },
+  Widget _methodCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accent,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kCardBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: _kTextPrimary.withOpacity(0.06),
+              offset: const Offset(0, 6),
+              blurRadius: 18,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent == _kAccent
+                    ? _kAccentSoft.withOpacity(0.35)
+                    : _kIconWashBg,
+                borderRadius: BorderRadius.circular(14),
               ),
-              Text("From Camera".tr)
-            ],
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.photo,
-                  size: 30,
-                ),
-                onPressed: () {
-                  Get.back();
-                  gallery(context);
-                },
+              child: Icon(icon, size: 24, color: accent),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: _kTextPrimary,
+                        ),
+                      ),
+                      if (badge != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _kAccentSoft.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            badge,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: _kTextPrimary,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: _kSage,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
               ),
-              Text("From Gallery".tr)
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right,
+                size: 18, color: Color(0xFFC8DEC4)),
+          ],
+        ),
       ),
-    ));
-  }
-
-  /// Get from Camera
-  _getFromCamera(BuildContext context) async {
-    PermissionOfPhotos().getFromCamera(context).then((value) async {
-      if (value) {
-        final pickedFile =
-            await ImagePicker().pickImage(source: ImageSource.camera);
-        if (pickedFile != null) {
-          print("Picked File: ${pickedFile.path}");
-          var imagePath = pickedFile.path;
-          // Get.find<AuthController>().image = File(imagePath);
-          // Get.find<AuthController>().update();
-
-          var imageName = imagePath.split("/").last;
-          print("Image Name: $imageName");
-          final dir1 = Directory.systemTemp;
-          final targetPath1 =
-              "${dir1.absolute.path}/dp${Get.find<AuthController>().i}.jpg";
-          var compressedFile1 = await FlutterImageCompress.compressAndGetFile(
-              imagePath, targetPath1,
-              quality: 60);
-          HomeController homeController = Get.find();
-
-          homeController.planPicture = XFile(compressedFile1!.path);
-          homeController.update();
-
-          Get.find<AuthController>().i++;
-          Get.find<AuthController>().update();
-        }
-      } else {
-        print(value);
-      }
-    });
-  }
-
-  _getFromGallery(BuildContext context) async {
-    PermissionOfPhotos().getFromGallery(context).then((value) async {
-      if (value) {
-        final pickedFile =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
-        if (pickedFile != null) {
-          print("Picked File: ${pickedFile.path}");
-          var imagePath = pickedFile.path;
-          // Get.find<AuthController>().image = File(imagePath);
-          // Get.find<AuthController>().update();
-
-          var imageName = imagePath.split("/").last;
-          print("Image Name: $imageName");
-          final dir1 = Directory.systemTemp;
-          final targetPath1 =
-              "${dir1.absolute.path}/dp${Get.find<AuthController>().i}.jpg";
-          var compressedFile1 = await FlutterImageCompress.compressAndGetFile(
-              imagePath, targetPath1,
-              quality: 60);
-          HomeController homeController = Get.find();
-          homeController.planPicture = XFile(compressedFile1!.path);
-          homeController.update();
-
-          Get.find<AuthController>().i++;
-          Get.find<AuthController>().update();
-        }
-      } else {
-        print(value);
-      }
-    });
+    );
   }
 }
 
-/// Dialog content for Direct Pay: user confirms/edits phone before opening WebView.
+class _AmountFooter extends StatelessWidget {
+  const _AmountFooter();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEFF4EC), width: 1),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline,
+              size: 16, color: SelectPaymentMode._kSage),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Payments are processed securely. You will see your plan '
+              'activate as soon as we confirm payment.',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: SelectPaymentMode._kSage,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dialog content for Direct Pay: user confirms/edits phone before
+/// opening the WebView. Preserved verbatim from the prior version —
+/// same logic, same controller call.
 class _DirectPayPhoneDialogContent extends StatefulWidget {
   final String planId;
   final String price;
