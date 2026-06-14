@@ -119,15 +119,13 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
     // Clock ticker — local-only setState. Drives the LIVE/STARTING
     // SOON badge transition and the "N min" countdown. Decoupled from
     // network so we never block the UI on a stalled fetch.
-    _clockTickerTimer =
-        Timer.periodic(_kClockTickerInterval, (_) {
+    _clockTickerTimer = Timer.periodic(_kClockTickerInterval, (_) {
       if (mounted) setState(() {});
     });
 
     // Network reconnect trigger.
-    _connectivitySub = Connectivity()
-        .onConnectivityChanged
-        .listen(_onConnectivityChanged);
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
   }
 
   @override
@@ -210,8 +208,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
                 child: RefreshIndicator(
                   onRefresh: () async {
                     // Preserved API call — same arg, same shape.
-                    workOutController
-                        .getDietPlanDetailsFunc(widget.planId);
+                    workOutController.getDietPlanDetailsFunc(widget.planId);
                     if (motivationController.motivationStats.value == null &&
                         !motivationController.isLoadingStats.value) {
                       motivationController.fetchMotivationStats();
@@ -627,7 +624,8 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   }
 
   // ── Class card variants ─────────────────────────────────────────────────
-  Widget _buildCard(Slot slot, SlotUIState state, SlotPresentation presentation) {
+  Widget _buildCard(
+      Slot slot, SlotUIState state, SlotPresentation presentation) {
     if (state == SlotUIState.cancelled) return _buildCancelledCard(slot);
     if (_isPastState(state)) return _buildPastCard(slot);
     if (_isUpcomingState(state)) return _buildUpcomingCard(slot, presentation);
@@ -782,8 +780,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
               ),
               SizedBox(height: 2.h),
               Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                 decoration: BoxDecoration(
                   color: _liveRed.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(100),
@@ -820,7 +817,8 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
     final isEnabled = presentation.appearance == SlotButtonAppearance.enabled;
     final bg = switch (presentation.buttonColor) {
       SlotButtonColor.accent => _accent,
-      SlotButtonColor.grey => dark ? Colors.white.withValues(alpha: 0.18) : _connector,
+      SlotButtonColor.grey =>
+        dark ? Colors.white.withValues(alpha: 0.18) : _connector,
       SlotButtonColor.none => Colors.transparent,
     };
     final fg = isEnabled
@@ -846,6 +844,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
           homeController: homeController,
           presentation: presentation,
           slot: slot,
+          anchorDate: _selectedDate,
         ),
         child: Text(
           presentation.buttonLabel ?? '',
@@ -951,8 +950,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   // the button's enabled state. Red "LIVE" only when the button is
   // actually joinable; otherwise an amber "STARTING SOON" pill.
   Widget _buildLiveCardBadge(SlotPresentation presentation) {
-    final isLive =
-        presentation.appearance == SlotButtonAppearance.enabled;
+    final isLive = presentation.appearance == SlotButtonAppearance.enabled;
     final bgColor = isLive ? _liveRed : _moderate;
     final label = isLive ? 'LIVE' : 'STARTING SOON';
     return Container(

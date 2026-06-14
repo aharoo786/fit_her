@@ -83,7 +83,7 @@ class Constants {
   // static String baseUrl = "https://test.thefither.com";
   // static String baseUrl = "http://192.168.1.31:9005";
 //   static String baseUrl = "https://backend.thefither.com";
-static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
+  static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =
@@ -116,8 +116,10 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static const String dietPlanAdminById = "/admin/diet-plan/{id}";
   static const String dietPlanAdminActivate = "/admin/diet-plan/{id}/activate";
   static const String dietPlanAdminCancel = "/admin/diet-plan/{id}/cancel";
-  static const String dietPlanAdminUserList = "/admin/diet-plan/user/{userId}/list";
-  static const String dietPlanAdminUpdateMeal = "/admin/diet-plan/meal/{mealId}";
+  static const String dietPlanAdminUserList =
+      "/admin/diet-plan/user/{userId}/list";
+  static const String dietPlanAdminUpdateMeal =
+      "/admin/diet-plan/meal/{mealId}";
   // User-facing surface (Phase F consumer):
   static const String dietPlanUserActive = "/users/diet-plan/me/active";
   static const String dietPlanUserTimezone = "/users/diet-plan/me/timezone";
@@ -214,15 +216,20 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   // Admin-side endpoints.
   static const String adminPreConsultationProfile = "/admin/pre-consultation";
   static const String adminDay7Reviews = "/admin/day7-reviews";
-  static const String adminUserProgress = "/admin/users"; // append /:id/progress
+  static const String adminUserProgress =
+      "/admin/users"; // append /:id/progress
   static const String adminEscalations = "/admin/escalations";
   static const String adminMetricsOverview = "/admin/metrics/overview";
 
   static String getDietitianUsers = "/users/dietition_get_all_users";
   static String getUserPlan = "/users/get_user_plans";
+
   /// Direct Pay (Payin PWA) - backend returns payment URL; client_secret stays on server
   static String directPayUrl = "/pay/directpay_payment";
   static String logout = "/users/logout";
+  static String updateDeviceToken = "/users/device-token";
+  static String notifications = "/users/notifications";
+  static String markNotificationsRead = "/users/notifications/read";
   static String deleteUser = "/admin/delete_user";
   static String updateSlotTrainer = "/admin/update_slot_trainer";
   static String addFreeTrailUser = "/admin/createFreeTrialUser";
@@ -238,6 +245,8 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   /// Motivation module
   static String getMotivationStats = "/attendance/motivation";
   static String markMotivationAttendance = "/attendance/mark";
+  static String classPresenceJoin = "/attendance/presence/join";
+  static String classPresenceLeave = "/attendance/presence/leave";
 
   ///  Country ///
   static String country = "/country";
@@ -269,9 +278,7 @@ static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
   static const String likePost = "/posts/like"; // new
   static const String sendReply = "/posts/reply"; // new
   static const String getReplies = "/posts/replies"; // new
-    // POST approve/disapprove post
-
-
+  // POST approve/disapprove post
 }
 
 String get today => DateFormat('EEEE').format(DateTime.now());

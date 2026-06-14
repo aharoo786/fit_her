@@ -33,7 +33,9 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
   }
 }
 
@@ -47,7 +49,8 @@ Future<void> main() async {
   );
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   //SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   await dotenv.load(fileName: ".env");
@@ -77,7 +80,8 @@ Future<void> main() async {
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await SentryFlutter.init((options) {
-    options.dsn = 'https://a2619a7785d52ef8d6a3e59ef891bcdb@o4510731863916544.ingest.de.sentry.io/4510731866931280';
+    options.dsn =
+        'https://a2619a7785d52ef8d6a3e59ef891bcdb@o4510731863916544.ingest.de.sentry.io/4510731866931280';
   },
       // Init your App.
       appRunner: () => runApp(const MyApp()));
@@ -85,34 +89,64 @@ Future<void> main() async {
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   NotificationServices noti = Get.find();
-  if (message.data != null) {
-    if (message.data["annoucement"] != null) {
-      var sharedPreferences = await SharedPreferences.getInstance();
-      var announcement = {"title": message.notification?.title, "body": message.notification?.body, "date": DateTime.now().toString()};
-      sharedPreferences.setString(Constants.announcementNotification, jsonEncode(announcement));
-      ();
-      noti.addNotification(message);
-    }
-    UpcomingClassSlot? upcomingClassSlot;
+  final type = message.data["type"];
+  final isAnnouncement = message.data["annoucement"] != null ||
+      message.data["announcement"] != null ||
+      type == "announcement";
+  final isClassUpdate = type == "upcomingClass" ||
+      type == "classPrep" ||
+      type == "classStart" ||
+      type == "classLinkAdded" ||
+      type == "trainerLinkAdded" ||
+      message.notification?.title == "Class Reminder" ||
+      message.notification?.title == "Upcoming Class" ||
+      message.notification?.title == "Class Link Added" ||
+      message.notification?.title == "Class link Added" ||
+      message.notification?.title == "Trainer link Added" ||
+      message.notification?.title == "Sweat Now, Selfies Later" ||
+      message.notification?.title == "Class Cancelled";
+  final hasClassPayload =
+      message.data["upcomingSlot"] != null && message.data["trainer"] != null;
 
-    if (message.notification?.title == "Upcoming Class" ||
-        message.notification?.title == "Class Link Added" ||
-        message.notification?.title == "Sweat Now, Selfies Later" ||
-        message.notification?.title == "Class Cancelled") {
-      upcomingClassSlot = UpcomingClassSlot(
-          upcomingSlot: Slot.fromJson(jsonDecode(message.data["upcomingSlot"])), trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
-      AuthController authController = Get.find();
-      var sharedPreferences = authController.sharedPreferences;
-      if (Get.find<HomeController>().upComingClassNotifier.value == null || message.notification?.title == "Upcoming Class") {
-        sharedPreferences.setString(Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
+  if (isAnnouncement) {
+    var sharedPreferences = await SharedPreferences.getInstance();
+    var announcement = {
+      "title": message.notification?.title,
+      "body": message.notification?.body,
+      "date": DateTime.now().toString()
+    };
+    sharedPreferences.setString(
+        Constants.announcementNotification, jsonEncode(announcement));
+    ();
+    noti.addNotification(message);
+  }
+  UpcomingClassSlot? upcomingClassSlot;
 
-        Get.find<HomeController>().upComingClassNotifier.value = upcomingClassSlot;
-      } else {
-        if (Get.find<HomeController>().upComingClassNotifier.value?.upcomingSlot?.id == upcomingClassSlot.upcomingSlot?.id) {
-          sharedPreferences.setString(Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
+  if (isClassUpdate && hasClassPayload) {
+    upcomingClassSlot = UpcomingClassSlot(
+        upcomingSlot: Slot.fromJson(jsonDecode(message.data["upcomingSlot"])),
+        trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
+    AuthController authController = Get.find();
+    var sharedPreferences = authController.sharedPreferences;
+    if (Get.find<HomeController>().upComingClassNotifier.value == null ||
+        message.notification?.title == "Upcoming Class") {
+      sharedPreferences.setString(
+          Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
 
-          Get.find<HomeController>().upComingClassNotifier.value = upcomingClassSlot;
-        }
+      Get.find<HomeController>().upComingClassNotifier.value =
+          upcomingClassSlot;
+    } else {
+      if (Get.find<HomeController>()
+              .upComingClassNotifier
+              .value
+              ?.upcomingSlot
+              ?.id ==
+          upcomingClassSlot.upcomingSlot?.id) {
+        sharedPreferences.setString(
+            Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
+
+        Get.find<HomeController>().upComingClassNotifier.value =
+            upcomingClassSlot;
       }
     }
   }
@@ -142,7 +176,6 @@ class _MyAppState extends State<MyApp> {
     return ScreenUtilInit(
       designSize: const Size(414, 896),
       builder: (context, Widget) => GetMaterialApp(
-
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
@@ -155,4 +188,3 @@ class _MyAppState extends State<MyApp> {
     // });
   }
 }
-

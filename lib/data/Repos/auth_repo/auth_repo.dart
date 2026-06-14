@@ -67,6 +67,36 @@ class AuthRepo extends GetxService {
     return await apiProvider.postData(Constants.logout, body: body);
   }
 
+  Future<Response> getNotifications({
+    required String accessToken,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    return await apiProvider.getData(
+      Constants.notifications,
+      query: {
+        "limit": limit.toString(),
+        "offset": offset.toString(),
+      },
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  Future<Response> markNotificationsRead({
+    required String accessToken,
+    bool markAll = true,
+    List<int>? notificationIds,
+  }) async {
+    return await apiProvider.postData(
+      Constants.markNotificationsRead,
+      body: {
+        "markAll": markAll,
+        if (notificationIds != null) "notificationIds": notificationIds,
+      },
+      headers: {"accessToken": accessToken},
+    );
+  }
+
   Future<Response> loginGuestRepo({
     required String email,
     required String name,

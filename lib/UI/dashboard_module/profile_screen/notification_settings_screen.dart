@@ -13,10 +13,12 @@ class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   bool _isLoading = true;
 
   int _morningNudge = 1;
@@ -36,7 +38,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   Future<void> _loadPreferences() async {
     final authController = Get.find<AuthController>();
-    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final token =
+        authController.sharedPreferences.getString(Constants.accessToken) ?? '';
     final apiProvider = Get.find<ApiProvider>();
 
     final response = await apiProvider.getData(
@@ -68,7 +71,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   Future<void> _savePreferences() async {
     final authController = Get.find<AuthController>();
-    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final token =
+        authController.sharedPreferences.getString(Constants.accessToken) ?? '';
     final apiProvider = Get.find<ApiProvider>();
 
     final body = {
@@ -91,7 +95,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     // Check weekly check-in status for reschedule
     bool weeklyDone = false;
     final checkinRepo = Get.find<CheckinRepository>();
-    final weeklyResponse = await checkinRepo.getWeeklyCheckinsRecent(accessToken: token);
+    final weeklyResponse =
+        await checkinRepo.getWeeklyCheckinsRecent(accessToken: token);
     if (weeklyResponse.body != null &&
         weeklyResponse.body['status'] == '1' &&
         weeklyResponse.body['data'] is List) {
@@ -102,7 +107,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         if (weekDate != null) {
           final now = DateTime.now();
           final monday = now.subtract(Duration(days: now.weekday - 1));
-          final mondayStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+          final mondayStr =
+              '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
           weeklyDone = weekDate == mondayStr;
         }
       }
@@ -142,7 +148,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   Future<void> _pickTime({required bool isStart}) async {
     final parts = (isStart ? _quietStart : _quietEnd).split(':');
-    final initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    final initial =
+        TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
 
     final picked = await showTimePicker(
       context: context,
@@ -158,7 +165,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
 
     if (picked != null) {
-      final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      final formatted =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       setState(() {
         if (isStart) {
           _quietStart = formatted;
@@ -186,7 +194,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         Get.back();
       }, text: "Notifications"),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary))
           : ListView(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               children: [
@@ -217,7 +226,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 _buildToggleRow(
                   icon: Icons.notifications_active_outlined,
                   title: 'Class Starting (10 min)',
-                  description: 'Final call when your session is about to start',
+                  description:
+                      'Final call for live classes; turn off to avoid frequent trial alerts',
                   value: _classStart == 1,
                   onChanged: (v) => _onToggle('classStart', v),
                 ),
@@ -238,7 +248,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 _buildToggleRow(
                   icon: Icons.calendar_today_outlined,
                   title: 'Weekly Check-in',
-                  description: 'Sunday reminder to update your weight and trends',
+                  description:
+                      'Sunday reminder to update your weight and trends',
                   value: _weeklyCheckin == 1,
                   onChanged: (v) => _onToggle('weeklyCheckin', v),
                 ),
@@ -373,7 +384,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   ),
                 ),
                 SizedBox(width: 8.w),
-                Icon(Icons.chevron_right, color: AppColors.textHint, size: 20.sp),
+                Icon(Icons.chevron_right,
+                    color: AppColors.textHint, size: 20.sp),
               ],
             ),
           ],

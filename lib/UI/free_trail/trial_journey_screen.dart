@@ -1,12 +1,14 @@
-import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
-import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
-import 'package:fitness_zone_2/data/models/get_user_plan/get_workout_user_plan_details.dart';
+import 'dart:math' as math;
+
+import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'package:fitness_zone_2/UI/free_trail/trial_completion_screen.dart';
-import 'package:fitness_zone_2/values/my_colors.dart';
+import 'package:fitness_zone_2/data/api_provider/api_provider.dart';
+import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/utils/app_clock.dart';
+import 'package:fitness_zone_2/values/constants.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
-import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -19,15 +21,12 @@ class TrialJourneyScreen extends StatefulWidget {
 
 class _TrialJourneyScreenState extends State<TrialJourneyScreen> {
   final HomeController homeController = Get.find();
-  final WorkOutController workOutController = Get.find();
-
-  int? selectedSlotId;
+  int _classStart = 1;
 
   @override
   void initState() {
     super.initState();
     _loadJourney();
-    workOutController.getDietPlanDetailsFunc("0", showSlots: true);
   }
 
   Future<void> _loadJourney() async {
@@ -36,97 +35,59 @@ class _TrialJourneyScreenState extends State<TrialJourneyScreen> {
       await homeController.startTrial();
       await homeController.getMyTrialJourney();
     }
+    await _loadNotificationPreference();
   }
 
-  int? get nextBookableDay => homeController.trialJourney?["nextBookableDay"] as int?;
+  Future<void> _loadNotificationPreference() async {
+    final token =
+        homeController.sharedPreferences.getString(Constants.accessToken) ?? "";
+    if (token.isEmpty) return;
 
-  int? get pendingAttendanceDay {
-    for (int day = 1; day <= 3; day++) {
-      final bookedAt = homeController.trialJourney?["day${day}BookedAt"];
-      final attendedAt = homeController.trialJourney?["day${day}AttendedAt"];
-      if (bookedAt != null && attendedAt == null) {
-        return day;
-      }
-    }
-    return null;
-  }
+    final response = await Get.find<ApiProvider>().getData(
+      '/users/notification_preferences',
+      headers: {'accessToken': token},
+    );
 
-  List<Slot> get allSlots {
-    final details = workOutController.getUserWorkoutPlanDetailsPlan;
-    if (details == null) {
-      return [];
-    }
-
-    return details.trainerSlots.expand((daySlot) => daySlot.slots).toList();
-  }
-
-  Future<void> onBookDay() async {
-    if (nextBookableDay == null) {
-      CustomToast.failToast(msg: "No day is available for booking right now");
-      return;
-    }
-    if (selectedSlotId == null) {
-      CustomToast.failToast(msg: "Please select one slot first");
-      return;
-    }
-
-    await homeController.bookTrialDay(day: nextBookableDay!, slotId: selectedSlotId!);
-    await homeController.getMyTrialJourney();
+    final data = response.body?['data'];
+    if (!mounted || data is! Map) return;
     setState(() {
-      selectedSlotId = null;
+      _classStart = data['classStart'] ?? 1;
     });
   }
 
-  Future<void> onMarkAttendance() async {
-    final day = pendingAttendanceDay;
-    if (day == null) {
-      CustomToast.failToast(msg: "No pending attendance found");
-      return;
-    }
+  Future<void> _saveClassStartPreference(bool value) async {
+    final token =
+        homeController.sharedPreferences.getString(Constants.accessToken) ?? "";
+    if (token.isEmpty) return;
 
-    await homeController.markTrialAttendance(day: day, attendedMinutes: 30);
-    await homeController.getMyTrialJourney();
+    setState(() {
+      _classStart = value ? 1 : 0;
+    });
+
+    await Get.find<ApiProvider>().postData(
+      '/users/notification_preferences',
+      body: {'classStart': _classStart},
+      headers: {'accessToken': token},
+    );
   }
 
-  Widget buildDayCard(int day) {
-    final bookedAt = homeController.trialJourney?["day${day}BookedAt"];
-    final attendedAt = homeController.trialJourney?["day${day}AttendedAt"];
+  DateTime? get _startedAt {
+    final raw = homeController.trialJourney?["startedAt"];
+    return raw == null ? null : DateTime.tryParse(raw.toString());
+  }
 
-    String status = "Not booked";
-    Color color = Colors.grey;
+  DateTime? get _endsAt => _startedAt?.add(const Duration(days: 3));
 
-    if (bookedAt != null) {
-      status = "Booked";
-      color = Colors.orange;
-    }
-    if (attendedAt != null) {
-      status = "Attended";
-      color = Colors.green;
-    }
+  bool get _isActive {
+    final endsAt = _endsAt;
+    return endsAt != null && AppClock.now().isBefore(endsAt);
+  }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.45)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text("Day $day", style: Theme.of(context).textTheme.titleMedium),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
+  int get _daysLeft {
+    final endsAt = _endsAt;
+    if (endsAt == null) return 0;
+    final hours = endsAt.difference(AppClock.now()).inHours;
+    return math.max(0, (hours / 24).ceil());
   }
 
   @override
@@ -138,121 +99,90 @@ class _TrialJourneyScreenState extends State<TrialJourneyScreen> {
         Get.back();
       }, text: "3-Day Trial"),
       body: Obx(() {
-        if (!workOutController.workOutPlanDetailsLoad.value || !homeController.trialLoad.value) {
+        if (!homeController.trialLoad.value) {
           return const CircularProgress();
         }
 
         return RefreshIndicator(
-          onRefresh: () async {
-            await _loadJourney();
-            workOutController.getDietPlanDetailsFunc("0", showSlots: true);
-          },
+          onRefresh: _loadJourney,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                "Your Transformation Journey",
-                style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                "Book one class per day, attend it, and unlock the next day.",
-                style: textTheme.bodySmall,
-              ),
-              const SizedBox(height: 16),
-              buildDayCard(1),
-              buildDayCard(2),
-              buildDayCard(3),
-              const SizedBox(height: 12),
-              if (nextBookableDay != null) ...[
-                Text(
-                  "Book Day $nextBookableDay",
-                  style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                _isActive
+                    ? "Your 3-day pass is active"
+                    : "Your trial has ended",
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: 8),
-                ...allSlots.map((slot) {
-                  final selected = selectedSlotId == slot.id;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedSlotId = slot.id;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: selected ? MyColors.buttonColor : Colors.white,
-                        border: Border.all(color: selected ? MyColors.buttonColor : Colors.black26),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                slot.type ?? "Workout Slot",
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: selected ? Colors.white : Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "${slot.start} - ${slot.end}",
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: selected ? Colors.white70 : Colors.black87,
-                                ),
-                              ),
-                              if (slot.trainer != null)
-                                Text(
-                                  "${slot.trainer?.firstName ?? ""} ${slot.trainer?.lastName ?? ""}",
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: selected ? Colors.white70 : Colors.black54,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          if (selected) const Icon(Icons.check_circle, color: Colors.white),
-                        ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isActive
+                    ? "Join any live workout class during your trial. You do not need to book a trial slot first."
+                    : "You can continue by reviewing your trial and choosing a plan.",
+                style: textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.withOpacity(0.28)),
+                  color: Colors.green.withOpacity(0.08),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isActive
+                          ? "$_daysLeft day${_daysLeft == 1 ? '' : 's'} left"
+                          : "Trial complete",
+                      style: textTheme.titleMedium?.copyWith(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  );
-                }),
-                CustomButton(
-                  text: "Book Day $nextBookableDay",
-                  onPressed: onBookDay,
+                    const SizedBox(height: 8),
+                    Text(
+                      "Free-trial users can join classes only until 10 minutes after the class start time.",
+                      style: textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-              ],
-              if (pendingAttendanceDay != null)
-                CustomButton(
-                  text: "Mark Day $pendingAttendanceDay Attendance",
-                  onPressed: onMarkAttendance,
-                ),
-              if (homeController.trialJourney != null && pendingAttendanceDay == null && nextBookableDay == null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    "Great job! Your 3-day trial is complete.",
-                    style: textTheme.bodyMedium?.copyWith(color: Colors.green.shade700, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.notifications_active_outlined),
+                title: Text(
+                  "Class starting notifications",
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 10),
+                subtitle: const Text(
+                  "Turn this off if frequent class-start alerts feel distracting during your trial.",
+                ),
+                value: _classStart == 1,
+                onChanged: _saveClassStartPreference,
+              ),
+              const SizedBox(height: 20),
+              if (_isActive)
+                CustomButton(
+                  text: "Browse Classes",
+                  onPressed: () {
+                    Get.offAll(() => BottomBarScreen(index: 1));
+                  },
+                )
+              else
                 CustomButton(
                   text: "Continue to Review & Subscription",
                   onPressed: () {
                     Get.to(() => const TrialCompletionScreen());
                   },
                 ),
-              ],
             ],
           ),
         );

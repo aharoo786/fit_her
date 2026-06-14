@@ -4,14 +4,17 @@ import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.EventChannel
 import android.util.Log
 import us.zoom.sdk.*
 
-class MainActivity : FlutterFragmentActivity(), ZoomSDKInitializeListener {
+class MainActivity : FlutterFragmentActivity(), ZoomSDKInitializeListener, MeetingServiceListener {
     private val CHANNEL = "zoom_meeting"
+    private val EVENTS_CHANNEL = "zoom_meeting/events"
     private val TAG = "MainActivity"
     private var isInitialized = false
     private var pendingInitResult: MethodChannel.Result? = null
+    private var eventSink: EventChannel.EventSink? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -35,6 +38,18 @@ class MainActivity : FlutterFragmentActivity(), ZoomSDKInitializeListener {
                 }
             }
         }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENTS_CHANNEL).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    eventSink = events
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    eventSink = null
+                }
+            }
+        )
     }
 
     private fun initializeZoomSDK(call: MethodCall, result: MethodChannel.Result) {
@@ -88,6 +103,8 @@ class MainActivity : FlutterFragmentActivity(), ZoomSDKInitializeListener {
                 result.error("SERVICE_ERROR", "Meeting service not available", null)
                 return
             }
+            meetingService.removeListener(this)
+            meetingService.addListener(this)
 
             val options = JoinMeetingOptions().apply {
                 no_driving_mode = true
@@ -154,8 +171,40 @@ class MainActivity : FlutterFragmentActivity(), ZoomSDKInitializeListener {
         Log.w(TAG, "Zoom auth identity expired")
     }
 
+    override fun onMeetingStatusChanged(meetingStatus: MeetingStatus?, errorCode: Int, internalErrorCode: Int) {
+        val event = when (meetingStatus) {
+            MeetingStatus.MEETING_STATUS_INMEETING -> "meeting_in"
+            MeetingStatus.MEETING_STATUS_ENDED,
+            MeetingStatus.MEETING_STATUS_IDLE -> "meeting_left"
+            MeetingStatus.MEETING_STATUS_FAILED -> "meeting_failed"
+            else -> null
+        }
+
+        if (event != null) {
+            sendZoomEvent(
+                mapOf(
+                    "event" to event,
+                    "status" to (meetingStatus?.name ?: "unknown"),
+                    "errorCode" to errorCode,
+                    "internalErrorCode" to internalErrorCode
+                )
+            )
+        }
+    }
+
+    override fun onMeetingParameterNotification(meetingParameter: MeetingParameter?) {
+        sendZoomEvent(mapOf("event" to "meeting_ready"))
+    }
+
+    private fun sendZoomEvent(payload: Map<String, Any?>) {
+        runOnUiThread {
+            eventSink?.success(payload)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        ZoomSDK.getInstance().meetingService?.removeListener(this)
         ZoomSDK.getInstance().logoutZoom()
     }
 }
