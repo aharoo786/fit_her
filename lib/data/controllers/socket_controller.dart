@@ -18,6 +18,26 @@ class SocketController extends GetxController {
 
   HomeController homeController = Get.find();
 
+  void joinCommunity() {
+    print('SocketController.joinCommunity');
+    socket?.emit("joinCommunity");
+  }
+
+  void leaveCommunity() {
+    print('SocketController.leaveCommunity');
+    socket?.emit("leaveCommunity");
+  }
+
+  void joinPost(int postId) {
+    print('SocketController.joinPost $postId');
+    socket?.emit("joinPost", postId);
+  }
+
+  void leavePost(int postId) {
+    print('SocketController.leavePost $postId');
+    socket?.emit("leavePost", postId);
+  }
+
   socketInit() {
     socket = IO.io('https://backend.thefither.com', <String, dynamic>{
       'transports': ['websocket'],
@@ -29,9 +49,18 @@ class SocketController extends GetxController {
 
     socket?.connect();
     socket?.onConnect((c) {
+      print('SocketController.onConnect ${socket?.id}');
       socket?.emit("getSlot", {"id": Get.find<AuthController>().logInUser?.id});
     });
-
+    socket?.onConnectError((error) {
+      print('SocketController.onConnectError $error');
+    });
+    socket?.onError((error) {
+      print('SocketController.onError $error');
+    });
+    socket?.onDisconnect((reason) {
+      print('SocketController.onDisconnect $reason');
+    });
     socket?.on("slotUpdate", (message) {
       if (message == null) return;
 
@@ -57,20 +86,51 @@ class SocketController extends GetxController {
     });
 
     socket?.on("newPost", (message) {
+      print('SocketController.newPost $message');
       if (message != null) {
         var post = Post.fromJson(message);
         if (post.approved) {
-          Get.find<PostController>().postsList.add(post);
+          final postController = Get.find<PostController>();
+          final existing = postController.postsList.firstWhereOrNull((p) => p.id == post.id);
+          if (existing == null) {
+            postController.postsList.add(post);
+            postController.postsList.refresh();
+          }
         }
       }
     });
 
     socket?.on("replyWithUser", (message) {
+      print('SocketController.replyWithUser $message');
       if (message != null) {
         final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == message["postId"]);
         if (post != null) {
-          post.replies.add(Reply.fromJson(message));
-          Get.find<PostController>().postsList.refresh();
+          final reply = Reply.fromJson(message);
+          final alreadyExists = post.replies.any((r) => r.id == reply.id);
+          if (!alreadyExists) {
+            post.replies.add(reply);
+            Get.find<PostController>().postsList.refresh();
+          }
+        }
+      }
+    });
+    socket?.on("replyCreated", (message) {
+      print('SocketController.replyCreated $message');
+      if (message != null) {
+        final dynamic postIdValue = message["postId"];
+        final int? postId = postIdValue is int ? postIdValue : int.tryParse(postIdValue.toString());
+        final replyJson = message["reply"];
+        if (postId == null || replyJson == null) {
+          return;
+        }
+        final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == postId);
+        if (post != null) {
+          final reply = Reply.fromJson(replyJson);
+          final alreadyExists = post.replies.any((r) => r.id == reply.id);
+          if (!alreadyExists) {
+            post.replies.add(reply);
+            Get.find<PostController>().postsList.refresh();
+          }
         }
       }
     });
@@ -78,6 +138,13 @@ class SocketController extends GetxController {
     socket?.on("toggleLike", (message) {
       if (message != null) {
         final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == int.parse(message["postId"]));
+        final dynamic postIdValue = message["postId"];
+        final int? postId = postIdValue is int ? postIdValue : int.tryParse(postIdValue.toString());
+        if (postId == null) {
+          return;
+        }
+        final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == postId);
+        print('SocketController.socketInit ${post}');
         if (post != null) {
           if (message["like"]) {
             post.likesCount.value++;

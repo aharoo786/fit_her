@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/models/get_user_plan/get_workout_user_plan_details.dart';
+import 'package:fitness_zone_2/utils/app_clock.dart';
 import 'package:fitness_zone_2/utils/slot_ui_state.dart';
 
 /// Parses a wall-clock string like "08:00 AM" against [anchorDate].
@@ -47,15 +48,29 @@ SlotInput? buildSlotInput(Slot slot, DateTime anchorDate) {
 /// to "expired" when home data hasn't loaded — safe-fail (locks the
 /// button) rather than letting an empty payload look healthy.
 UserAccessInput buildUserAccess(HomeController homeController) {
-  final isFrozen =
-      homeController.userHomeData?.userData.freeze.value == true;
+  final isFrozen = homeController.userHomeData?.userData.freeze.value == true;
   final plans = homeController.userHomeData?.userAllPlans;
-  final remainingDays =
+  final planRemainingDays =
       (plans != null && plans.isNotEmpty) ? plans.first.remainingDays : 0;
+  final remainingDays =
+      _hasActiveThreeDayTrial(homeController) ? 1 : planRemainingDays;
   return UserAccessInput(
     isFrozen: isFrozen,
     remainingDays: remainingDays,
   );
+}
+
+bool _hasActiveThreeDayTrial(HomeController homeController) {
+  final journey = homeController.trialJourney;
+  if (journey == null || journey["convertedAt"] != null) return false;
+
+  final rawStartedAt = journey["startedAt"];
+  if (rawStartedAt == null) return false;
+
+  final startedAt = DateTime.tryParse(rawStartedAt.toString());
+  if (startedAt == null) return false;
+
+  return AppClock.now().isBefore(startedAt.add(const Duration(days: 3)));
 }
 
 /// Pick the right block reason for [SlotUIState.liveBlocked] given the

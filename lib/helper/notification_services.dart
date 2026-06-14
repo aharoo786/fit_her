@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../data/api_provider/api_provider.dart';
 import '../data/controllers/auth_controller/auth_controller.dart';
 import '../data/controllers/home_controller/home_controller.dart';
 import '../data/controllers/workout_controller/work_out_controller.dart';
@@ -21,26 +22,42 @@ import '../values/my_imgs.dart';
 import '../widgets/app_bar_widget.dart';
 
 class NotificationMessage {
+  final int? serverId;
   final String title;
   final String body;
   final String? id; // message.messageId
+  final String? sentAt;
+  final String? readAt;
 
-  NotificationMessage({required this.title, required this.body, this.id});
+  NotificationMessage({
+    required this.title,
+    required this.body,
+    this.id,
+    this.serverId,
+    this.sentAt,
+    this.readAt,
+  });
 
   // Convert to JSON
   Map<String, dynamic> toJson() {
     return {
+      'serverId': serverId,
       'title': title,
       'body': body,
+      'sentAt': sentAt,
+      'readAt': readAt,
     };
   }
 
   // Create from JSON
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
     return NotificationMessage(
+      serverId: json['serverId'] ?? json['id'],
       title: json['title'] ?? '',
       body: json['body'] ?? '',
       id: json['id'] ?? '',
+      sentAt: json['sentAt'] ?? json['createdAt'],
+      readAt: json['readAt'],
     );
   }
 
@@ -52,13 +69,50 @@ class NotificationMessage {
       id: message.messageId?.hashCode.toString() ?? '',
     );
   }
+
+  factory NotificationMessage.fromServer(Map<String, dynamic> json) {
+    return NotificationMessage(
+      serverId: json['id'],
+      id: json['id']?.toString(),
+      title: json['title'] ?? '',
+      body: json['body'] ?? '',
+      sentAt: json['sentAt'] ?? json['createdAt'],
+      readAt: json['readAt'],
+    );
+  }
 }
 
-const vapidKey = "BDWl3SA7SiHCyDYKJSWH_e6kgFg_EcvJvoWhUAvqH-6wLK14vBIO5INqVNnmkXq8_ZiArqUsJ7iBHEqaKM_hXEU";
+const vapidKey =
+    "BDWl3SA7SiHCyDYKJSWH_e6kgFg_EcvJvoWhUAvqH-6wLK14vBIO5INqVNnmkXq8_ZiArqUsJ7iBHEqaKM_hXEU";
 
 class NotificationServices {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  bool _isAnnouncement(RemoteMessage message) =>
+      message.data["annoucement"] != null ||
+      message.data["announcement"] != null ||
+      message.data["type"] == "announcement";
+
+  bool _isClassUpdate(RemoteMessage message) {
+    final type = message.data["type"];
+    return type == "classPrep" ||
+        type == "classStart" ||
+        type == "upcomingClass" ||
+        type == "classLinkAdded" ||
+        type == "trainerLinkAdded" ||
+        message.notification?.title == "Class Reminder" ||
+        message.notification?.title == "Upcoming Class" ||
+        message.notification?.title == "Class Link Added" ||
+        message.notification?.title == "Class link Added" ||
+        message.notification?.title == "Trainer link Added" ||
+        message.notification?.title == "Sweat Now, Selfies Later" ||
+        message.notification?.title == "Class Cancelled";
+  }
+
+  bool _hasClassPayload(RemoteMessage message) =>
+      message.data["upcomingSlot"] != null && message.data["trainer"] != null;
 
   /// Initializes Firebase messaging and local notification settings.
   void firebaseInit(BuildContext context) {
@@ -72,6 +126,16 @@ class NotificationServices {
     // Handle background and terminated state interactions
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       handleNotificationTap(message, context);
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        handleNotificationTap(message, context);
+      }
+    });
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+      _storeAndSyncDeviceToken(token);
     });
   }
 
@@ -90,15 +154,20 @@ class NotificationServices {
   }
 
   /// Initializes local notifications for Android and iOS.
-  Future<void> initLocalNotifications(RemoteMessage message, BuildContext context) async {
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
+  Future<void> initLocalNotifications(
+      RemoteMessage message, BuildContext context) async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
 
-    InitializationSettings settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+    InitializationSettings settings =
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
 
     await _flutterLocalNotificationsPlugin.initialize(
       settings,
-      onDidReceiveNotificationResponse: (details) => handleNotificationTap(message, context),
+      onDidReceiveNotificationResponse: (details) =>
+          handleNotificationTap(message, context),
     );
   }
 
@@ -179,22 +248,31 @@ class NotificationServices {
       AuthController authController = Get.find();
       var sharedPreferences = authController.sharedPreferences;
       initLocalNotifications(message, context);
-      if (message.notification?.title == "Upcoming Class" ||
-          message.notification?.title == "Class Link Added" ||
-          message.notification?.title == "Sweat Now, Selfies Later" ||
-          message.notification?.title == "Class Cancelled") {
+      if (_isClassUpdate(message) && _hasClassPayload(message)) {
         upcomingClassSlot = UpcomingClassSlot(
-            upcomingSlot: Slot.fromJson(jsonDecode(message.data["upcomingSlot"])), trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
+            upcomingSlot:
+                Slot.fromJson(jsonDecode(message.data["upcomingSlot"])),
+            trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
 
-        if (Get.find<HomeController>().upComingClassNotifier.value == null || message.notification?.title == "Upcoming Class") {
-          sharedPreferences.setString(Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
+        if (Get.find<HomeController>().upComingClassNotifier.value == null ||
+            message.notification?.title == "Upcoming Class") {
+          sharedPreferences.setString(
+              Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
 
-          Get.find<HomeController>().upComingClassNotifier.value = upcomingClassSlot;
+          Get.find<HomeController>().upComingClassNotifier.value =
+              upcomingClassSlot;
         } else {
-          if (Get.find<HomeController>().upComingClassNotifier.value?.upcomingSlot?.id == upcomingClassSlot.upcomingSlot?.id) {
-            sharedPreferences.setString(Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
+          if (Get.find<HomeController>()
+                  .upComingClassNotifier
+                  .value
+                  ?.upcomingSlot
+                  ?.id ==
+              upcomingClassSlot.upcomingSlot?.id) {
+            sharedPreferences.setString(
+                Constants.upcomingSlot, jsonEncode(upcomingClassSlot.toJson()));
 
-            Get.find<HomeController>().upComingClassNotifier.value = upcomingClassSlot;
+            Get.find<HomeController>().upComingClassNotifier.value =
+                upcomingClassSlot;
           }
         }
       }
@@ -204,23 +282,26 @@ class NotificationServices {
           showNotification(message);
         }
       }
-      if (message.data != null) {
-        if (message.data["annoucement"] != null) {
-          print('NotificationServices._handleForegroundMessage test');
-          HelpingWidgets.showCustomDialog(context, () {
-            Get.back();
-            authController.sharedPreferences.remove(Constants.announcementNotification);
-          }, message.notification?.title ?? "", message.notification?.body ?? "", MyImgs.logo, buttonText: "Ok, Got It");
-          addAnnouncementPopUp(message);
-        }
+      if (_isAnnouncement(message)) {
+        print('NotificationServices._handleForegroundMessage test');
+        HelpingWidgets.showCustomDialog(context, () {
+          Get.back();
+          authController.sharedPreferences
+              .remove(Constants.announcementNotification);
+        }, message.notification?.title ?? "", message.notification?.body ?? "",
+            MyImgs.logo,
+            buttonText: "Ok, Got It");
+        addAnnouncementPopUp(message);
       }
-      print('NotificationServices._handleForegroundMessage $upcomingClassSlot}');
+      print(
+          'NotificationServices._handleForegroundMessage $upcomingClassSlot}');
       if (message.notification?.title == "Trainer has Joined") {
         if (selectedPlan != "") {
           Get.find<WorkOutController>().getDietPlanDetailsFunc(selectedPlan);
           addNotification(message);
         }
-      } else if (message.notification?.title == "Congratulations!") {
+      } else if (message.notification?.title == "Congratulations!" ||
+          message.data["type"] == "planActivated") {
         Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
         addNotification(message);
       }
@@ -235,15 +316,18 @@ class NotificationServices {
   addAnnouncementPopUp(RemoteMessage message) {
     AuthController authController = Get.find();
     var sharedPreferences = authController.sharedPreferences;
-    var announcement = {"title": message.notification?.title, "body": message.notification?.body, "date": DateTime.now().toString()};
-    sharedPreferences.setString(Constants.announcementNotification, jsonEncode(announcement));
+    var announcement = {
+      "title": message.notification?.title,
+      "body": message.notification?.body,
+      "date": DateTime.now().toString()
+    };
+    sharedPreferences.setString(
+        Constants.announcementNotification, jsonEncode(announcement));
   }
 
   static String? deviceToken;
   void onNotificationGet(RemoteMessage message, BuildContext context) {}
   Future<String?> getDeviceToken() async {
-    AuthController authController = Get.find();
-    var sharedPreferences = authController.sharedPreferences;
     FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
     if (DefaultFirebaseOptions.currentPlatform == DefaultFirebaseOptions.web) {
       await _firebaseMessaging.deleteToken();
@@ -255,7 +339,7 @@ class NotificationServices {
     } else {
       deviceToken = await _firebaseMessaging.getToken();
     }
-    sharedPreferences.setString(Constants.deviceToken, deviceToken!);
+    await _storeAndSyncDeviceToken(deviceToken);
     print("device toke $deviceToken");
 
     // await FirebaseMessaging.instance.getToken().then((token) {
@@ -270,31 +354,64 @@ class NotificationServices {
     return deviceToken;
   }
 
-  /// Handles notification tap interactions and navigates to appropriate screens.
-  void handleNotificationTap(RemoteMessage message, BuildContext context) async {
-    NotificationServices noti = Get.find();
-    if (message.data != null) {
-      if (message.data["annoucement"] != null) {
-        var sharedPreferences = await SharedPreferences.getInstance();
-        var announcement = {"title": message.notification?.title, "body": message.notification?.body, "date": DateTime.now().toString()};
-        sharedPreferences.setString(Constants.announcementNotification, jsonEncode(announcement));
-        ();
-        noti.addNotification(message);
-      }
-      UpcomingClassSlot? upcomingClassSlot;
+  Future<void> _storeAndSyncDeviceToken(String? token) async {
+    if (token == null || token.isEmpty) return;
 
-      if (message.notification?.title == "Upcoming Class" ||
-          message.notification?.title == "Class Link Added" ||
-          message.notification?.title == "Sweat Now, Selfies Later" ||
-          message.notification?.title == "Class Cancelled") {
-        upcomingClassSlot = UpcomingClassSlot(
-            upcomingSlot: Slot.fromJson(jsonDecode(message.data["upcomingSlot"])), trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
-        if (Get.find<HomeController>().upComingClassNotifier.value == null || message.notification?.title == "Upcoming Class") {
-          Get.find<HomeController>().upComingClassNotifier.value = upcomingClassSlot;
-        } else {
-          Get.find<HomeController>().upComingClassNotifier.value = upcomingClassSlot;
-        }
+    deviceToken = token;
+    AuthController authController = Get.find();
+    var sharedPreferences = authController.sharedPreferences;
+    await sharedPreferences.setString(Constants.deviceToken, token);
+
+    final accessToken = sharedPreferences.getString(Constants.accessToken);
+    if (accessToken == null || accessToken.isEmpty) return;
+    if (!Get.isRegistered<ApiProvider>()) return;
+
+    try {
+      await Get.find<ApiProvider>().postData(
+        Constants.updateDeviceToken,
+        body: {"deviceToken": token},
+        headers: {"accessToken": accessToken},
+      );
+    } catch (e) {
+      debugPrint("Device token sync failed: $e");
+    }
+  }
+
+  /// Handles notification tap interactions and navigates to appropriate screens.
+  void handleNotificationTap(
+      RemoteMessage message, BuildContext context) async {
+    NotificationServices noti = Get.find();
+    if (_isAnnouncement(message)) {
+      var sharedPreferences = await SharedPreferences.getInstance();
+      var announcement = {
+        "title": message.notification?.title,
+        "body": message.notification?.body,
+        "date": DateTime.now().toString()
+      };
+      sharedPreferences.setString(
+          Constants.announcementNotification, jsonEncode(announcement));
+      ();
+      noti.addNotification(message);
+    }
+    UpcomingClassSlot? upcomingClassSlot;
+
+    if (_isClassUpdate(message) && _hasClassPayload(message)) {
+      upcomingClassSlot = UpcomingClassSlot(
+          upcomingSlot: Slot.fromJson(jsonDecode(message.data["upcomingSlot"])),
+          trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
+      if (Get.find<HomeController>().upComingClassNotifier.value == null ||
+          message.notification?.title == "Upcoming Class") {
+        Get.find<HomeController>().upComingClassNotifier.value =
+            upcomingClassSlot;
+      } else {
+        Get.find<HomeController>().upComingClassNotifier.value =
+            upcomingClassSlot;
       }
+    }
+    if (message.notification?.title == "Congratulations!" ||
+        message.data["type"] == "planActivated") {
+      Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
+      noti.addNotification(message);
     }
   }
 
@@ -322,7 +439,8 @@ class NotificationServices {
 
     var newMessage = NotificationMessage.fromRemoteMessage(message);
 
-    bool alreadyExists = notificationMessages.any((msg) => msg.id == newMessage.id);
+    bool alreadyExists =
+        notificationMessages.any((msg) => msg.id == newMessage.id);
 
     if (!alreadyExists) {
       notificationMessages.add(newMessage);

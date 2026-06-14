@@ -31,7 +31,8 @@ import '../profile_screen/profile_screen.dart';
 
 class BottomBarScreen extends StatefulWidget {
   int? index;
-  BottomBarScreen({Key? key, this.index = 0, this.roomId, this.userMap}) : super(key: key);
+  BottomBarScreen({Key? key, this.index = 0, this.roomId, this.userMap})
+      : super(key: key);
   String? roomId;
   Map<String, dynamic>? userMap;
 
@@ -47,9 +48,12 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (authController.loginAsA.value == Constants.user) {
-        Get.find<HomeController>().getPlansUser();
+        final homeController = Get.find<HomeController>();
+        homeController.getPlansUser();
+        homeController.getMyTrialJourney();
       }
-      authController.showDot.value = authController.sharedPreferences.getBool("showDot") ?? false;
+      authController.showDot.value =
+          authController.sharedPreferences.getBool("showDot") ?? false;
     });
     // Trainers and dietitians get a 4th "Community" tab between Chat and
     // Profile. Same FeedScreen the women users see — single shared feed,
@@ -66,8 +70,12 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         : authController.loginAsA.value == Constants.user
             ? [
                 HomeScreen(),
-                WorkPlansOfUser(showBackButton: false,),
-                DietPlansOfUser(showBackButton: false,),
+                WorkPlansOfUser(
+                  showBackButton: false,
+                ),
+                DietPlansOfUser(
+                  showBackButton: false,
+                ),
                 // Progress tab — paid users (status=true) see the new V2
                 // hub; unpaid users see a preview of the Day-14 report
                 // (UnpaidProgressScreen) instead of the legacy V1.
@@ -95,8 +103,11 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                     ProfileScreen(),
                   ];
 
-    if (authController.sharedPreferences.getString(Constants.announcementNotification) != null) {
-      var announcement = jsonDecode(authController.sharedPreferences.getString(Constants.announcementNotification)!);
+    if (authController.sharedPreferences
+            .getString(Constants.announcementNotification) !=
+        null) {
+      var announcement = jsonDecode(authController.sharedPreferences
+          .getString(Constants.announcementNotification)!);
       DateTime announcementDate = DateTime.parse(announcement["date"]);
       Duration diff = DateTime.now().difference(announcementDate);
 
@@ -105,16 +116,21 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           HelpingWidgets.showCustomDialog(context, () {
             Get.back();
-            authController.sharedPreferences.remove(Constants.announcementNotification);
-          }, announcement["title"], announcement["body"], MyImgs.logo, buttonText: "Ok, Got It");
+            authController.sharedPreferences
+                .remove(Constants.announcementNotification);
+          }, announcement["title"], announcement["body"], MyImgs.logo,
+              buttonText: "Ok, Got It");
         });
       }
     }
-    if (authController.sharedPreferences.getBool(Constants.giveReview) != null ||
-        authController.sharedPreferences.getBool(Constants.giveReview) == true) {
+    if (authController.sharedPreferences.getBool(Constants.giveReview) !=
+            null ||
+        authController.sharedPreferences.getBool(Constants.giveReview) ==
+            true) {
       WidgetsBinding.instance.addPostFrameCallback((value) {
         authController.sharedPreferences.remove(Constants.giveReview);
-        Get.bottomSheet(isScrollControlled: true, FeedbackBottomSheet("0", "0"));
+        Get.bottomSheet(
+            isScrollControlled: true, FeedbackBottomSheet("0", "0"));
       });
     }
 
@@ -129,7 +145,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
 
   void _checkCycleMigration() async {
     final repo = Get.find<CycleDataRepository>();
-    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final token =
+        authController.sharedPreferences.getString(Constants.accessToken) ?? '';
     final response = await repo.getCycleData(accessToken: token);
     if (response.body != null && response.body['status'] == '1') {
       if (response.body['data'] == null) {
@@ -145,7 +162,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
 
   void _rescheduleNotifications() async {
     debugPrint('🔔 _rescheduleNotifications called');
-    final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
+    final token =
+        authController.sharedPreferences.getString(Constants.accessToken) ?? '';
     final apiProvider = Get.find<ApiProvider>();
 
     // 1. Fetch notification preferences
@@ -167,7 +185,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
     // 2. Check if weekly check-in already done this week
     bool weeklyDone = false;
     final checkinRepo = Get.find<CheckinRepository>();
-    final weeklyResponse = await checkinRepo.getWeeklyCheckinsRecent(accessToken: token);
+    final weeklyResponse =
+        await checkinRepo.getWeeklyCheckinsRecent(accessToken: token);
     if (weeklyResponse.body != null &&
         weeklyResponse.body['status'] == '1' &&
         weeklyResponse.body['data'] is List) {
@@ -178,7 +197,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         if (weekDate != null) {
           final now = DateTime.now();
           final monday = now.subtract(Duration(days: now.weekday - 1));
-          final mondayStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+          final mondayStr =
+              '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
           weeklyDone = weekDate == mondayStr;
         }
       }
@@ -201,46 +221,52 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
     var textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-        // drawer: MyDrawer(),
-        backgroundColor: MyColors.primaryColor,
-        key: scaffoldKey,
-        resizeToAvoidBottomInset: true,
-        body: _widgetOption.elementAt(widget.index!),
-        floatingActionButton: authController.logInUser!.status && Get.find<AuthController>().loginAsA.value == Constants.user && widget.index !=4
-            ? FloatingActionButton(
-                onPressed: () async {
-                  final Uri whatsappUrl = Uri.parse(
-                      'https://api.whatsapp.com/send/?phone=${Get.find<HomeController>().userHomeData?.customSupporter?.phone}&text&type=phone_number&app_absent=0');
-                  try {
-                    if (await canLaunchUrl(whatsappUrl)) {
-                      await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
-                    } else {
-                      await launchUrl(whatsappUrl);
-                    }
-                  } catch (e) {
-                    print('Could not launch WhatsApp: $e');
+      // drawer: MyDrawer(),
+      backgroundColor: MyColors.primaryColor,
+      key: scaffoldKey,
+      resizeToAvoidBottomInset: true,
+      body: _widgetOption.elementAt(widget.index!),
+      floatingActionButton: authController.logInUser!.status &&
+              Get.find<AuthController>().loginAsA.value == Constants.user &&
+              widget.index != 4
+          ? FloatingActionButton(
+              onPressed: () async {
+                final Uri whatsappUrl = Uri.parse(
+                    'https://api.whatsapp.com/send/?phone=${Get.find<HomeController>().userHomeData?.customSupporter?.phone}&text&type=phone_number&app_absent=0');
+                try {
+                  if (await canLaunchUrl(whatsappUrl)) {
+                    await launchUrl(whatsappUrl,
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    await launchUrl(whatsappUrl);
                   }
-                },
-                backgroundColor: const Color(0xFF25D366), // WhatsApp green color
-                child: SvgPicture.asset(
-                  MyImgs.whatsappIcon,
-                  width: 28,
-                  height: 28,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                ),
-              )
-            : null,
-        floatingActionButtonLocation: authController.logInUser!.status && Get.find<AuthController>().loginAsA.value == Constants.user
-            ? FloatingActionButtonLocation.endFloat
-            : null,
-        bottomNavigationBar: Get.find<AuthController>().loginAsA.value == Constants.user
-            ? _buildUserOrProNav(textTheme: textTheme, forPro: false)
-            : (Get.find<AuthController>().loginAsA.value == Constants.trainer ||
-                    Get.find<AuthController>().loginAsA.value ==
-                        Constants.dietitian)
-                ? _buildUserOrProNav(textTheme: textTheme, forPro: true)
-                : _legacyAdminNav(textTheme: textTheme),
-      );
+                } catch (e) {
+                  print('Could not launch WhatsApp: $e');
+                }
+              },
+              backgroundColor: const Color(0xFF25D366), // WhatsApp green color
+              child: SvgPicture.asset(
+                MyImgs.whatsappIcon,
+                width: 28,
+                height: 28,
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: authController.logInUser!.status &&
+              Get.find<AuthController>().loginAsA.value == Constants.user
+          ? FloatingActionButtonLocation.endFloat
+          : null,
+      bottomNavigationBar: Get.find<AuthController>().loginAsA.value ==
+              Constants.user
+          ? _buildUserOrProNav(textTheme: textTheme, forPro: false)
+          : (Get.find<AuthController>().loginAsA.value == Constants.trainer ||
+                  Get.find<AuthController>().loginAsA.value ==
+                      Constants.dietitian)
+              ? _buildUserOrProNav(textTheme: textTheme, forPro: true)
+              : _legacyAdminNav(textTheme: textTheme),
+    );
   }
 
   /// User-side and trainer/dietitian both use the standard
@@ -303,8 +329,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         child: SvgPicture.asset(
           svgAsset,
           height: 30,
-          colorFilter:
-              const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
         ),
       );
 
@@ -330,8 +355,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
       ),
       BottomNavigationBarItem(
         icon: const Icon(Icons.chat_bubble_outline_rounded, size: 28),
-        activeIcon:
-            _activeMaterialIconCircle(Icons.chat_bubble_rounded),
+        activeIcon: _activeMaterialIconCircle(Icons.chat_bubble_rounded),
         label: "Chat",
       ),
       BottomNavigationBarItem(
@@ -422,9 +446,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                       "Home",
                       style: textTheme.bodyMedium!.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: widget.index == 0
-                              ? Colors.white
-                              : Colors.black),
+                          color:
+                              widget.index == 0 ? Colors.white : Colors.black),
                     ),
                   ],
                 ),
@@ -440,9 +463,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                       "Chat",
                       style: textTheme.bodyMedium!.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: widget.index == 1
-                              ? Colors.white
-                              : Colors.black),
+                          color:
+                              widget.index == 1 ? Colors.white : Colors.black),
                     ),
                   ],
                 ),
@@ -458,9 +480,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
                       "Profile",
                       style: textTheme.bodyMedium!.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: widget.index == 2
-                              ? Colors.white
-                              : Colors.black),
+                          color:
+                              widget.index == 2 ? Colors.white : Colors.black),
                     ),
                   ],
                 ),
@@ -483,7 +504,8 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         ? Container(
             height: 5,
             width: 5,
-            decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            decoration:
+                BoxDecoration(color: Colors.red, shape: BoxShape.circle),
           )
         : SizedBox.shrink());
   }

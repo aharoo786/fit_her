@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/post_controller.dart';
+import 'package:fitness_zone_2/data/controllers/socket_controller.dart';
 import 'package:fitness_zone_2/data/models/post_model.dart';
 import 'package:fitness_zone_2/widgets/circular_progress.dart';
 import 'package:fitness_zone_2/widgets/toasts.dart';
@@ -45,15 +46,23 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   final PostController controller = Get.find();
+  final SocketController socketController = Get.find();
 
   @override
   void initState() {
     super.initState();
     controller.getAllPosts();
+    socketController.joinCommunity();
     // Newest-first display via List.reversed in `_feed()` — no scroll-to-bottom
     // dance any more. The previous version's auto-scroll-to-bottom was a
     // chat metaphor that hid the most recent posts on a screen that's
     // semantically a feed. Newest at top is the standard expectation.
+  }
+
+  @override
+  void dispose() {
+    socketController.leaveCommunity();
+    super.dispose();
   }
 
   @override
@@ -392,6 +401,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _showRepliesSheet(Post post) {
     final replyController = TextEditingController();
+    socketController.joinPost(post.id);
 
     void send() {
       final text = replyController.text.trim();
@@ -481,7 +491,10 @@ class _FeedScreenState extends State<FeedScreen> {
         ),
       ),
       isScrollControlled: true,
-    );
+    ).whenComplete(() {
+      socketController.leavePost(post.id);
+      replyController.dispose();
+    });
   }
 
   Widget _repliesEmpty() {

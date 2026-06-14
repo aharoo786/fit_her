@@ -1,5 +1,3 @@
-import 'package:fitness_zone_2/UI/free_trail/free_trail_question.dart';
-import 'package:fitness_zone_2/UI/free_trail/free_trial_slots.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation_controller.dart';
@@ -30,11 +28,22 @@ import '../helper/analytics_helper.dart';
 import 'custom_button.dart';
 import 'package:intl/intl.dart';
 
-enum StatusType { pending, delayed, completed, canceled, confirmed, canceledByUser }
+enum StatusType {
+  pending,
+  delayed,
+  completed,
+  canceled,
+  confirmed,
+  canceledByUser
+}
 
 class HelpingWidgets {
   PreferredSizeWidget appBarWidget(onTap,
-      {String? text, TextAlign? textAlign, Color backGroundColor = Colors.white, Widget? actionWidget, PreferredSizeWidget? bottom}) {
+      {String? text,
+      TextAlign? textAlign,
+      Color backGroundColor = Colors.white,
+      Widget? actionWidget,
+      PreferredSizeWidget? bottom}) {
     return AppBar(
       backgroundColor: backGroundColor,
       // leadingWidth: 70.w,
@@ -69,8 +78,10 @@ class HelpingWidgets {
 
   static String formatDateWithMonthName(DateTime date) {
     final day = date.day.toString().padLeft(2, '0'); // 2-digit day
-    final year = (date.year % 100).toString().padLeft(2, '0'); // last 2 digits of year
-    final monthName = DateFormat('MMMM').format(date); // Full month name (e.g., July)
+    final year =
+        (date.year % 100).toString().padLeft(2, '0'); // last 2 digits of year
+    final monthName =
+        DateFormat('MMMM').format(date); // Full month name (e.g., July)
 
     return '$day $monthName $year';
   }
@@ -88,14 +99,16 @@ class HelpingWidgets {
     };
 
     int? selectedDay = weekdayMap[selectedDayName];
-    if (selectedDay == null) throw Exception('Invalid weekday name: $selectedDayName');
+    if (selectedDay == null)
+      throw Exception('Invalid weekday name: $selectedDayName');
 
     DateTime today = AppClock.now();
     int currentWeekday = today.weekday;
 
     // Calculate how many days to add to get to the next selected day
     int daysToAdd = (selectedDay - currentWeekday + 7) % 7;
-    if (daysToAdd == 0) daysToAdd = 7; // if today is the selected day, pick next week's day
+    if (daysToAdd == 0)
+      daysToAdd = 7; // if today is the selected day, pick next week's day
 
     return today.add(Duration(days: daysToAdd));
   }
@@ -112,7 +125,8 @@ class HelpingWidgets {
   }
 
   Widget notSubscribed() {
-    return const Center(child: Text("Please subscribe our plan to get started"));
+    return const Center(
+        child: Text("Please subscribe our plan to get started"));
   }
 
   Widget bottomBarButtonWidget({String text = "Submit", VoidCallback? onTap}) {
@@ -131,7 +145,9 @@ class HelpingWidgets {
       child: Container(
         height: 40.h,
         width: 40.h,
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: MyColors.buttonColor, width: 2)),
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: MyColors.buttonColor, width: 2)),
         child: Icon(
           icon,
           color: MyColors.buttonColor,
@@ -146,8 +162,10 @@ class HelpingWidgets {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 13),
           margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration:
-              BoxDecoration(color: MyColors.planColor, borderRadius: BorderRadius.circular(5), border: Border.all(color: MyColors.primaryGradient1)),
+          decoration: BoxDecoration(
+              color: MyColors.planColor,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: MyColors.primaryGradient1)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -160,7 +178,8 @@ class HelpingWidgets {
                   ),
                   Text(
                     "Free Trial",
-                    style: textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.bodyMedium!
+                        .copyWith(fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -169,7 +188,9 @@ class HelpingWidgets {
               ),
               Text(
                 "Get Fit, Feel Strong — Start Your FREE Fither Trial Today!",
-                style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w500, color: Colors.black.withOpacity(0.3)),
+                style: textTheme.titleLarge!.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black.withOpacity(0.3)),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -191,7 +212,8 @@ class HelpingWidgets {
             text: "Subscribe Now",
             onPressed: () async {
               // Track subscribe click
-              await AnalyticsHelper.trackSubscribeClick(screenName: 'home_screen');
+              await AnalyticsHelper.trackSubscribeClick(
+                  screenName: 'home_screen');
 
               // Show subscribe tutorial first and wait for user response
               final tutorialService = Get.find<YouTubeTutorialService>();
@@ -227,8 +249,16 @@ class HelpingWidgets {
               decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: variable.value == diet.id ? MyColors.buttonColor : Colors.white),
-                  boxShadow: [BoxShadow(offset: const Offset(0, 2), blurRadius: 4, color: Colors.black.withOpacity(0.1))]),
+                  border: Border.all(
+                      color: variable.value == diet.id
+                          ? MyColors.buttonColor
+                          : Colors.white),
+                  boxShadow: [
+                    BoxShadow(
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                        color: Colors.black.withOpacity(0.1))
+                  ]),
               child: Row(children: [
                 Container(
                   width: 70.w,
@@ -236,7 +266,8 @@ class HelpingWidgets {
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       color: MyColors.primaryGradient1,
-                      image: const DecorationImage(image: AssetImage(MyImgs.logo))),
+                      image: const DecorationImage(
+                          image: AssetImage(MyImgs.logo))),
                 ),
                 Expanded(
                   child: Padding(
@@ -295,13 +326,17 @@ class HelpingWidgets {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (image != null) image.contains("svg") ? SvgPicture.asset(image) : Image.asset(image),
+                    if (image != null)
+                      image.contains("svg")
+                          ? SvgPicture.asset(image)
+                          : Image.asset(image),
                     const SizedBox(
                       height: 14,
                     ),
                     Text(
                       firstText,
-                      style: textTheme.bodyMedium!.copyWith(color: MyColors.black, fontWeight: FontWeight.w600),
+                      style: textTheme.bodyMedium!.copyWith(
+                          color: MyColors.black, fontWeight: FontWeight.w600),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(
@@ -309,7 +344,10 @@ class HelpingWidgets {
                     ),
                     Text(
                       secondText,
-                      style: textTheme.titleLarge!.copyWith(fontSize: 13, color: MyColors.black.withOpacity(0.5), fontWeight: FontWeight.w400),
+                      style: textTheme.titleLarge!.copyWith(
+                          fontSize: 13,
+                          color: MyColors.black.withOpacity(0.5),
+                          fontWeight: FontWeight.w400),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(
@@ -407,8 +445,7 @@ class HelpingWidgets {
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Text('This class was cancelled.',
                     style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.w600)),
+                        color: Colors.redAccent, fontWeight: FontWeight.w600)),
               ),
             if (state == SlotUIState.endedNotAttended)
               const Padding(
@@ -437,7 +474,8 @@ class HelpingWidgets {
                 ),
                 Column(
                   children: [
-                    Icon(Icons.local_fire_department, color: Colors.green, size: 32),
+                    Icon(Icons.local_fire_department,
+                        color: Colors.green, size: 32),
                     SizedBox(height: 8),
                     Text(
                       '254',
@@ -471,7 +509,8 @@ class HelpingWidgets {
             ),
             ListTile(
               leading: const Icon(Icons.fitness_center),
-              title: Text(slot?.level ?? 'High Intensity Workout Session', style: textTheme.bodySmall),
+              title: Text(slot?.level ?? 'High Intensity Workout Session',
+                  style: textTheme.bodySmall),
               visualDensity: const VisualDensity(vertical: -4),
             ),
             ListTile(
@@ -479,7 +518,9 @@ class HelpingWidgets {
                 backgroundImage: AssetImage(MyImgs.profilePicture),
                 maxRadius: 10,
               ),
-              title: Text('with ${slot?.trainer?.firstName} ${slot?.trainer?.lastName}', style: textTheme.bodySmall),
+              title: Text(
+                  'with ${slot?.trainer?.firstName} ${slot?.trainer?.lastName}',
+                  style: textTheme.bodySmall),
               visualDensity: const VisualDensity(vertical: -4),
             ),
             const SizedBox(height: 16),
@@ -487,6 +528,7 @@ class HelpingWidgets {
               _buildPopupActionButton(
                 context: sheetContext,
                 slot: slot,
+                anchorDate: anchor,
                 presentation: presentation,
                 homeController: homeController,
               ),
@@ -500,6 +542,7 @@ class HelpingWidgets {
   static Widget _buildPopupActionButton({
     required BuildContext context,
     required Slot? slot,
+    required DateTime anchorDate,
     required SlotPresentation presentation,
     required HomeController homeController,
   }) {
@@ -516,6 +559,7 @@ class HelpingWidgets {
                 homeController: homeController,
                 presentation: presentation,
                 slot: slot,
+                anchorDate: anchorDate,
               ),
       icon: const Icon(Icons.video_call),
       label: Text(presentation.buttonLabel ?? ''),
@@ -541,9 +585,20 @@ class HelpingWidgets {
     required HomeController homeController,
     required SlotPresentation presentation,
     required Slot slot,
+    DateTime? anchorDate,
   }) async {
     switch (presentation.action) {
       case SlotButtonAction.joinClass:
+        if (!_canFreeTrialUserJoin(
+          homeController: homeController,
+          slot: slot,
+          anchorDate: anchorDate ?? AppClock.now(),
+        )) {
+          showError(
+            'Free trial classes can only be joined within 10 minutes of start time.',
+          );
+          return;
+        }
         final link = slot.trainerLink ?? '';
         if (link.isEmpty) return;
         try {
@@ -552,8 +607,7 @@ class HelpingWidgets {
           } else {
             await startMeeting(link, slot.id.toString());
           }
-          homeController.sharedPreferences
-              .setBool(Constants.giveReview, true);
+          homeController.sharedPreferences.setBool(Constants.giveReview, true);
         } catch (_) {
           showError('Could not start the session. Please try again.');
         }
@@ -567,18 +621,86 @@ class HelpingWidgets {
     }
   }
 
+  static bool _canFreeTrialUserJoin({
+    required HomeController homeController,
+    required Slot slot,
+    required DateTime anchorDate,
+  }) {
+    if (!_isFreeTrialUser(homeController)) return true;
+
+    final start = parseSlotWallClock(slot.start, anchorDate);
+    if (start == null) return false;
+
+    final cutoff = start.add(const Duration(minutes: 10));
+    return !AppClock.now().isAfter(cutoff);
+  }
+
+  static bool _isFreeTrialUser(HomeController homeController) {
+    final planFreeTrial = homeController.userHomeData?.userAllPlans.any(
+          (plan) => plan.title.trim().toLowerCase() == 'free trial',
+        ) ??
+        false;
+    if (_hasActiveThreeDayTrial(homeController)) return true;
+    return planFreeTrial;
+  }
+
+  static bool _hasActiveThreeDayTrial(HomeController homeController) {
+    final journey = homeController.trialJourney;
+    if (journey == null || journey["convertedAt"] != null) return false;
+
+    final startedAt = DateTime.tryParse(journey["startedAt"]?.toString() ?? "");
+    if (startedAt == null) return false;
+
+    return AppClock.now().isBefore(startedAt.add(const Duration(days: 3)));
+  }
+
   static startMeeting(
     String meetingNumber,
     String slotId,
   ) async {
-    Get.back();
-    var success = await Get.find<ZoomMeetingGetxController>().joinMeeting(meetingNumber, Get.find<AuthController>().logInUser?.fullName ?? "");
+    final authController = Get.find<AuthController>();
+    final homeController = Get.find<HomeController>();
+    final displayName = _buildMeetingDisplayName(
+      authController: authController,
+      homeController: homeController,
+    );
+
+    var success = await Get.find<ZoomMeetingGetxController>()
+        .joinMeeting(meetingNumber, displayName, slotId: slotId);
     if (success) {
       Future.delayed(Duration(minutes: 5), () {
-        Get.bottomSheet(isScrollControlled: true, FeedbackBottomSheet("0", "0"));
+        Get.bottomSheet(
+            isScrollControlled: true, FeedbackBottomSheet("0", "0"));
       });
     }
     Get.find<MotivationController>().markAttendance(slotId: slotId);
+  }
+
+  static String _buildMeetingDisplayName({
+    required AuthController authController,
+    required HomeController homeController,
+  }) {
+    final loginUser = authController.logInUser;
+    final baseName = (loginUser?.fullName.trim().isNotEmpty ?? false)
+        ? loginUser!.fullName.trim()
+        : 'User';
+
+    final tags = <String>[];
+    final goal = loginUser?.mainGoal?.trim();
+    final hasFreeTrial = homeController.userHomeData?.userAllPlans.any(
+          (plan) => plan.title.trim().toLowerCase() == 'free trial',
+        ) ??
+        false;
+
+    if (hasFreeTrial) {
+      tags.add('Free Trial');
+    }
+    if (goal != null && goal.isNotEmpty) {
+      tags.add(goal);
+    }
+
+    if (tags.isEmpty) return baseName;
+    return '$baseName (${tags.join(', ')})';
   }
 
   static StatusType getStatusTypeFromString(String status) {

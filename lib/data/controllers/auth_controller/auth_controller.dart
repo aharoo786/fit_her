@@ -37,7 +37,11 @@ class AuthController extends GetxController implements GetxService {
   NotificationServices notificationServices;
   ChatApiProvider chatApiProvider;
   CheckConnectionService connectionService = CheckConnectionService();
-  AuthController({required this.sharedPreferences, required this.authRepo, required this.notificationServices, required this.chatApiProvider});
+  AuthController(
+      {required this.sharedPreferences,
+      required this.authRepo,
+      required this.notificationServices,
+      required this.chatApiProvider});
 
   ///Generating unique id
   var uuid = const Uuid();
@@ -70,7 +74,14 @@ class AuthController extends GetxController implements GetxService {
 
   ///countryCode
   var countryCode = Constants.countryCode;
-  List<String> addTeamMember = ["Dietition", "Trainer", "Gynecologist", "Psychiatrist", "Customer_Support_Representative", "Admin"];
+  List<String> addTeamMember = [
+    "Dietition",
+    "Trainer",
+    "Gynecologist",
+    "Psychiatrist",
+    "Customer_Support_Representative",
+    "Admin"
+  ];
 
   ///Sign in User
   TextEditingController loginUserPhone = TextEditingController();
@@ -164,7 +175,8 @@ class AuthController extends GetxController implements GetxService {
 
   ///Listerner
   ///
-  ValueNotifier<List<dynamic>?> sharedPrefNotifier = ValueNotifier<List<dynamic>?>(null);
+  ValueNotifier<List<dynamic>?> sharedPrefNotifier =
+      ValueNotifier<List<dynamic>?>(null);
 
   final fAuth.FirebaseAuth _auth = fAuth.FirebaseAuth.instance;
   final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
@@ -246,7 +258,8 @@ class AuthController extends GetxController implements GetxService {
         // Get.back();
       } else {
         isLoggingIn.value = true;
-        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
         if (userType != null) {
           loginAsA.value = userType;
         }
@@ -268,13 +281,15 @@ class AuthController extends GetxController implements GetxService {
                 Get.offAll(() => const WalkThroughScreen());
               }
             } else if (response.body["status"] != "0") {
-              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
+              ApiResponse<LoginModel> model =
+                  ApiResponse.fromJson(response.body, LoginModel.fromJson);
               debugPrint(model.data!.accessToken.toString());
               if (model.status == "1") {
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, password ?? loginUserPassword.text);
-                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
+                final trialStarted =
+                    await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.trainer) {
                   //  Get.find<HomeController>().getTrainerHomeFunc();
@@ -307,8 +322,10 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  signInUsingGoogle(String userEmail, String name, String signedFrom, {String? userType, bool fromLocal = false}) {
-    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+  signInUsingGoogle(String userEmail, String name, String signedFrom,
+      {String? userType, bool fromLocal = false}) {
+    Get.dialog(const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false);
     connectionService.checkConnection().then((value) async {
       if (!value) {
         Get.back();
@@ -330,12 +347,14 @@ class AuthController extends GetxController implements GetxService {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
               if (response.body["status"] == "1") {
-                ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
+                ApiResponse<LoginModel> model =
+                    ApiResponse.fromJson(response.body, LoginModel.fromJson);
                 debugPrint(model.data!.accessToken.toString());
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, signedFrom);
-                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
+                final trialStarted =
+                    await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.user) {
                   if (!logInUser!.status) {
@@ -390,14 +409,23 @@ class AuthController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(response.body, GetUsersBasedOnUserType.fromJson);
+            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(
+                response.body, GetUsersBasedOnUserType.fromJson);
             if (model.status == "1") {
               getUsersBasedOnUserTypeModel = model.data!;
               if (addNull) {
-                getUsersBasedOnUserTypeModel?.users.insert(0, UserTypeData(id: 0, firstName: "Select", lastName: "..", email: "", phone: ""));
+                getUsersBasedOnUserTypeModel?.users.insert(
+                    0,
+                    UserTypeData(
+                        id: 0,
+                        firstName: "Select",
+                        lastName: "..",
+                        email: "",
+                        phone: ""));
               } else {
                 if (getUsersBasedOnUserTypeModel!.users.isNotEmpty) {
-                  selectCustomerSupport.value = getUsersBasedOnUserTypeModel!.users[0].id;
+                  selectCustomerSupport.value =
+                      getUsersBasedOnUserTypeModel!.users[0].id;
                 }
               }
               getUsersBasedOnUserTypeLoad.value = true;
@@ -418,15 +446,19 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
       } else {
         try {
-          final GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
+          final GoogleSignInAccount? googleSignInAccount =
+              await googleSignIn.signIn();
           if (googleSignInAccount != null) {
-            final GoogleSignInAuthentication googleSignInAuthentication = await googleSignInAccount.authentication;
-            final fAuth.AuthCredential credential = fAuth.GoogleAuthProvider.credential(
+            final GoogleSignInAuthentication googleSignInAuthentication =
+                await googleSignInAccount.authentication;
+            final fAuth.AuthCredential credential =
+                fAuth.GoogleAuthProvider.credential(
               accessToken: googleSignInAuthentication.accessToken,
               idToken: googleSignInAuthentication.idToken,
             );
 
-            final fAuth.UserCredential authResult = await _auth.signInWithCredential(credential);
+            final fAuth.UserCredential authResult =
+                await _auth.signInWithCredential(credential);
             final fAuth.User? user = authResult.user;
             if (user != null) {
               signInUsingGoogle(
@@ -460,15 +492,19 @@ class AuthController extends GetxController implements GetxService {
           if (Platform.isIOS) {
             if (user.email == null) {
               if (user.providerData.isNotEmpty) {
-                signInUsingGoogle(user.providerData[0].email ?? "", user.displayName ?? "", "apple");
+                signInUsingGoogle(user.providerData[0].email ?? "",
+                    user.displayName ?? "", "apple");
               } else {
-                signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
+                signInUsingGoogle(
+                    user.email ?? "", user.displayName ?? "", "apple");
               }
             } else {
-              signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
+              signInUsingGoogle(
+                  user.email ?? "", user.displayName ?? "", "apple");
             }
           } else {
-            signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
+            signInUsingGoogle(
+                user.email ?? "", user.displayName ?? "", "apple");
           }
         } else {
           CustomToast.failToast(msg: "Something went wrong");
@@ -488,11 +524,48 @@ class AuthController extends GetxController implements GetxService {
       );
     }
     sharedPrefNotifier.value = notificationMessages;
+    fetchNotifications();
+  }
+
+  Future<void> fetchNotifications({bool markRead = false}) async {
+    final accessToken = sharedPreferences.getString(Constants.accessToken);
+    if (accessToken == null || accessToken.isEmpty) return;
+
+    try {
+      final response =
+          await authRepo.getNotifications(accessToken: accessToken);
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        final raw = response.body["data"]?["notifications"];
+        if (raw is List) {
+          final notificationMessages = raw
+              .map((item) => NotificationMessage.fromServer(
+                    Map<String, dynamic>.from(item),
+                  ))
+              .toList();
+          sharedPrefNotifier.value = notificationMessages;
+          sharedPreferences.setString(
+            Constants.notificationList,
+            jsonEncode(
+                notificationMessages.map((msg) => msg.toJson()).toList()),
+          );
+        }
+      }
+
+      if (markRead) {
+        await authRepo.markNotificationsRead(accessToken: accessToken);
+        sharedPreferences.setBool("showDotHome", false);
+        Get.find<HomeController>().showDotHome.value = false;
+      }
+    } catch (e) {
+      debugPrint("fetchNotifications failed: $e");
+    }
   }
 
   updateUserDetails({bool updateFields = true}) async {
-    Map<String, dynamic> userMap;
-    await FirebaseFirestore.instance.collection("users").doc(logInUser!.id.toString()).set({
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(logInUser!.id.toString())
+        .set({
       "id": logInUser!.id.toString(),
       "name": logInUser!.firstName,
       "time": Timestamp.now(),
@@ -538,7 +611,8 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
         await authRepo
             .loginGuestRepo(
           email: emailNameController.text,
@@ -576,7 +650,8 @@ class AuthController extends GetxController implements GetxService {
         otp = null;
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
         await authRepo
             .forgotPasswordRepo(
           email: email,
@@ -609,7 +684,8 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
         await authRepo
             .resetPasswordRepo(
           email: email,
@@ -649,13 +725,27 @@ class AuthController extends GetxController implements GetxService {
         var list2 = jsonDecode(list);
 
         // Convert each item back to NotificationMessage and add to notificationMessages list
-        notificationMessages = List<NotificationMessage>.from(list2.map((item) => NotificationMessage.fromJson(item)));
+        notificationMessages = List<NotificationMessage>.from(
+            list2.map((item) => NotificationMessage.fromJson(item)));
       }
 
-      sharedPrefNotifier.value?.removeAt(index);
       notificationMessages.removeAt(index);
-      sharedPreferences.setString(Constants.notificationList, jsonEncode(notificationMessages));
-      sharedPrefNotifier.notifyListeners();
+      sharedPrefNotifier.value = notificationMessages;
+      sharedPreferences.setString(
+          Constants.notificationList, jsonEncode(notificationMessages));
+    }
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final accessToken = sharedPreferences.getString(Constants.accessToken);
+    if (accessToken == null || accessToken.isEmpty) return;
+
+    try {
+      await authRepo.markNotificationsRead(accessToken: accessToken);
+      sharedPreferences.setBool("showDotHome", false);
+      Get.find<HomeController>().showDotHome.value = false;
+    } catch (e) {
+      debugPrint("markAllNotificationsRead failed: $e");
     }
   }
 
@@ -666,8 +756,11 @@ class AuthController extends GetxController implements GetxService {
         if (!value) {
           CustomToast.noInternetToast();
         } else {
-          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
-          await authRepo.logoutUserRepo(deviceToken: token).then((response) async {
+          Get.dialog(const Center(child: CircularProgressIndicator()),
+              barrierDismissible: false);
+          await authRepo
+              .logoutUserRepo(deviceToken: token)
+              .then((response) async {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {
@@ -711,8 +804,12 @@ class AuthController extends GetxController implements GetxService {
         if (!value) {
           CustomToast.noInternetToast();
         } else {
-          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
-          await authRepo.deleteUser(id: id ?? sharedPreferences.getString(Constants.userId) ?? "").then((response) {
+          Get.dialog(const Center(child: CircularProgressIndicator()),
+              barrierDismissible: false);
+          await authRepo
+              .deleteUser(
+                  id: id ?? sharedPreferences.getString(Constants.userId) ?? "")
+              .then((response) {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {
