@@ -102,6 +102,10 @@ dev_dependencies:
   crypto:
   cached_network_image: ^3.2.3
   sentry_flutter: 9.0.0
+  # Zindigi mini-app integration — AES-256/CBC/PKCS7 payload
+  # encrypt/decrypt, per "Encryption And WebView JavaScript Interface
+  # Documentation". See lib/utils/zindigi_crypto.dart.
+  encrypt: ^5.0.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -143,6 +147,22 @@ flutter:
            weight: 500
          - asset: assets/fonts/Poppins-SemiBold.ttf
            weight: 600
+     # Bundled locally instead of fetched at runtime by the google_fonts
+     # package. Runtime fetching caused a visible font flash (FOUT) on the
+     # welcome / login / diet screens: the text painted in the system
+     # fallback first, then snapped to the real face once the download (or
+     # the async cache read) finished. Bundled fonts load from the asset
+     # bundle before the first frame, so there is no flash and no network
+     # dependency. Files are the exact static instances Google's CDN serves,
+     # so rendering is unchanged.
+     - family: DMSerifDisplay
+       fonts:
+         - asset: assets/fonts/DMSerifDisplay-Regular.ttf
+           weight: 400
+     - family: Fraunces
+       fonts:
+         - asset: assets/fonts/Fraunces-Light.ttf
+           weight: 300
 
 
 #     - family: Trajan Pro

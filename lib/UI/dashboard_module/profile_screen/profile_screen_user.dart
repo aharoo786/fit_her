@@ -8,9 +8,12 @@ import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/notification_settings_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/personal_details_screen.dart';
+import 'package:fitness_zone_2/UI/support/report_issue_screen.dart';
 import 'package:fitness_zone_2/UI/plans_module/all_plans.dart';
 import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
 import 'package:fitness_zone_2/data/Repos/plan_freeze_repo/plan_freeze_repository.dart';
+import 'package:fitness_zone_2/data/Repos/user_plan_repo/user_plan_repository.dart';
+import 'package:fitness_zone_2/widgets/v2/cancel_plan_dialog.dart';
 import 'package:fitness_zone_2/data/controllers/paid_home_controller/paid_home_controller.dart';
 import 'package:fitness_zone_2/data/services/cycle_engine.dart';
 import 'package:fitness_zone_2/values/constants.dart';
@@ -45,7 +48,63 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
   // Tracks the freeze sheet's local "selected days" state without forcing
   // a full screen rebuild — only the sheet's StatefulBuilder reads it.
   int _freezeSelectedDays = 7;
+  // "Her own choice" flexibility Shaista asked for, alongside the fixed
+  // 7/14/30 presets -- true means the sheet's custom text field is the
+  // active source of the freeze duration instead of a preset chip.
+  bool _freezeCustomSelected = false;
   bool _freezeBusy = false;
+  bool _cancellingPlan = false;
+
+  // GET /users/plan/freeze-status — drives the "Active" vs "Paused" pill,
+  // whether the freeze button reads "Freeze plan" or "Unfreeze my plan",
+  // and whether "Cancel plan" is allowed to run at all. This screen never
+  // fetched freeze status before; it always assumed "Active, not frozen",
+  // which is why the freeze/unfreeze button never reflected reality.
+  Map<String, dynamic>? _freezeStatus;
+
+  bool get _isFrozen => _freezeStatus?['isFrozen'] == true;
+  // Freeze status is fetched fresh on every screen open (see
+  // initState/_fetchFreezeStatus) — before that call resolves, we
+  // don't yet know whether the plan is frozen. Used to keep the
+  // pill/buttons from ever confidently showing the wrong state (e.g.
+  // "ACTIVE" + a live "Freeze plan" button) for an already-paused
+  // plan during that brief window.
+  bool get _freezeStatusKnown => _freezeStatus != null;
+
+  int? get _freezeStatusUserPlanId {
+    final v = _freezeStatus?['userPlanId'];
+    if (v == null) return null;
+    return v is int ? v : int.tryParse(v.toString());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFreezeStatus();
+  }
+
+  Future<void> _fetchFreezeStatus() async {
+    try {
+      final token =
+          authController.sharedPreferences.getString(Constants.accessToken) ??
+              '';
+      final res = await Get.find<PlanFreezeRepository>()
+          .getStatus(accessToken: token);
+      if (res.body != null &&
+          res.body['status'] == '1' &&
+          res.body['data'] is Map) {
+        if (mounted) {
+          setState(() {
+            _freezeStatus = Map<String, dynamic>.from(res.body['data']);
+          });
+        }
+      }
+    } catch (_) {
+      // Best-effort — the card falls back to showing "Active" / a plain
+      // "Freeze plan" button, same as before this existed, rather than
+      // blocking the rest of the screen from rendering.
+    }
+  }
 
   // Unpaid (status == false) users see a stripped-down profile: no stats,
   // no subscription card, no attendance — just identity + an "Explore
@@ -152,6 +211,18 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
   static const _kHeroDark = Color(0xFF1A3A22);
   static const _kStreak = Color(0xFFFAC775);
   static const _kDanger = Color(0xFFD85A30);
+  static const _kFrozenBlue = Color(0xFF4A8FB8);
+  // Softer, two-tone version of _kHeroDark for the subscription card only
+  // — Shaista flagged the flat, fully-saturated _kHeroDark fill as "too
+  // sharp" on that specific card. Scoped here rather than changing
+  // _kHeroDark itself, which also colors the profile hero header, the
+  // streak card, and the freeze-sheet day chips elsewhere in this file —
+  // none of those were flagged, so they're left untouched.
+  static const _kPlanCardGradient = [Color(0xFF224A38), Color(0xFF14291F)];
+  // Warm coral instead of _kDanger's orange-red — reads calmer against
+  // the dark green card than the vivid tone _kDanger uses elsewhere in
+  // this screen (which sits on light backgrounds, e.g. delete-account).
+  static const _kCancelOnDark = Color(0xFFE8896A);
 
   @override
   Widget build(BuildContext context) {
@@ -173,26 +244,39 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
               offset: const Offset(0, -30),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_isPaid) ...[
-                      _statsCard(),
+                // Obx observes userHomeLoad + trialLoad so the cards rebuild
+                // once API calls finish — otherwise userHomeData/trialJourney
+                // are null at first render and expiry/amount show "—" forever.
+                child: Obx(() {
+                  // Touch reactive flags so GetX subscribes this Obx.
+                  // Actual data is read from the plain fields inside each
+                  // _xxxCard() method; the Rx flags are just the trigger.
+                  if (Get.isRegistered<HomeController>()) {
+                    final hc = Get.find<HomeController>();
+                    hc.userHomeLoad.value;
+                    hc.trialLoad.value;
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_isPaid) ...[
+                        _statsCard(),
+                        const SizedBox(height: 16),
+                        _subscriptionCard(),
+                        const SizedBox(height: 16),
+                        _attendanceCard(),
+                      ] else
+                        _explorePlansCard(),
                       const SizedBox(height: 16),
-                      _subscriptionCard(),
-                      const SizedBox(height: 16),
-                      _attendanceCard(),
-                    ] else
-                      _explorePlansCard(),
-                    const SizedBox(height: 16),
-                    _menuCard(context, textTheme),
-                    const SizedBox(height: 12),
-                    _signOutLink(context, textTheme),
-                    // 30 to compensate for the -30 transform above so
-                    // scroll content doesn't end 30px short.
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                      _menuCard(context, textTheme),
+                      const SizedBox(height: 12),
+                      _signOutLink(context, textTheme),
+                      // 30 to compensate for the -30 transform above so
+                      // scroll content doesn't end 30px short.
+                      const SizedBox(height: 40),
+                    ],
+                  );
+                }),
               ),
             ),
           ],
@@ -574,11 +658,29 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
       );
 
   // ─── Explore-plans card (shown to unpaid users in place of the
-  //     subscription card). Same dark surface as the paid version so the
-  //     visual rhythm stays consistent, but no plan name, no Active pill,
-  //     no Next-billing row, no Freeze button — just a single CTA into
-  //     OurPlansScreen (same destination as paid "Manage").
+  //     subscription card). Two modes:
+  //   • Trial active  → shows trial status + expiry date + days remaining.
+  //   • No trial yet  → generic "Explore plans" CTA.
   Widget _explorePlansCard() {
+    final auth = Get.find<AuthController>();
+    final home = Get.isRegistered<HomeController>() ? Get.find<HomeController>() : null;
+    final trialActive = auth.trialActivated.value;
+
+    // Compute trial expiry from trialJourney.startedAt (3-day window).
+    DateTime? trialEndsAt;
+    int? trialDaysLeft;
+    if (trialActive && home != null) {
+      final rawStart = home.trialJourney?['startedAt'];
+      if (rawStart != null) {
+        final startedAt = DateTime.tryParse(rawStart.toString());
+        if (startedAt != null) {
+          trialEndsAt = startedAt.add(const Duration(days: 3));
+          final hours = trialEndsAt.difference(DateTime.now()).inHours;
+          trialDaysLeft = hours > 0 ? (hours / 24).ceil() : 0;
+        }
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -589,38 +691,75 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'YOUR PLAN',
+            trialActive ? 'FREE TRIAL' : 'YOUR PLAN',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: Colors.white.withOpacity(0.5),
+              color: trialActive ? _kAccent : Colors.white.withOpacity(0.5),
               letterSpacing: 1.0,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Explore plans',
-            style: TextStyle(
+          Text(
+            trialActive ? '3-Day Free Trial' : 'Explore plans',
+            style: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Unlock phase-matched live classes, AI insights, and your hormonal dashboard.',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              height: 1.5,
-              color: Colors.white.withOpacity(0.7),
+          if (trialActive && trialEndsAt != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.white.withOpacity(0.08)),
+                  bottom: BorderSide(color: Colors.white.withOpacity(0.08)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _subRowLabelled(
+                      label: 'Expires',
+                      value: _formatShortDate(trialEndsAt),
+                    ),
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: _subRowLabelled(
+                        label: 'Days left',
+                        value: trialDaysLeft != null
+                            ? (trialDaysLeft! > 0
+                                ? '$trialDaysLeft day${trialDaysLeft == 1 ? '' : 's'}'
+                                : 'Ended')
+                            : '—',
+                        alignRight: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ] else if (!trialActive) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Unlock phase-matched live classes, AI insights, and your hormonal dashboard.',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                height: 1.5,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           _subscriptionPrimaryButton(
-            'Browse plans →',
+            trialActive ? 'Upgrade to a plan →' : 'Browse plans →',
             onTap: () => Get.to<dynamic>(() => OurPlansScreen()),
           ),
         ],
@@ -660,7 +799,11 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _kHeroDark,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _kPlanCardGradient,
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -736,8 +879,25 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
             children: [
               Expanded(
                 child: _subscriptionSecondaryButton(
-                  '❄  Freeze plan',
-                  onTap: _showFreezeSheet,
+                  // Toggles with freeze state — used to always say
+                  // "Freeze plan" even while already frozen, which just
+                  // reopened the same day-picker sheet on a plan that was
+                  // already paused.
+                  _isFrozen ? 'Unfreeze my plan' : 'Freeze plan',
+                  icon: _isFrozen ? '▶' : '❄',
+                  // The play icon reads as "resume" — colored to match
+                  // the blue used everywhere else for the paused state
+                  // (the PAUSED pill, _kFrozenBlue) rather than plain
+                  // white, so the icon itself signals which flow you're
+                  // in at a glance.
+                  iconColor: _isFrozen ? _kFrozenBlue : null,
+                  // Disabled until we actually know the real freeze
+                  // state — otherwise a plan that's already paused could
+                  // briefly show a live "Freeze plan" button during the
+                  // fetch and let someone tap it before it flips.
+                  onTap: !_freezeStatusKnown
+                      ? null
+                      : (_isFrozen ? _showUnfreezeDialog : _showFreezeSheet),
                 ),
               ),
               const SizedBox(width: 8),
@@ -753,18 +913,69 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              // A frozen plan can't be cancelled from here — unfreeze it
+              // first. Kept tappable rather than fully disabled so tapping
+              // it while frozen still explains why, instead of just doing
+              // nothing (same reasoning as the freeze sheet's own
+              // blockedReason pattern elsewhere in this codebase).
+              onPressed: (_cancellingPlan || !_freezeStatusKnown)
+                  ? null
+                  : (_isFrozen ? _explainCancelBlockedByFreeze : _showCancelPlanFlow),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: _cancellingPlan
+                  ? const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(_kCancelOnDark),
+                      ),
+                    )
+                  : Text(
+                      'Cancel plan',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _isFrozen
+                            ? _kCancelOnDark.withOpacity(0.45)
+                            : _kCancelOnDark,
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _activePill() {
+    // Was hardcoded to "ACTIVE" always — this screen never knew about
+    // freeze state before. Now reflects _freezeStatus (see
+    // _fetchFreezeStatus), same blue used for "paused" everywhere else
+    // in the app (v2_assigned_plan_card.dart's _kFrozenBlue). While the
+    // fetch is still in flight (_freezeStatusKnown == false), show a
+    // neutral sage dot rather than confidently claiming "ACTIVE" for a
+    // plan that might actually be paused.
+    final frozen = _isFrozen;
+    final color = !_freezeStatusKnown
+        ? _kSage
+        : (frozen ? _kFrozenBlue : _kAccent);
+    final label = !_freezeStatusKnown ? '···' : (frozen ? 'PAUSED' : 'ACTIVE');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: _kAccent.withOpacity(0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: _kAccent.withOpacity(0.35)),
+        border: Border.all(color: color.withOpacity(0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -772,19 +983,19 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
           Container(
             width: 5,
             height: 5,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _kAccent,
+              color: color,
             ),
           ),
           const SizedBox(width: 4),
-          const Text(
-            'ACTIVE',
+          Text(
+            label,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 9,
               fontWeight: FontWeight.w800,
-              color: _kAccent,
+              color: color,
               letterSpacing: 0.5,
             ),
           ),
@@ -824,7 +1035,12 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
     );
   }
 
-  Widget _subscriptionSecondaryButton(String label, {VoidCallback? onTap}) {
+  Widget _subscriptionSecondaryButton(
+    String label, {
+    VoidCallback? onTap,
+    String? icon,
+    Color? iconColor,
+  }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -836,14 +1052,26 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
           borderRadius: BorderRadius.circular(11),
           border: Border.all(color: Colors.white.withOpacity(0.15)),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Text(
+                icon,
+                style: TextStyle(fontSize: 12, color: iconColor ?? Colors.white),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1057,6 +1285,11 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
         },
       ),
       _MenuItem(
+        icon: Icons.report_problem_outlined,
+        label: 'Report an issue',
+        onTap: () => Get.to(() => const ReportIssueScreen()),
+      ),
+      _MenuItem(
         icon: Icons.help_outline,
         label: 'Help centre',
         // Same admin WhatsApp number used by result_screen.dart's contact
@@ -1118,13 +1351,21 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
 
   // ─── Freeze sheet (pause plan via PlanFreezeRepository.freeze) ─────────
   // Mirrors the freeze action in V2AssignedPlanCard but as a focused
-  // bottom sheet — pick 7 / 14 / 30 days, hit Pause, snackbar on result.
-  // The backend enforces the per-plan budget; we surface its error message
-  // verbatim on rejection (e.g. "Exceeded freeze budget").
+  // bottom sheet — pick 7 / 14 / 30 days OR a custom amount of her own
+  // choice, hit Pause, snackbar on result. The backend enforces two
+  // independent caps (the plan's lifetime freeze budget, and "must leave
+  // at least 1 day before expiry" -- see freezeStatus/freezePlan in
+  // planFreezeController.js) and returns the tighter one as
+  // maxFreezeDaysNow; we use that to grey out presets that would be
+  // rejected and to bound the custom field, but the backend's own
+  // message is still surfaced verbatim on rejection as a fallback in
+  // case freeze-status here is stale.
   void _showFreezeSheet() {
     // Reset the in-memory selection each time the sheet opens.
     _freezeSelectedDays = 7;
+    _freezeCustomSelected = false;
     _freezeBusy = false;
+    final customController = TextEditingController();
 
     showModalBottomSheet<void>(
       context: context,
@@ -1133,16 +1374,30 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
       builder: (sheetCtx) {
         return StatefulBuilder(
           builder: (innerCtx, setSheetState) {
-            final options = const [7, 14, 30];
+            final cap = (_freezeStatus?['maxFreezeDaysNow'] as num?)?.toInt();
+            final blocked = cap != null && cap <= 0;
+            final presets =
+                const [7, 14, 30].where((d) => cap == null || d <= cap).toList();
+
+            int? resolvedDays() {
+              if (_freezeCustomSelected) {
+                return int.tryParse(customController.text.trim());
+              }
+              return _freezeSelectedDays;
+            }
+
             Widget dayChip(int days) {
-              final selected = days == _freezeSelectedDays;
+              final selected =
+                  !_freezeCustomSelected && days == _freezeSelectedDays;
               return Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _freezeBusy
                       ? null
-                      : () =>
-                          setSheetState(() => _freezeSelectedDays = days),
+                      : () => setSheetState(() {
+                            _freezeCustomSelected = false;
+                            _freezeSelectedDays = days;
+                          }),
                   child: Container(
                     height: 56,
                     alignment: Alignment.center,
@@ -1161,6 +1416,46 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: selected ? Colors.white : _kTextPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            Widget customChip() {
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _freezeBusy
+                      ? null
+                      : () => setSheetState(() {
+                            _freezeCustomSelected = true;
+                            if (customController.text.trim().isEmpty) {
+                              customController.text =
+                                  (cap ?? _freezeSelectedDays).toString();
+                            }
+                          }),
+                  child: Container(
+                    height: 56,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _freezeCustomSelected ? _kHeroDark : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color:
+                            _freezeCustomSelected ? _kHeroDark : _kCardBorder,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'Custom',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color:
+                            _freezeCustomSelected ? Colors.white : _kTextPrimary,
                       ),
                     ),
                   ),
@@ -1204,10 +1499,20 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Your plan resumes automatically after the selected '
-                      'pause window. Subject to your remaining freeze budget.',
-                      style: TextStyle(
+                    Text(
+                      cap != null
+                          ? 'Your plan resumes automatically after the selected '
+                              'pause window. You can pause for up to $cap '
+                              "day(s) right now. You can unfreeze anytime "
+                              "before then — any days you don't end up using "
+                              "are added back onto your plan's end date "
+                              'automatically.'
+                          : 'Your plan resumes automatically after the selected '
+                              'pause window. Subject to your remaining freeze '
+                              "budget. You can unfreeze anytime before then — "
+                              "any days you don't end up using are added back "
+                              "onto your plan's end date automatically.",
+                      style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,
                         color: _kSage,
@@ -1215,23 +1520,88 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        for (int i = 0; i < options.length; i++) ...[
-                          dayChip(options[i]),
-                          if (i < options.length - 1) const SizedBox(width: 8),
+                    if (blocked)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFBEAEA),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          _freezeStatus?['blockedReason']?.toString() ??
+                              "Your plan can't be paused right now.",
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _kDanger,
+                          ),
+                        ),
+                      )
+                    else ...[
+                      Row(
+                        children: [
+                          for (int i = 0; i < presets.length; i++) ...[
+                            dayChip(presets[i]),
+                            const SizedBox(width: 8),
+                          ],
+                          customChip(),
                         ],
+                      ),
+                      if (_freezeCustomSelected) ...[
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: customController,
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setSheetState(() {}),
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            color: _kTextPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                cap != null ? 'Up to $cap days' : 'Number of days',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: _kCardBorder),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: _kCardBorder),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: _kHeroDark),
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
+                    ],
                     const SizedBox(height: 18),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: _freezeBusy
+                      onTap: (_freezeBusy || blocked)
                           ? null
                           : () async {
+                              final days = resolvedDays();
+                              if (days == null ||
+                                  days < 1 ||
+                                  (cap != null && days > cap)) {
+                                Get.snackbar(
+                                  'Invalid',
+                                  cap != null
+                                      ? 'Enter a number between 1 and $cap.'
+                                      : 'Enter a number of days.',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
                               setSheetState(() => _freezeBusy = true);
-                              final ok =
-                                  await _runFreeze(_freezeSelectedDays);
+                              final ok = await _runFreeze(days);
                               if (Navigator.of(sheetCtx).canPop()) {
                                 Navigator.of(sheetCtx).pop();
                               }
@@ -1242,13 +1612,19 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                                   Get.find<HomeController>()
                                       .getUserHomeFunc();
                                 }
+                                // Also refresh freeze-status so the
+                                // "ACTIVE"/"PAUSED" pill and the
+                                // Freeze/Unfreeze button flip immediately
+                                // instead of only after leaving and
+                                // reopening this screen.
+                                _fetchFreezeStatus();
                               }
                             },
                       child: Container(
                         height: 50,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: _freezeBusy
+                          color: (_freezeBusy || blocked)
                               ? _kAccent.withOpacity(0.5)
                               : _kAccent,
                           borderRadius: BorderRadius.circular(14),
@@ -1256,7 +1632,9 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                         child: Text(
                           _freezeBusy
                               ? 'Pausing…'
-                              : 'Pause for $_freezeSelectedDays days',
+                              : (blocked
+                                  ? 'Pause plan'
+                                  : 'Pause for ${resolvedDays() ?? _freezeSelectedDays} days'),
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 14,
@@ -1302,6 +1680,71 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
     );
   }
 
+  // ─── Cancel plan (the actual, live entry point — see _subscriptionCard) ─
+  // GET /users/get_user_plans is the only endpoint that returns the real
+  // UserPlan row id; the subscription card above renders from
+  // HomeController.userHomeData, whose UserAllPlan model only carries
+  // `planId` (the Plan template id, not this specific subscription row),
+  // so that id has to be looked up here before the cancel call can fire.
+  Future<void> _showCancelPlanFlow() async {
+    if (_cancellingPlan) return;
+    setState(() => _cancellingPlan = true);
+    try {
+      final token =
+          authController.sharedPreferences.getString(Constants.accessToken) ??
+              '';
+      final plansRes =
+          await Get.find<UserPlanRepository>().getMyPlans(accessToken: token);
+      int? userPlanId;
+      if (plansRes.body != null &&
+          plansRes.body['status'] == '1' &&
+          plansRes.body['data'] is List) {
+        final rows = (plansRes.body['data'] as List).whereType<Map>().toList();
+        if (rows.isNotEmpty) {
+          final idVal = rows.first['id'];
+          userPlanId = idVal is int ? idVal : int.tryParse(idVal.toString());
+        }
+      }
+      if (userPlanId == null) {
+        Get.snackbar(
+          'Could not cancel',
+          'No active plan found — try again in a moment.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      final combinedReason = await Get.dialog<String>(const CancelPlanDialog());
+      if (combinedReason == null) return; // backed out via "Keep plan"
+
+      final res = await Get.find<PlanFreezeRepository>().cancel(
+        accessToken: token,
+        userPlanId: userPlanId,
+        reason: combinedReason,
+      );
+      final ok = res.body != null && res.body['status'] == '1';
+      Get.snackbar(
+        ok ? 'Plan cancelled' : 'Could not cancel',
+        res.body?['message']?.toString() ?? '',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      if (ok) {
+        // Flips logInUser.status locally so `_isPaid` (used right above
+        // to decide whether this whole subscription card even renders)
+        // is correct on the very next build — same trick used after a
+        // slip-upload auto-approval (see AuthController.markPaid).
+        authController.markUnpaid();
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().getUserHomeFunc();
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      if (mounted) setState(() => _cancellingPlan = false);
+    }
+  }
+
   Future<bool> _runFreeze(int days) async {
     try {
       final repo = Get.find<PlanFreezeRepository>();
@@ -1321,6 +1764,89 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
           snackPosition: SnackPosition.BOTTOM);
       return false;
     }
+  }
+
+  // ─── Unfreeze (the other half of the Freeze/Unfreeze toggle) ───────────
+  void _showUnfreezeDialog() {
+    final resumeOn = _freezeStatus?['willResumeOn'];
+    final resumeText = resumeOn != null
+        ? " It was already due to resume on ${_formatShortDate(DateTime.tryParse(resumeOn.toString()) ?? DateTime.now())}."
+        : '';
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Resume your plan now?'),
+        content: Text(
+          "You'll pick up right where you left off — classes and your "
+          "diet plan become active again immediately.$resumeText Any "
+          // Verified against the actual backend mechanism
+          // (applyUnfreeze in planFreezeController.js): freezing adds
+          // the full selected days to your plan's end date right away;
+          // unfreezing early gives back only the days you didn't end up
+          // using, pulling your end date back by that unused amount —
+          // so you're only ever charged, day-for-day, for the pause you
+          // actually took.
+          "days you don't end up using are added back onto your plan's "
+          "end date, and stay available if you want to freeze again "
+          "later.",
+          style: const TextStyle(fontSize: 13, color: _kTextMuted),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Not yet')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Get.back();
+              final ok = await _runUnfreeze();
+              if (ok) {
+                _fetchFreezeStatus();
+                if (Get.isRegistered<HomeController>()) {
+                  Get.find<HomeController>().getUserHomeFunc();
+                }
+              }
+            },
+            child: const Text(
+              'Unfreeze now',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _runUnfreeze() async {
+    try {
+      final repo = Get.find<PlanFreezeRepository>();
+      final token =
+          authController.sharedPreferences.getString(Constants.accessToken) ??
+              '';
+      final res = await repo.unfreeze(accessToken: token);
+      final ok = res.body != null && res.body['status'] == '1';
+      Get.snackbar(
+        ok ? 'Plan resumed' : 'Could not unfreeze',
+        res.body?['message']?.toString() ?? '',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return ok;
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      return false;
+    }
+  }
+
+  // Cancel plan is blocked while frozen — Shaista's call: cancelling a
+  // paused plan is confusing (what refunds, what date, access already
+  // paused) so we ask for an unfreeze first. Kept tappable so the reason
+  // is visible instead of the button just silently doing nothing.
+  void _explainCancelBlockedByFreeze() {
+    Get.snackbar(
+      "Can't cancel a paused plan",
+      'Unfreeze your plan first, then you can cancel it.',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   // ─── Help sheet (Text admin on WhatsApp) ───────────────────────────────

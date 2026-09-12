@@ -47,28 +47,39 @@ class AppLinkHandler {
   }
 
   Future<void> _handleIncomingUri(BuildContext context, Uri uri) async {
-    print('AppLinkHandler._handleIncomingUri ${uri}');
-    print('AppLinkHandler._handleIncomingUri ${uri.toString().split("/").last}');
     final token = uri.queryParameters["token"];
     if (uri.toString().contains("trial") && token != null && token.isNotEmpty) {
       final homeController = Get.find<HomeController>();
       final authController = Get.find<AuthController>();
-      final isValid = await homeController.validateTrialToken(token);
+
+      final isValid = await homeController.validateTrialToken(token, showToastOnSuccess: false);
       if (!isValid) {
+        // Token invalid/expired/used — if logged in stay in app, otherwise go to walkthrough.
+        final hasSession = (authController.sharedPreferences.getString(Constants.accessToken) ?? "").isNotEmpty;
+        if (!hasSession) Get.offAll(() => const WalkThroughScreen());
         return;
       }
 
       final accessToken =
           authController.sharedPreferences.getString(Constants.accessToken) ?? "";
+
       if (accessToken.isNotEmpty) {
+        // User is already logged in — start the trial immediately.
         final started = await homeController.startTrialFromSavedToken();
         if (started) {
           await homeController.getMyTrialJourney();
           Get.offAll(() => const TrialJourneyScreen());
           return;
         }
+        // startTrialFromSavedToken failed (e.g. user already has an active trial).
+        // Do NOT send a logged-in user to WalkThroughScreen — go home instead.
+        await homeController.getMyTrialJourney();
+        Get.offAll(() => const TrialJourneyScreen());
+        return;
       }
 
+      // Not logged in — save token (already done inside validateTrialToken) and
+      // send to onboarding so they can sign up / log in.
       Get.offAll(() => const WalkThroughScreen());
       return;
     }

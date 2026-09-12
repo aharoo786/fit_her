@@ -37,7 +37,10 @@ import 'notification_services.dart';
 Future init() async {
   Get.log("int di");
   final sharedPreferences = await SharedPreferences.getInstance();
-  Get.lazyPut(() => sharedPreferences);
+  // permanent: true — SharedPreferences must survive route changes so
+  // HomeRepo.getPaidHomeDashboard / logWater / logSleep can always find it
+  // via Get.find<SharedPreferences>().
+  Get.put<SharedPreferences>(sharedPreferences, permanent: true);
   NotificationServices notificationServices = NotificationServices();
   Get.lazyPut(() => ApiProvider());
   Get.lazyPut(() => ChatApiProvider(sharedPreferences));

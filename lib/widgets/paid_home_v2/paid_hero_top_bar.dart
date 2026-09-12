@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../UI/dashboard_module/home_screen/notification_screen.dart';
 import '../../UI/dashboard_module/profile_screen/profile_screen_user.dart';
+import '../../data/controllers/home_controller/home_controller.dart';
 import '../new_home/phase_theme.dart';
 
 /// H-01 top bar, right-anchored: bell (with red dot) + avatar.
@@ -27,38 +29,53 @@ class PaidHeroTopBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.07),
-                ),
-                child: const Text('🔔', style: TextStyle(fontSize: 13)),
-              ),
-              Positioned(
-                top: 1,
-                right: 1,
-                child: Container(
-                  width: 6,
-                  height: 6,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            // Same target + read-state handling as the old UserHomeScreen's
+            // bell (lib/widgets/user_home_screen.dart:508-526) -- reuses the
+            // existing, already-working notification list + unread-dot flag
+            // rather than building a second one for the v2 home screen.
+            onTap: () {
+              Get.find<HomeController>().showDotHome.value = false;
+              Get.to(() => const NotificationScreen());
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE24B4A),
                     shape: BoxShape.circle,
-                    // Border matches hero bg so the dot looks "cut" into the
-                    // bell circle, not floating on top of it.
-                    border: Border.all(
-                      color: theme.heroBackground,
-                      width: 2,
-                    ),
+                    color: Colors.white.withOpacity(0.07),
                   ),
+                  child: const Text('🔔', style: TextStyle(fontSize: 13)),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 1,
+                  right: 1,
+                  child: Obx(() {
+                    final show = Get.find<HomeController>().showDotHome.value;
+                    if (!show) return const SizedBox.shrink();
+                    return Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE24B4A),
+                        shape: BoxShape.circle,
+                        // Border matches hero bg so the dot looks "cut" into
+                        // the bell circle, not floating on top of it.
+                        border: Border.all(
+                          color: theme.heroBackground,
+                          width: 2,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 8),
           GestureDetector(

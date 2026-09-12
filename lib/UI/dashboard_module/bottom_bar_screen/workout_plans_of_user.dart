@@ -2,8 +2,10 @@ import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/diet_bottom
 import 'package:fitness_zone_2/UI/dashboard_module/recommended_slots_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/work_out_bottom_screen.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
+import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/main.dart';
+import 'package:fitness_zone_2/utils/slot_input_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,8 +25,12 @@ class WorkPlansOfUser extends StatefulWidget {
 
 class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
   WorkOutController workOutController = Get.find();
+  HomeController homeController = Get.find();
   String? _singlePlanId;
   bool _requestedSinglePlanDetails = false;
+  // Guards the one-time getDietPlanDetailsFunc('0') call for trial users
+  // so navigating away and back doesn't re-trigger a redundant fetch.
+  bool _requestedTrialSlots = false;
 
   Widget _animatedBody(Widget child, {required String keyValue}) {
     return AnimatedSwitcher(
@@ -57,8 +63,12 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
 
   @override
   void initState() {
-    workOutController.getWorkoutAllPlansFunc();
     super.initState();
+    // Defer so Rx writes don't fire during the first build, which would
+    // trigger Obx while the framework is still building widgets → assertion.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) workOutController.getWorkoutAllPlansFunc();
+    });
   }
 
   @override
@@ -88,6 +98,27 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
               showBackButton: widget.showBackButton,
             ),
             keyValue: 'workout-detail-$singlePlanId',
+          );
+        }
+
+        // Active 3-day trial with no paid plan → show the public slot
+        // schedule exactly as paid users see it.  planId '0' tells the
+        // backend to return all public slots for the week.
+        if (plans.isEmpty && hasActiveThreeDayTrial(homeController)) {
+          if (!_requestedTrialSlots) {
+            _requestedTrialSlots = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              selectedPlan = '0';
+              workOutController.getDietPlanDetailsFunc('0');
+            });
+          }
+          return _animatedBody(
+            WorkOutBottomScreen(
+              planId: '0',
+              showBackButton: widget.showBackButton,
+            ),
+            keyValue: 'workout-trial',
           );
         }
       }

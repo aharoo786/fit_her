@@ -20,6 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../values/constants.dart';
 import '../values/my_imgs.dart';
 import '../widgets/app_bar_widget.dart';
+import 'notification_message_classifier.dart' as classifier;
 
 class NotificationMessage {
   final int? serverId;
@@ -90,29 +91,18 @@ class NotificationServices {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  // Delegate to notification_message_classifier.dart's pure functions —
+  // shared with main.dart's firebaseMessagingBackgroundHandler so the
+  // foreground and background/terminated paths can never drift apart.
+  // Kept as thin wrappers so every existing call site below is unchanged.
   bool _isAnnouncement(RemoteMessage message) =>
-      message.data["annoucement"] != null ||
-      message.data["announcement"] != null ||
-      message.data["type"] == "announcement";
+      classifier.isAnnouncementMessage(message);
 
-  bool _isClassUpdate(RemoteMessage message) {
-    final type = message.data["type"];
-    return type == "classPrep" ||
-        type == "classStart" ||
-        type == "upcomingClass" ||
-        type == "classLinkAdded" ||
-        type == "trainerLinkAdded" ||
-        message.notification?.title == "Class Reminder" ||
-        message.notification?.title == "Upcoming Class" ||
-        message.notification?.title == "Class Link Added" ||
-        message.notification?.title == "Class link Added" ||
-        message.notification?.title == "Trainer link Added" ||
-        message.notification?.title == "Sweat Now, Selfies Later" ||
-        message.notification?.title == "Class Cancelled";
-  }
+  bool _isClassUpdate(RemoteMessage message) =>
+      classifier.isClassUpdateMessage(message);
 
   bool _hasClassPayload(RemoteMessage message) =>
-      message.data["upcomingSlot"] != null && message.data["trainer"] != null;
+      classifier.hasClassPayload(message);
 
   /// Initializes Firebase messaging and local notification settings.
   void firebaseInit(BuildContext context) {

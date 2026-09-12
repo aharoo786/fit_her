@@ -28,6 +28,7 @@ import 'package:fitness_zone_2/UI/auth_module/whats_new_screen.dart';
 import '../../chat/chat_home_screen.dart';
 import '../home_screen/home_screen.dart';
 import '../profile_screen/profile_screen.dart';
+import '../../../data/controllers/socket_controller.dart';
 
 class BottomBarScreen extends StatefulWidget {
   int? index;
@@ -46,6 +47,12 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
   @override
   void initState() {
     super.initState();
+    // Register SocketController here so any tab (especially FeedScreen) can
+    // safely call Get.find<SocketController>() regardless of visit order.
+    // Admin has no FeedScreen tab, but registering early is harmless.
+    if (!Get.isRegistered<SocketController>()) {
+      Get.put(SocketController(), permanent: true);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (authController.loginAsA.value == Constants.user) {
         final homeController = Get.find<HomeController>();

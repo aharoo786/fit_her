@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../UI/plans_module/all_plans.dart';
 import '../../data/controllers/auth_controller/auth_controller.dart';
+import 'trial_cta_card.dart' show showTrialStartDialog;
 
 class HeroLiveSection extends StatelessWidget {
   const HeroLiveSection({Key? key}) : super(key: key);
@@ -107,14 +108,14 @@ class HeroLiveSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
-                // Pre-trial: "Try free →" (visual only, no nav — the main
-                // Start-trial action lives on TrialCtaCard below).
+                // Pre-trial: "Try free →" → opens the same trial-start
+                // confirmation dialog as TrialCtaCard (shared showTrialStartDialog).
                 // Post-activation: "Explore more plans" → OurPlansScreen.
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: activated
                       ? () => Get.to<dynamic>(() => OurPlansScreen())
-                      : null,
+                      : showTrialStartDialog,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 18, vertical: 12),

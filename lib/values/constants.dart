@@ -17,6 +17,10 @@ class Constants {
   static String notificationList = "notificationList";
   static String upcomingSlot = "upcomingSlot";
   static const String timeBlock = "timeBlock"; // 'morning'|'afternoon'|'evening'|'night'|'all'
+  /// Set to 'true' once the user completes OR skips the time-preference
+  /// onboarding screen. Survives logout (preserved across clear()). Checked
+  /// by updateUserDetails() so the screen never re-appears after first save.
+  static const String timePreferenceDone = "timePreferenceDone";
   static String type = "type";
   static String recording = "recording";
   static String fullName = "fullName";
@@ -78,6 +82,7 @@ class Constants {
   static const String planFreeze = '/users/plan/freeze';
   static const String planUnfreeze = '/users/plan/unfreeze';
   static const String planFreezeStatus = '/users/plan/freeze-status';
+  static const String planCancel = '/users/plan/cancel';
   // PaidHomeScreenV2 data layer. Leading slash required — ApiProvider
   // concatenates `baseUrl + url` without adding separators.
   static const String paidHomeDashboard = "/users/home/dashboard";
@@ -250,6 +255,12 @@ class Constants {
   static String trialBookDay = "/trial/book-day";
   static String trialAttendance = "/trial/attendance";
   static String trialConvert = "/trial/convert";
+
+  /// Trial Token — sales rep deep-link system
+  /// Deep-link format: https://backend.thefither.com/trial?token=<token>
+  static String trialTokenCreate = "/admin/create-trial-token";
+  static String trialTokenList   = "/admin/my-trial-tokens";
+  static String trialTokenRevoke = "/admin/revoke-trial-token";
 
   /// Motivation module
   static String getMotivationStats = "/attendance/motivation";

@@ -147,7 +147,6 @@ class _FreeTrialPersonalizationScreenState
       );
 
       bool already = await Get.find<HomeController>().addFreeTrial();
-      print('HelpingWidgets.getOurPlans $already');
       if (already) {
         // Track free trial already used
         await AnalyticsHelper.trackFreeTrialEvent('already_used');
@@ -167,7 +166,7 @@ class _FreeTrialPersonalizationScreenState
             step: 'personalization');
         // Track free trial completed (key event)
         await AnalyticsHelper.trackFreeTrial('completed', step: 'personalization');
-        Get.find<WorkOutController>().updateFreeTrialData(
+        await Get.find<WorkOutController>().updateFreeTrialData(
             answers.whereType<Map<String, dynamic>>().toList());
       }
     }

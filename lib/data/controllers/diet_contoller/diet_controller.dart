@@ -15,7 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../UI/diet_screen/calerie_info.dart';
 import '../../../helper/analytics_helper.dart';
-import '../../../helper/permissions.dart';
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
 import '../../GetServices/CheckConnectionService.dart';
@@ -590,9 +589,19 @@ class DietController extends GetxController implements GetxService {
         Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         var list = [];
         if (daySlotsOfDietModel != null) {
+          // Send the "h:mm AM/PM" text as-is — do NOT run it through
+          // covertToTimeStamp. That helper builds a Firestore epoch-ms
+          // timestamp, which is not what this endpoint wants: the
+          // backend's addOrUpdateDaySlot validates start/end against
+          // `^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$` (e.g. "9:00 AM") and
+          // rejects anything else with "Slot[i] has invalid time
+          // format". Converting to an epoch-ms string always failed
+          // that check — this previously slipped through unnoticed
+          // because the same conversion was ALSO being written back
+          // onto the shared Slot objects (now fixed separately), which
+          // masked the mismatch behind a client-side crash instead of
+          // surfacing the backend's rejection.
           for (var value in daySlotsOfDietModel!.slots) {
-            value.start = covertToTimeStamp(value.start).toString();
-            value.end = covertToTimeStamp(value.end).toString();
             list.add({"start": value.start, "end": value.end, "id": value.id});
           }
         } else {

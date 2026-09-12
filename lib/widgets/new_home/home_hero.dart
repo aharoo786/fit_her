@@ -20,12 +20,20 @@ class HomeHero extends StatelessWidget {
   final String? firstName;
   final CycleInfo? cycleInfo;
   final List<UpcomingSlot> upcomingSlots;
+  final bool isLoading;
+
+  /// Optional tap handler for the upcoming-slot row.
+  /// When set, tapping any slot tile fires this callback — typically
+  /// navigates to the workout schedule.
+  final VoidCallback? onWorkoutTap;
 
   const HomeHero({
     Key? key,
     this.firstName,
     this.cycleInfo,
     this.upcomingSlots = const [],
+    this.isLoading = false,
+    this.onWorkoutTap,
   }) : super(key: key);
 
   @override
@@ -98,6 +106,7 @@ class HomeHero extends StatelessWidget {
                     HeroGreetingBlock(
                       firstName: firstName,
                       cycleInfo: cycleInfo,
+                      isLoading: isLoading,
                     ),
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 22),
@@ -113,7 +122,7 @@ class HomeHero extends StatelessWidget {
                       ),
                     ),
                     const HeroLiveSection(),
-                    HeroComingUpRow(upcoming: upcomingSlots),
+                    HeroComingUpRow(upcoming: upcomingSlots, onTap: onWorkoutTap),
                   ],
                 ),
               ),

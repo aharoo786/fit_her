@@ -59,7 +59,7 @@ class UserHomeScreen extends StatefulWidget {
 class _UserHomeScreenState extends State<UserHomeScreen> {
   final AuthController authController = Get.find();
   final HomeController homeController = Get.find();
-  final SocketController socketController = Get.put(SocketController());
+  final SocketController socketController = Get.find<SocketController>();
   final ScrollController userHomeScreenScrollController = ScrollController();
   ZoomMeetingGetxController controller = Get.find();
 

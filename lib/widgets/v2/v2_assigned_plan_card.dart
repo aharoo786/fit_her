@@ -6,6 +6,9 @@ import '../../data/Repos/user_plan_repo/user_plan_repository.dart';
 import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../data/models/user_plan/user_plan_item.dart';
 import '../../values/constants.dart';
+import '../../helper/analytics_helper.dart';
+import '../../utils/plan_expiry.dart';
+import 'cancel_plan_dialog.dart';
 
 const Color _kCardBorder = Color(0xFFD8EDD4);
 const Color _kHeroDark = Color(0xFF163220);
@@ -96,6 +99,7 @@ class _V2AssignedPlanCardState extends State<V2AssignedPlanCard> {
         _freezeStatus = freezeStatus;
         _plan = plan;
       });
+      _maybeTrackExpired(plan);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -221,6 +225,55 @@ class _V2AssignedPlanCardState extends State<V2AssignedPlanCard> {
     );
   }
 
+  Future<void> _doCancel({String? reason}) async {
+    final plan = _plan;
+    if (plan == null) return;
+    setState(() => _busy = true);
+    try {
+      final repo = Get.find<PlanFreezeRepository>();
+      final res = await repo.cancel(
+        accessToken: _accessToken,
+        userPlanId: plan.id,
+        reason: reason,
+      );
+      final ok = res.body != null && res.body['status'] == '1';
+      Get.snackbar(
+        ok ? 'Plan cancelled' : 'Could not cancel',
+        res.body?['message']?.toString() ?? '',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      if (ok) {
+        AnalyticsHelper.trackSubscriptionCancelled(
+          plan.id.toString(),
+          reason: reason,
+        );
+        // Reflect the access change immediately — the backend already
+        // flipped User.status server-side, but without this the app
+        // would keep showing the full paid home screen until next login.
+        Get.find<AuthController>().markUnpaid();
+        await _refresh();
+      }
+    } catch (e) {
+      Get.snackbar('Error', e.toString(),
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  // Reason is now required (a picked category + a written comment), not
+  // optional free text — Shaista asked for this so every cancellation
+  // comes with real, structured feedback instead of a silent click.
+  // The dialog itself (CancelPlanDialog, shared with the Profile screen) owns picking/validating both
+  // and hands back one combined "Category: comment" string, or null if
+  // the user backed out.
+  Future<void> _showCancelDialog() async {
+    final combinedReason = await Get.dialog<String>(const CancelPlanDialog());
+    if (combinedReason != null) {
+      _doCancel(reason: combinedReason);
+    }
+  }
+
   // ─── Build ─────────────────────────────────────────────────────────────
 
   @override
@@ -340,6 +393,21 @@ class _V2AssignedPlanCardState extends State<V2AssignedPlanCard> {
               style: const TextStyle(fontSize: 11, color: _kTextMuted),
             ),
           ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _busy ? null : _showCancelDialog,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Cancel plan',
+                style: TextStyle(fontSize: 12, color: _kDanger),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -577,11 +645,42 @@ class _V2AssignedPlanCardState extends State<V2AssignedPlanCard> {
 
   // ─── Helpers ───────────────────────────────────────────────────────────
 
-  int? _daysRemaining(DateTime? expire) {
-    if (expire == null) return null;
-    final now = DateTime.now();
-    return expire.difference(DateTime(now.year, now.month, now.day)).inDays;
+  /// Fire `Subscription Expired` once per plan id.
+  ///
+  /// The backend now has a real signal for this: an hourly cron
+  /// (autoExpireUserPlans, partner_backend/helper/autoExpireUserPlans.js)
+  /// flags a UserPlan's `planStatus` as 'expired' once its expireDate has
+  /// passed. That's authoritative, so we trust it first. It can lag by up
+  /// to an hour though, so as a fallback we still compute from the date
+  /// directly (matches what the progress bar above already shows the
+  /// user) — just tagged with a different `source` so the two can be
+  /// told apart in Mixpanel while the backend signal is still new.
+  ///
+  /// Either way this widget re-fetches on every screen visit, so we guard
+  /// with a SharedPreferences flag keyed by plan id to avoid re-sending
+  /// the event on every render.
+  void _maybeTrackExpired(UserPlanItem? plan) {
+    if (plan == null) return;
+
+    final backendSaysExpired = plan.planStatus == 'expired';
+    final daysRemaining = _daysRemaining(plan.expireDate);
+    final dateSaysExpired = daysRemaining != null && daysRemaining < 0;
+    if (!backendSaysExpired && !dateSaysExpired) return;
+
+    final prefs = Get.find<AuthController>().sharedPreferences;
+    final flagKey = 'subscription_expired_fired_${plan.id}';
+    if (prefs.getBool(flagKey) == true) return;
+
+    prefs.setBool(flagKey, true);
+    AnalyticsHelper.trackSubscriptionExpired(
+      plan.id.toString(),
+      planName: plan.plan?.title,
+      daysOverdue: daysRemaining != null ? -daysRemaining : null,
+      source: backendSaysExpired ? 'backend' : 'client_inferred',
+    );
   }
+
+  int? _daysRemaining(DateTime? expire) => daysRemainingUntil(expire);
 
   int? _daysTotal(DateTime? buying, DateTime? expire) {
     if (buying == null || expire == null) return null;

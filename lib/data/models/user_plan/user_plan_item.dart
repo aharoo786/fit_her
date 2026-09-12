@@ -12,7 +12,17 @@ class UserPlanItem {
   final int id;
   final DateTime? buyingDate;
   final DateTime? expireDate;
+  // Subscription/package lifecycle only (e.g. 'expired'). Diet-plan
+  // content-review status is the separate `dietPlanStatus` field below
+  // — the backend used to conflate the two in this one column.
   final String? planStatus;
+  // Set by cancelUserPlan / cancelPlan when a user (or admin) cancels
+  // ahead of natural expiry. Null for a plan that just ran its course.
+  final DateTime? cancelledAt;
+  // Dietitian-review-completion signal (backend: AdminController.js
+  // completeDietPlan / addDietitionReview). Not currently surfaced in
+  // the UI — parsed here so it's available if/when it is.
+  final String? dietPlanStatus;
   final int? price;
   final String? dietitionLink;
   final int? durationIdPlan;
@@ -27,6 +37,8 @@ class UserPlanItem {
     this.buyingDate,
     this.expireDate,
     this.planStatus,
+    this.cancelledAt,
+    this.dietPlanStatus,
     this.price,
     this.dietitionLink,
     this.durationIdPlan,
@@ -44,6 +56,8 @@ class UserPlanItem {
       buyingDate: _toDate(json['buyingDate']),
       expireDate: _toDate(json['expireDate']),
       planStatus: json['planStatus']?.toString(),
+      cancelledAt: _toDate(json['cancelledAt']),
+      dietPlanStatus: json['dietPlanStatus']?.toString(),
       price: _toInt(json['price']),
       dietitionLink: json['dietitionLink']?.toString(),
       durationIdPlan: _toInt(json['durationIdPlan']),

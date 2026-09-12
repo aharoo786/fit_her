@@ -7,7 +7,6 @@ import 'package:fitness_zone_2/data/services/youtube_tutorial_service.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
@@ -575,13 +574,13 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
           Text(
             "Your dietitian, your plan.".tr,
             textAlign: TextAlign.center,
-            style: GoogleFonts.dmSerifDisplay(
-              textStyle: TextStyle(
-                fontSize: 22.sp,
-                color: _vTextDark,
-                height: 1.1,
-                letterSpacing: -0.22, // -0.01em × 22
-              ),
+            style: TextStyle(
+              fontFamily: 'DMSerifDisplay',
+              fontWeight: FontWeight.w400,
+              fontSize: 22.sp,
+              color: _vTextDark,
+              height: 1.1,
+              letterSpacing: -0.22, // -0.01em × 22
             ),
           ),
           SizedBox(height: 8.h),
@@ -776,13 +775,13 @@ class _DietBottomBarScreenState extends State<DietBottomBarScreen> {
           SizedBox(height: 14.h),
           Text(
             HelpingWidgets.formatDateWithMonthName(date),
-            style: GoogleFonts.dmSerifDisplay(
-              textStyle: TextStyle(
-                fontSize: 22.sp,
-                color: _vTextDark,
-                height: 1.1,
-                letterSpacing: -0.22,
-              ),
+            style: TextStyle(
+              fontFamily: 'DMSerifDisplay',
+              fontWeight: FontWeight.w400,
+              fontSize: 22.sp,
+              color: _vTextDark,
+              height: 1.1,
+              letterSpacing: -0.22,
             ),
           ),
           SizedBox(height: 4.h),

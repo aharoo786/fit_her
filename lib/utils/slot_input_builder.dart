@@ -53,14 +53,18 @@ UserAccessInput buildUserAccess(HomeController homeController) {
   final planRemainingDays =
       (plans != null && plans.isNotEmpty) ? plans.first.remainingDays : 0;
   final remainingDays =
-      _hasActiveThreeDayTrial(homeController) ? 1 : planRemainingDays;
+      hasActiveThreeDayTrial(homeController) ? 1 : planRemainingDays;
   return UserAccessInput(
     isFrozen: isFrozen,
     remainingDays: remainingDays,
   );
 }
 
-bool _hasActiveThreeDayTrial(HomeController homeController) {
+/// Returns true when the user has a TrialJourney that is still within the
+/// 3-day window and has not been converted to a paid plan.
+/// Public so other widgets (e.g. WorkPlansOfUser) can gate UI on trial state
+/// without duplicating the logic.
+bool hasActiveThreeDayTrial(HomeController homeController) {
   final journey = homeController.trialJourney;
   if (journey == null || journey["convertedAt"] != null) return false;
 

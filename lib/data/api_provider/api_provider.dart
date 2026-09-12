@@ -37,53 +37,104 @@ MediaType _mediaTypeForPath(String filePath) {
 class ApiProvider extends GetxService {
   final String baseUrl = Constants.baseUrl;
 
-  Future<Response> postData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
-    debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
-
-    final defaultHeaders = {
-      'Content-Type': 'application/json',
-      ...?headers,
-    };
-    var response = await http.post(
-      Uri.parse(baseUrl + url),
-      headers: defaultHeaders,
-      body: jsonEncode(body),
+  // Every plain JSON call below (postData/putData/patchData/getData/
+  // deleteData) used to await http.* with no timeout and no try/catch, so a
+  // hung request never resolved and a thrown exception (no signal, DNS
+  // failure, etc.) skipped straight past every caller's loading-flag reset
+  // and Get.back() — a stuck spinner with no error shown. These now always
+  // resolve to a Response, the same defensive shape setFormData already
+  // used successfully for uploads, so every existing caller's normal
+  // "statusCode != 200 -> show message" handling now also covers a hang or
+  // a network error, with zero changes needed at each call site.
+  Response<dynamic> _networkFailureResponse(String url, Object error, {bool isTimeout = false}) {
+    final message = isTimeout
+        ? 'Request timed out. Please check your connection and try again.'
+        : 'Something went wrong. Please check your connection and try again.';
+    debugPrint('====> API ${isTimeout ? "Timeout" : "Error"}: [$baseUrl$url] $error');
+    return Response(
+      statusCode: isTimeout ? 408 : 503,
+      bodyString: message,
+      body: {"status": "0", "message": message},
     );
-    return handleData(url, response);
   }
 
-  Future<Response> putData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
+  Future<Response> postData(String url, {required Map<String, dynamic> body, Map<String, String>? headers, Duration timeout = const Duration(seconds: 30)}) async {
+    debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
+
+    final defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...?headers,
+    };
+    try {
+      var response = await http.post(
+        Uri.parse(baseUrl + url),
+        headers: defaultHeaders,
+        body: jsonEncode(body),
+      ).timeout(timeout);
+      return handleData(url, response);
+    } on TimeoutException catch (e) {
+      return _networkFailureResponse(url, e, isTimeout: true);
+    } catch (e) {
+      return _networkFailureResponse(url, e);
+    }
+  }
+
+  Future<Response> putData(String url, {required Map<String, dynamic> body, Map<String, String>? headers, Duration timeout = const Duration(seconds: 30)}) async {
     debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
     final defaultHeaders = {
       'Content-Type': 'application/json',
       ...?headers,
     };
-    var response = await http.put(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders ?? {});
-    return handleData(url, response);
+    try {
+      var response = await http.put(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders ?? {}).timeout(timeout);
+      return handleData(url, response);
+    } on TimeoutException catch (e) {
+      return _networkFailureResponse(url, e, isTimeout: true);
+    } catch (e) {
+      return _networkFailureResponse(url, e);
+    }
   }
 
-  Future<Response> patchData(String url, {required Map<String, dynamic> body, Map<String, String>? headers}) async {
+  Future<Response> patchData(String url, {required Map<String, dynamic> body, Map<String, String>? headers, Duration timeout = const Duration(seconds: 30)}) async {
     debugPrint('====> API Call: [$baseUrl$url]\n$body  \n $headers');
     final defaultHeaders = {
       'Content-Type': 'application/json',
       ...?headers,
     };
-    var response = await http.patch(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders);
-    return handleData(url, response);
+    try {
+      var response = await http.patch(Uri.parse(baseUrl + url), body: jsonEncode(body), headers: defaultHeaders).timeout(timeout);
+      return handleData(url, response);
+    } on TimeoutException catch (e) {
+      return _networkFailureResponse(url, e, isTimeout: true);
+    } catch (e) {
+      return _networkFailureResponse(url, e);
+    }
   }
 
-  Future<Response<dynamic>> getData(String url, {Map<String, dynamic>? query, Map<String, String>? headers}) async {
+  Future<Response<dynamic>> getData(String url, {Map<String, dynamic>? query, Map<String, String>? headers, Duration timeout = const Duration(seconds: 30)}) async {
     debugPrint('====> API Call: [$baseUrl$url]\n$query  \n $headers');
     var uri = Uri.parse(baseUrl + url).replace(queryParameters: query);
-    var response = await http.get(uri, headers: headers ?? {});
-    return handleData(url, response);
+    try {
+      var response = await http.get(uri, headers: headers ?? {}).timeout(timeout);
+      return handleData(url, response);
+    } on TimeoutException catch (e) {
+      return _networkFailureResponse(url, e, isTimeout: true);
+    } catch (e) {
+      return _networkFailureResponse(url, e);
+    }
   }
 
-  Future<Response<dynamic>> deleteData(String url, {Map<String, dynamic>? query, Map<String, String>? headers}) async {
+  Future<Response<dynamic>> deleteData(String url, {Map<String, dynamic>? query, Map<String, String>? headers, Duration timeout = const Duration(seconds: 30)}) async {
     debugPrint('====> API Call: [$baseUrl$url]\n$query  \n $headers');
     var uri = Uri.parse(baseUrl + url).replace(queryParameters: query);
-    var response = await http.delete(uri, headers: headers ?? {});
-    return handleData(url, response);
+    try {
+      var response = await http.delete(uri, headers: headers ?? {}).timeout(timeout);
+      return handleData(url, response);
+    } on TimeoutException catch (e) {
+      return _networkFailureResponse(url, e, isTimeout: true);
+    } catch (e) {
+      return _networkFailureResponse(url, e);
+    }
   }
 
   Future<Response<dynamic>> handleData(String url, http.Response response) async {

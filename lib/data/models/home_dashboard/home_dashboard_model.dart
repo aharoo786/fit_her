@@ -203,6 +203,12 @@ class ComingUpClass {
   final String? start;
   final String? end;
   final String? trainerName;
+  // Added so the home screen can run the same resolveSlotUIState() the
+  // Workout Schedule screen uses (see lib/utils/slot_ui_state.dart) --
+  // without these two, comingUp entries can't tell "starting soon" from
+  // "trainer already went live" from a plain future class.
+  final String? status;
+  final String? trainerLink;
 
   const ComingUpClass({
     this.id,
@@ -214,6 +220,8 @@ class ComingUpClass {
     this.start,
     this.end,
     this.trainerName,
+    this.status,
+    this.trainerLink,
   });
 
   factory ComingUpClass.fromJson(Map<String, dynamic> json) => ComingUpClass(
@@ -226,6 +234,8 @@ class ComingUpClass {
         start: json['start'] as String?,
         end: json['end'] as String?,
         trainerName: json['trainerName'] as String?,
+        status: json['status'] as String?,
+        trainerLink: json['trainerLink'] as String?,
       );
 }
 

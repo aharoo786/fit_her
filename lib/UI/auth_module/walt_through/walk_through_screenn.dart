@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../values/my_imgs.dart';
 import '../login/login.dart';
@@ -107,14 +106,13 @@ class WalkThroughScreen extends StatelessWidget {
                     Text(
                       'Welcome to your rhythm.',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.dmSerifDisplay(
-                        textStyle: TextStyle(
-                          fontSize: 38.sp,
-                          fontWeight: FontWeight.w400,
-                          color: _textDark,
-                          letterSpacing: -1.14, // -0.03em × 38
-                          height: 1.05,
-                        ),
+                      style: TextStyle(
+                        fontFamily: 'DMSerifDisplay',
+                        fontSize: 38.sp,
+                        fontWeight: FontWeight.w400,
+                        color: _textDark,
+                        letterSpacing: -1.14, // -0.03em × 38
+                        height: 1.05,
                       ),
                     ),
                     SizedBox(height: 10.h),
@@ -205,14 +203,13 @@ class WalkThroughScreen extends StatelessWidget {
                         children: [
                           Text(
                             '28',
-                            style: GoogleFonts.fraunces(
-                              textStyle: TextStyle(
-                                fontSize: 60.sp,
-                                fontWeight: FontWeight.w300,
-                                color: _textDark,
-                                letterSpacing: -2.4, // -0.04em × 60
-                                height: 1.0,
-                              ),
+                            style: TextStyle(
+                              fontFamily: 'Fraunces',
+                              fontSize: 60.sp,
+                              fontWeight: FontWeight.w300,
+                              color: _textDark,
+                              letterSpacing: -2.4, // -0.04em × 60
+                              height: 1.0,
                             ),
                           ),
                           SizedBox(height: 4.h),

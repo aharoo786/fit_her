@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
 import '../../data/controllers/meal_log_controller/meal_log_controller.dart';
+import '../../data/models/diet_plan_v2/diet_plan_v2_models.dart';
+import '../../data/models/diet_plan_v2/meal_log_v2.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
 import '../../data/models/meal_log/meal_log.dart';
 import 'log_weight_modal.dart';
-import 'paid_cycle_card.dart';
 import 'paid_meal_log_card.dart';
 import 'set_target_weight_modal.dart';
 
@@ -15,30 +17,25 @@ import 'set_target_weight_modal.dart';
 // - Weight: connect to weight tracking — modal still wired but value
 //   display is static
 // - Calories: connect to calorie counter when re-enabled
-// - Nutrition: connect to diet plan adherence when available
 //
-// NOTE: Row 2 hosts the existing PaidCycleCard alongside Nutrition.
-// paid_home_screen_v2.dart MUST NOT also emit PaidCycleCard at the
-// screen level — that would double-render the same widget.
+// NOTE: PaidCycleCard now lives in paid_home_screen_v2.dart (paired
+// with Meals/Nutrition there). Do not re-add it here — that would
+// double-render the same widget.
 
-/// Two-row stats grid below the hero.
+/// Stats grid below the hero — just the top row of 3 equal cards
+/// (Workouts | Weight | Calories).
 ///
-///   Row 1: Workouts | Weight | Calories   (3 equal cards)
-///   Row 2: Cycle | Nutrition               (2 equal cards, side-by-side)
+/// Cycle used to render here as a full-width "Row 2", but that left the
+/// no-plan case with two lonely full-width cards stacked on top of each
+/// other (Cycle, then Meals). Cycle now lives in paid_home_screen_v2.dart
+/// so it can be paired into a Row with whichever card belongs next to it
+/// (Meals when there's no plan yet, or sit above the Nutrition+Meals
+/// pair once there is) — single place decides the whole layout instead
+/// of splitting the decision across two files.
 ///
 /// Row 1 values are static placeholders for the HBL demo (see tech-debt
-/// block above). Row 2's Cycle card is the existing `PaidCycleCard`
-/// widget — placed alongside Nutrition rather than full-width below the
-/// stats row. The screen-level `paid_home_screen_v2.dart` no longer
-/// emits `PaidCycleCard` separately to avoid double-rendering.
-///
-/// If cycle data is missing (cycleDay null), `PaidCycleCard` collapses
-/// to `SizedBox.shrink()`. Row 2 detects that and falls back to
-/// rendering Nutrition full-width so the layout doesn't show an empty
-/// half-row.
-///
-/// Card shell mirrors the existing water/sleep visual: white bg, mint
-/// border, 20-radius, soft shadow.
+/// block above). Card shell mirrors the existing water/sleep visual:
+/// white bg, mint border, 20-radius, soft shadow.
 class PaidStatsRow extends StatelessWidget {
   final HomeDashboardModel dashboard;
 
@@ -46,30 +43,17 @@ class PaidStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Row 1 — 3 cards.
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _WorkoutsCard(dashboard: dashboard)),
-              const SizedBox(width: 7),
-              Expanded(child: _WeightCard(dashboard: dashboard)),
-              const SizedBox(width: 7),
-              Expanded(child: _CaloriesCard(dashboard: dashboard)),
-            ],
-          ),
-        ),
-        // Row 2 — Cycle only (when present). Nutrition has been
-        // promoted out of this row; paid_home_screen_v2.dart now
-        // renders it alongside PaidMealLogCard in a shared row below.
-        if ((dashboard.cycle?.cycleDay) != null) ...[
-          const SizedBox(height: 7),
-          PaidCycleCard(dashboard: dashboard),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _WorkoutsCard(dashboard: dashboard)),
+          const SizedBox(width: 7),
+          Expanded(child: _WeightCard(dashboard: dashboard)),
+          const SizedBox(width: 7),
+          Expanded(child: _CaloriesCard(dashboard: dashboard)),
         ],
-      ],
+      ),
     );
   }
 }
@@ -158,6 +142,12 @@ class _CaloriesCard extends StatelessWidget {
 /// Promoted from `_NutritionCard` so paid_home_screen_v2.dart can render
 /// it directly next to PaidMealLogCard in a shared row. PaidStatsRow no
 /// longer emits it in Row 2; the home screen owns its placement now.
+///
+/// Only ever mounted when the user has an active structured diet plan
+/// (paid_home_screen_v2.dart gates this — see the Obx wrapper around
+/// this row) — a "% diet plan" figure is meaningless without a real
+/// plan to measure against, so this card no longer renders a fake
+/// static number for plan-less users.
 class PaidNutritionCard extends StatelessWidget {
   final HomeDashboardModel dashboard;
   const PaidNutritionCard({Key? key, required this.dashboard})
@@ -201,13 +191,34 @@ class PaidNutritionCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _StatColumn(
-            label: '🥗 Nutrition',
-            value: '82%',
-            sub: 'diet plan',
-            valueFontSize: 26,
-            subFontSize: 10,
-          ),
+          Obx(() {
+            // Real adherence, computed from today's structured-plan
+            // logs: % of today's meals marked "followed" (alternative
+            // and skipped both count against adherence, pending simply
+            // hasn't happened yet and is excluded from the denominator
+            // used for display parity with the "X of N logged" pill
+            // elsewhere — but IS counted here so a day full of unlogged
+            // meals doesn't misleadingly read as 100%).
+            final dietCtrl = Get.find<DietPlanUserController>();
+            final day = dietCtrl.todaysDay;
+            String value = '--';
+            if (day != null && day.meals.isNotEmpty) {
+              final logs = dietCtrl.todayLogsByType;
+              final total = day.meals.length;
+              final followed = day.meals.where((m) {
+                final log = logs[m.mealType.wire];
+                return log?.status == MealLogStatusV2.followed;
+              }).length;
+              value = '${((followed / total) * 100).round()}%';
+            }
+            return _StatColumn(
+              label: '🥗 Nutrition',
+              value: value,
+              sub: 'diet plan',
+              valueFontSize: 26,
+              subFontSize: 10,
+            );
+          }),
           const SizedBox(height: 6),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -259,14 +270,32 @@ class PaidMealSummaryCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Obx(() {
-            // Legacy counter (always available). If the user is on a
-            // structured plan, the sheet itself shows the precise per-meal
-            // data via DietPlanUserController. Showing the legacy count
-            // here as a headline number is a safe baseline.
-            final total = MealType.values.length;
-            final logged = ctrl.todayMeals.values
-                .where((m) => m.status != MealStatus.pending)
-                .length;
+            // Structured plan (if active) is the source of truth for the
+            // real meal count — a plan can have more or fewer than the
+            // legacy 3 (breakfast/lunch/dinner), so showing "1/3" for a
+            // 5-meal plan would be wrong. Fall back to the legacy count
+            // only when there's no active plan to read from.
+            int logged;
+            int total;
+            final dietCtrl = Get.isRegistered<DietPlanUserController>()
+                ? Get.find<DietPlanUserController>()
+                : null;
+            final day = dietCtrl?.todaysDay;
+            if (dietCtrl?.activePlan.value != null &&
+                day != null &&
+                day.meals.isNotEmpty) {
+              final logs = dietCtrl!.todayLogsByType;
+              total = day.meals.length;
+              logged = day.meals.where((m) {
+                final log = logs[m.mealType.wire];
+                return log != null && log.status != MealLogStatusV2.pending;
+              }).length;
+            } else {
+              total = MealType.values.length;
+              logged = ctrl.todayMeals.values
+                  .where((m) => m.status != MealStatus.pending)
+                  .length;
+            }
             return _StatColumn(
               label: '🍽 Meals',
               value: '$logged/$total',

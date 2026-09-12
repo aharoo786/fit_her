@@ -78,8 +78,9 @@ class _TimePreferenceScreenState extends State<TimePreferenceScreen> {
     final token = prefs.getString(Constants.accessToken) ?? '';
 
     // Persist locally — must happen before onCompleted so updateUserDetails
-    // sees hasTimeBlock = true and skips showing this screen again.
+    // sees the done flag and skips showing this screen again.
     prefs.setString(Constants.timeBlock, timeBlock);
+    prefs.setString(Constants.timePreferenceDone, 'true');
 
     // Persist to backend (best-effort — don't block navigation on failure)
     try {
@@ -104,7 +105,14 @@ class _TimePreferenceScreenState extends State<TimePreferenceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return OnboardingScaffold(
+    // Intercept Android system back — treat it as "skip" so the key is
+    // always written and the screen never re-appears on next login.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _save('all');
+      },
+      child: OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
       badgeText: 'Notifications',
@@ -202,7 +210,8 @@ class _TimePreferenceScreenState extends State<TimePreferenceScreen> {
           );
         }),
       ),
-    );
+      ), // closes OnboardingScaffold
+    );   // closes PopScope
   }
 }
 

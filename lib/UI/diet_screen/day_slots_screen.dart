@@ -3,12 +3,29 @@ import 'package:fitness_zone_2/data/models/dietitian_times.dart';
 import 'package:fitness_zone_2/widgets/app_bar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/controllers/diet_contoller/diet_controller.dart';
 import '../../values/my_colors.dart';
 import '../../widgets/circular_progress.dart';
 import '../../widgets/dietitian_home_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+// Backend (`addOrUpdateDaySlot` in dietController.js) strictly
+// validates each slot's start/end against
+// `^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$` — e.g. "9:00 AM". Using
+// `TimeOfDay.format(context)` directly is locale-dependent: on a
+// device with 24-hour system time format (common default on some
+// Android phones), it returns "09:00" with NO am/pm suffix at all,
+// which fails that regex for every slot, not just unedited ones.
+// Formatting manually via intl's DateFormat sidesteps the device's
+// clock-format setting entirely so the string sent to the backend is
+// always well-formed.
+String _formatSlotTime(TimeOfDay time) {
+  final now = DateTime.now();
+  final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+  return DateFormat('h:mm a').format(dt);
+}
 
 class DaySlotsScreen extends StatelessWidget {
   DaySlotsScreen({super.key, required this.day});
@@ -27,8 +44,10 @@ class DaySlotsScreen extends StatelessWidget {
               onPressed: () {
                 dietController.daySlotsOfDietModel!.slots.add(Slot(
                     id: null,
-                    start: "9 am",
-                    end: "7 pm",
+                    // Must already match the backend's strict
+                    // "h:mm AM/PM" validation — see _formatSlotTime.
+                    start: "9:00 AM",
+                    end: "7:00 PM",
                     dietitionLink: "",
                     isAvailble: null,
                     dietitionId: 0,
@@ -83,7 +102,7 @@ class DaySlotsScreen extends StatelessWidget {
                                         },
                                       );
                                       if (time != null) {
-                                        slot.start = time.format(context);
+                                        slot.start = _formatSlotTime(time);
                                         cont.update();
                                       }
                                     },
@@ -140,7 +159,7 @@ class DaySlotsScreen extends StatelessWidget {
                                         },
                                       );
                                       if (time != null) {
-                                        slot.end = time.format(context);
+                                        slot.end = _formatSlotTime(time);
                                         cont.update();
                                       }
                                     },

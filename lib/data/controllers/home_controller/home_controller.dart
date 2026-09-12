@@ -68,7 +68,10 @@ class HomeController extends GetxController implements GetxService {
     if (sharedPreferences.getBool("showDotHome") == null) {
       showDotHome.value = false;
     } else if (sharedPreferences.getBool("showDotHome") == true) {
-      showDotHome.value = false;
+      // Was wrongly set to false here, silencing the unread dot for any
+      // push that arrived while the app was closed. A stored `true` means
+      // there's something unread waiting -> the dot should show.
+      showDotHome.value = true;
     }
 
     super.onInit();
@@ -374,7 +377,6 @@ class HomeController extends GetxController implements GetxService {
     try {
       var querySnapshot = await FirebaseFirestore.instance.collection("users").where("remoteId", isEqualTo: id).get();
 
-      print("querySnapshot: ${querySnapshot.docs.first.data()}");
 
       if (querySnapshot.docs.isNotEmpty) {
         var documentSnapshot = querySnapshot.docs.first;
@@ -382,8 +384,7 @@ class HomeController extends GetxController implements GetxService {
         name = {"name": data["name"], "days": data["days"]};
       }
     } catch (error) {
-      print("Error: $error");
-      // Handle errors as needed
+      // silently ignore — name stays null, caller handles missing value
     }
 
     return name;
@@ -483,7 +484,12 @@ class HomeController extends GetxController implements GetxService {
         ).then((response) async {
           Get.back();
           if (response.body["status"] == "0") {
-            if (response.body["message"] == "You can't subscribe free trial at this movement") {
+            // Check the machine-readable field first (added to assignFreePlan response).
+            // Fall back to string match for backward compat with older server versions.
+            final data = response.body["data"];
+            final isAlreadyUsed = (data is Map && data["alreadyUsed"] == true) ||
+                response.body["message"] == "You can't subscribe free trial at this movement";
+            if (isAlreadyUsed) {
               already = true;
             } else {
               CustomToast.failToast(msg: response.body["message"]);
@@ -508,8 +514,6 @@ class HomeController extends GetxController implements GetxService {
 
   double getPlanValue() {
     var value = userHomeData!.userAllPlans[0].spendDays / (userHomeData!.userAllPlans[0].remainingDays + userHomeData!.userAllPlans[0].spendDays);
-
-    print("value-------------333  $value");
 
     if (value >= 0 && value <= 1) {
       return value;
@@ -940,7 +944,10 @@ class HomeController extends GetxController implements GetxService {
                   // getPlans();
                   Get.offAll(() => GoalScreen(
                     onNext: (goal) {
-                      Get.off(() => SignUpScreenQuestions(selectedGoal: goal));
+                      // Use Get.to (not Get.off) so GoalScreen stays in the
+                      // stack. This lets the back arrow on AgeScreen pop
+                      // SignUpScreenQuestions and land on GoalScreen correctly.
+                      Get.to(() => SignUpScreenQuestions(selectedGoal: goal));
                     },
                   ));
                 }
@@ -1730,9 +1737,23 @@ class HomeController extends GetxController implements GetxService {
                 if (data is Map &&
                     data['userPlanActivated'] == true &&
                     data['autoApproved'] == true) {
+                  // Capture paid status BEFORE markPaid() flips it — that's
+                  // what tells us this is a repeat purchase (renewal) and
+                  // not the user's first-ever activation. There's no
+                  // separate "renewal" concept on the backend, so this is
+                  // the only place we can make that distinction.
+                  final wasAlreadyPaid =
+                      Get.find<AuthController>().logInUser?.status ?? false;
                   Get.find<AuthController>().markPaid();
                   debugPrint('🧾 SLIP UPLOAD · auto-promoted to paid · '
                       'home will swap to PaidHomeScreenV2');
+                  if (wasAlreadyPaid) {
+                    AnalyticsHelper.trackSubscriptionRenewed(
+                      planId,
+                      planName: plan?.title,
+                      planPrice: price,
+                    );
+                  }
                 }
               } catch (e) {
                 debugPrint('🧾 SLIP UPLOAD · auto-promote skipped: $e');
@@ -1823,6 +1844,11 @@ class HomeController extends GetxController implements GetxService {
     await connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
+        // Unblock TrialJourneyScreen — without this, CircularProgress spins
+        // forever because trialLoad is never set to true on the no-internet
+        // path. trialJourney stays null; the screen's _loadJourney() will
+        // attempt startTrial() which will also fail and show its own toast.
+        trialLoad.value = true;
       } else {
         await homeRepo
             .getMyTrial(
@@ -1831,10 +1857,27 @@ class HomeController extends GetxController implements GetxService {
             .then((response) async {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             trialJourney = response.body["data"]?["journey"];
-            trialLoad.value = true;
+
+            // Sync the local trialActivated flag with server truth so the
+            // TrialCtaCard always shows the correct state:
+            //   journey == null  → no trial exists  → show _IdleCard
+            //                                         ("Start 3-day free trial")
+            //   journey != null  → trial exists      → show _ActivatedCard
+            //                                         (even if expired/completed)
+            final auth = Get.find<AuthController>();
+            if (trialJourney == null) {
+              auth.trialActivated.value = false;
+              auth.sharedPreferences.setBool(Constants.trialActivatedKey, false);
+            } else if (!auth.trialActivated.value) {
+              auth.trialActivated.value = true;
+              auth.sharedPreferences.setBool(Constants.trialActivatedKey, true);
+            }
           } else {
             CustomToast.failToast(msg: response.body["message"] ?? "Unable to load trial");
           }
+          // Always unblock the screen regardless of success/failure so it
+          // never hangs on a CircularProgress with no recovery path.
+          trialLoad.value = true;
         });
       }
     });
@@ -1895,7 +1938,9 @@ class HomeController extends GetxController implements GetxService {
         "comment": comment,
         "value": rating.toInt(),
         "classReview": classReview,
-        "trainerOrDiet": sharedPreferences.getString(Constants.userId) ?? "",
+        // Trial feedback has no specific trainer — 0 avoids sending the
+        // user's own ID as the reviewed entity, which was the previous bug.
+        "trainerOrDiet": 0,
         "PlanId": 0,
         "userId": sharedPreferences.getString(Constants.userId) ?? "",
       },

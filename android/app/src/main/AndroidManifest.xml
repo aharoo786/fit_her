@@ -26,6 +26,7 @@
 
     <application
         android:label="Fit Her"
+        android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true"
         android:name=".MyApp"
         android:icon="@mipmap/ic_launcher"
@@ -55,17 +56,31 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
+            <!-- Set to false so Flutter's router does NOT consume incoming deep links
+                 as named routes. AppLinkHandler (app_links package) handles all
+                 deep links exclusively via getInitialLink() + uriLinkStream. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
 
+            <!-- Production App Link — autoVerify works because assetlinks.json
+                 is served at https://backend.thefither.com/.well-known/assetlinks.json -->
             <intent-filter android:autoVerify="true"
                 tools:targetApi="m">
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"/>
                 <data android:host="backend.thefither.com"/>
+            </intent-filter>
 
+            <!-- Local dev / ngrok — no autoVerify (ngrok domain changes each restart).
+                 Android shows an "Open with…" chooser; pick Fit Her to test the flow.
+                 *.ngrok-free.app covers every free-tier ngrok URL. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"/>
+                <data android:host="*.ngrok-free.app"/>
             </intent-filter>
 
         </activity>

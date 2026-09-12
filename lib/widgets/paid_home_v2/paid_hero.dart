@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../data/Repos/plan_freeze_repo/plan_freeze_repository.dart';
+import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
+import '../../values/constants.dart';
 import '../new_home/phase_theme.dart';
 import 'paid_hero_coming_up.dart';
 import 'paid_hero_greeting.dart';
@@ -13,13 +17,60 @@ import 'paid_hero_top_bar.dart';
 ///   + 220×220 faint accent ring at top:-70 right:-50
 ///   border-radius: 0 0 36px 36px (bottom-only, flat top — hero paints
 ///   edge-to-edge under the status bar).
-class PaidHero extends StatelessWidget {
+class PaidHero extends StatefulWidget {
   final HomeDashboardModel dashboard;
 
   const PaidHero({Key? key, required this.dashboard}) : super(key: key);
 
   @override
+  State<PaidHero> createState() => _PaidHeroState();
+}
+
+class _PaidHeroState extends State<PaidHero> {
+  // Frozen-plan awareness (architecture item #2) -- one shared fetch for
+  // the hero's frozen-sensitive children (the "Join" pill on a live
+  // class, and hiding the coming-up tiles), same self-contained
+  // GET-on-mount pattern as PlanFrozenBanner/PlanExpiryBanner elsewhere
+  // on this screen. The actual "your plan is paused" messaging + the
+  // Unfreeze action live solely on PlanFrozenBanner now (this hero used
+  // to duplicate both -- reverted after Shaista flagged the redundancy).
+  // Defaults to not-frozen until the call resolves, so nothing
+  // dims/disables during the brief loading window -- an active plan
+  // never flashes as paused.
+  Map<String, dynamic>? _freezeStatus;
+  bool get _isFrozen => _freezeStatus?['isFrozen'] == true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFreezeStatus();
+  }
+
+  Future<void> _fetchFreezeStatus() async {
+    try {
+      final auth = Get.find<AuthController>();
+      final token =
+          auth.sharedPreferences.getString(Constants.accessToken) ?? '';
+      final repo = Get.find<PlanFreezeRepository>();
+      final res = await repo.getStatus(accessToken: token);
+      if (res.body != null &&
+          res.body['status'] == '1' &&
+          res.body['data'] is Map) {
+        if (mounted) {
+          setState(() {
+            _freezeStatus = Map<String, dynamic>.from(res.body['data']);
+          });
+        }
+      }
+    } catch (_) {
+      // Best-effort and silent -- a status hiccup leaves the hero exactly
+      // as it behaved before this existed (nothing dimmed/disabled).
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dashboard = widget.dashboard;
     final phase = parseCyclePhase(dashboard.cycle?.phase);
     final theme = PhaseTheme.forPhase(phase);
 
@@ -97,8 +148,15 @@ class PaidHero extends StatelessWidget {
                       phase: phase,
                     ),
                     _buildDivider(theme),
-                    PaidHeroLiveSection(live: dashboard.live, theme: theme),
-                    PaidHeroComingUp(comingUp: dashboard.comingUp),
+                    PaidHeroLiveSection(
+                      live: dashboard.live,
+                      theme: theme,
+                      isFrozen: _isFrozen,
+                    ),
+                    PaidHeroComingUp(
+                      comingUp: dashboard.comingUp,
+                      isFrozen: _isFrozen,
+                    ),
                   ],
                 ),
               ),

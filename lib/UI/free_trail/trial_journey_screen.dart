@@ -32,10 +32,65 @@ class _TrialJourneyScreenState extends State<TrialJourneyScreen> {
   Future<void> _loadJourney() async {
     await homeController.getMyTrialJourney();
     if (homeController.trialJourney == null) {
+      // Bug 1 fix: confirm before starting so the 3-day clock only begins when
+      // the user explicitly opts in. Without this, simply navigating here
+      // silently creates a TrialJourney and starts the 3-day window.
+      final confirmed = await _confirmStartTrial();
+      if (!confirmed) {
+        Get.back();
+        return;
+      }
       await homeController.startTrial();
       await homeController.getMyTrialJourney();
     }
     await _loadNotificationPreference();
+  }
+
+  Future<bool> _confirmStartTrial() async {
+    if (!mounted) return false;
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Start your free 3-day trial?',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          'Once started, your 3-day pass will be active immediately.\n\n'
+          'You can join any live class during your trial. '
+          'You must join within 10 minutes of the class start time.',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Not now',
+              style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Start trial',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result == true;
   }
 
   Future<void> _loadNotificationPreference() async {

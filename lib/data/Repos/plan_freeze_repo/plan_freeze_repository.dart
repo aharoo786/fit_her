@@ -38,4 +38,19 @@ class PlanFreezeRepository extends GetxService {
       headers: {'accessToken': accessToken},
     );
   }
+
+  Future<Response> cancel({
+    required String accessToken,
+    required int userPlanId,
+    String? reason,
+  }) async {
+    return apiProvider.postData(
+      Constants.planCancel,
+      body: {
+        'userPlanId': userPlanId,
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+      },
+      headers: {'accessToken': accessToken},
+    );
+  }
 }

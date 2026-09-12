@@ -83,16 +83,17 @@ class MotivationController extends GetxController implements GetxService {
           accessToken: accessToken, userId: userId, map: body);
 
       if (response.body["status"] == "0") {
-        // CustomToast.failToast(
-        //     msg: response.body["message"] ?? "Attendance not marked");
+        CustomToast.failToast(
+            msg: response.body["message"] ?? "Attendance not marked");
       } else {
+        CustomToast.successToast(msg: "Attendance marked");
         // Track weekly attendance in Mixpanel
         await AnalyticsHelper.trackWeeklyAttendance(slotId: slotId);
         // Refresh stats after marking attendance
         //  await fetchMotivationStats();
       }
     } catch (e) {
-      // CustomToast.failToast(msg: e.toString());
+      CustomToast.failToast(msg: e.toString());
     } finally {
       isMarkingAttendance.value = false;
     }
