@@ -611,4 +611,63 @@ class AnalyticsService extends GetxService {
   Future<void> logProgressV2DoctorShareClicked() async {
     await _mixpanel?.track('progress_v2_doctor_share_clicked');
   }
+
+  // ─── Subscription lifecycle events ──────────────────────────────────
+  // Added alongside the retention-funnel work: identify (setUserId) +
+  // session-joined tracking are the other two legs of that funnel.
+  // These three complete the "who renews / who lapses / who gets
+  // cancelled" side of it.
+
+  /// Fired when a user whose plan was ALREADY active (status == true
+  /// before this purchase) completes a new plan purchase — i.e. a repeat
+  /// purchase rather than a first-time signup. The app has no separate
+  /// backend concept of "renewal" vs "new purchase", so the caller must
+  /// pass in whether the user was already paid before calling this.
+  Future<void> logSubscriptionRenewed({
+    required String planId,
+    String? planName,
+    String? planPrice,
+  }) async {
+    await _mixpanel?.track('Subscription Renewed', properties: {
+      'plan_id': planId,
+      if (planName != null) 'plan_name': planName,
+      if (planPrice != null) 'plan_price': planPrice,
+    });
+  }
+
+  /// Fired the first time the app detects a client's assigned plan has
+  /// passed its expiry date. Expiry is a client-side date comparison
+  /// (there is no backend "expired" status), so the caller is
+  /// responsible for de-duplicating per plan id — this should fire once
+  /// per plan lapsing, not on every screen render.
+  Future<void> logSubscriptionExpired({
+    required String planId,
+    String? planName,
+    int? daysOverdue,
+    // 'backend' when the app read planStatus == 'expired' (the hourly
+    // autoExpireUserPlans cron already flagged it — authoritative).
+    // 'client_inferred' when the app only had the date to go on (the
+    // cron hasn't swept this row yet, e.g. within the last hour).
+    String source = 'client_inferred',
+  }) async {
+    await _mixpanel?.track('Subscription Expired', properties: {
+      'plan_id': planId,
+      if (planName != null) 'plan_name': planName,
+      if (daysOverdue != null) 'days_overdue': daysOverdue,
+      'source': source,
+    });
+  }
+
+  /// Fired when a plan is cancelled. Today this only ever happens from
+  /// the admin/dietitian side (diet_plan_admin_controller.cancelCurrentPlan)
+  /// — there is no client self-serve cancellation flow in the app.
+  Future<void> logSubscriptionCancelled({
+    required String planId,
+    String? reason,
+  }) async {
+    await _mixpanel?.track('Subscription Cancelled', properties: {
+      'plan_id': planId,
+      if (reason != null) 'reason': reason,
+    });
+  }
 }

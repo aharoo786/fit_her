@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -23,13 +25,25 @@ class UpcomingSlot {
   });
 }
 
-class HeroComingUpRow extends StatelessWidget {
+class HeroComingUpRow extends StatefulWidget {
   final List<UpcomingSlot> upcoming;
+
+  /// Optional callback fired when the user taps anywhere on the slot row.
+  /// Typically navigates to the workout schedule screen.
+  final VoidCallback? onTap;
 
   const HeroComingUpRow({
     Key? key,
     this.upcoming = const [],
+    this.onTap,
   }) : super(key: key);
+
+  @override
+  State<HeroComingUpRow> createState() => _HeroComingUpRowState();
+}
+
+class _HeroComingUpRowState extends State<HeroComingUpRow> {
+  Timer? _clockTicker;
 
   // Rotating tile palette — preserves the old green / coral / amber cycle.
   static const List<_TilePalette> _palettes = [
@@ -39,14 +53,31 @@ class HeroComingUpRow extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    if (upcoming.isEmpty) return const SizedBox.shrink();
+  void initState() {
+    super.initState();
+    // Tick every 30 s — keeps the "Starts in Xm" countdown accurate
+    // without a network call.
+    _clockTicker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
 
+  @override
+  void dispose() {
+    _clockTicker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.upcoming.isEmpty) return const SizedBox.shrink();
+
+    final now = DateTime.now();
     final w = MediaQuery.of(context).size.width;
     final double hPad = (w * 12 / 414).clamp(10.0, 16.0);
     // "Tomorrow's classes" header appears only when nothing remains today.
-    final bool allFuture = upcoming.every((u) => u.dayOffset >= 1);
-    return Padding(
+    final bool allFuture = widget.upcoming.every((u) => u.dayOffset >= 1);
+    final content = Padding(
       padding: EdgeInsets.fromLTRB(hPad, 14, hPad, 18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -67,28 +98,27 @@ class HeroComingUpRow extends StatelessWidget {
             ),
           Row(
             children: [
-              for (int i = 0; i < upcoming.length; i++) ...[
+              for (int i = 0; i < widget.upcoming.length; i++) ...[
                 Expanded(
                   child: _ClassTile(
-                    name: upcoming[i].slot.type ?? 'Class',
-                    time: _formatTileTime(upcoming[i]),
+                    slot: widget.upcoming[i],
                     palette: _palettes[i % _palettes.length],
+                    now: now,
                   ),
                 ),
-                if (i < upcoming.length - 1) const SizedBox(width: 7),
+                if (i < widget.upcoming.length - 1) const SizedBox(width: 7),
               ],
             ],
           ),
         ],
       ),
     );
-  }
-
-  /// Today → "10:30 AM". Tomorrow / later → "10:30 AM · Mon".
-  static String _formatTileTime(UpcomingSlot u) {
-    if (u.dayOffset == 0) return u.slot.start;
-    final abbrev = DateFormat('EEE').format(u.startLocal);
-    return '${u.slot.start} · $abbrev';
+    if (widget.onTap == null) return content;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTap,
+      child: content,
+    );
   }
 }
 
@@ -106,17 +136,21 @@ class _TilePalette {
 }
 
 class _ClassTile extends StatelessWidget {
-  final String name;
-  final String time;
+  final UpcomingSlot slot;
   final _TilePalette palette;
+  final DateTime now;
+
   const _ClassTile({
-    required this.name,
-    required this.time,
+    required this.slot,
     required this.palette,
+    required this.now,
   });
 
   @override
   Widget build(BuildContext context) {
+    final mins = _minutesUntilStart();
+    final bool showCountdown = mins != null && mins >= 0 && mins <= 15;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
       decoration: BoxDecoration(
@@ -132,7 +166,7 @@ class _ClassTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            name,
+            slot.slot.type ?? 'Class',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -144,19 +178,61 @@ class _ClassTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            time,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: palette.base.withOpacity(palette.timeOpacity),
+          if (showCountdown) ...[
+            // Amber countdown badge — matches PaidHeroComingUp styling.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAC775).withOpacity(0.22),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(
+                  color: const Color(0xFFFAC775).withOpacity(0.45),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                mins == 0 ? 'Starts now' : 'Starts in ${mins}m',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFFAC775),
+                ),
+              ),
             ),
-          ),
+          ] else ...[
+            Text(
+              _formatTileTime(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: palette.base.withOpacity(palette.timeOpacity),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Minutes until [startLocal]. Only meaningful when [dayOffset == 0].
+  /// Returns null for tomorrow's slots or if start is in the past.
+  int? _minutesUntilStart() {
+    if (slot.dayOffset != 0) return null;
+    final diff = slot.startLocal.difference(now).inMinutes;
+    if (diff < 0) return null;
+    return diff;
+  }
+
+  /// Today → "10:30 AM". Tomorrow / later → "10:30 AM · Mon".
+  String _formatTileTime() {
+    if (slot.dayOffset == 0) return slot.slot.start;
+    final abbrev = DateFormat('EEE').format(slot.startLocal);
+    return '${slot.slot.start} · $abbrev';
   }
 }

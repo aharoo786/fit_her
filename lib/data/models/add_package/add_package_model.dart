@@ -94,14 +94,32 @@ class Slot {
   // String? trainerLink;
   int? dayId;
 
+  // Workout details. Used to only be settable one slot at a time, after
+  // the fact, via the trainer-facing ClassDetails screen (updateSlotTrainer).
+  // Now the admin can fill these in right here while assigning the
+  // trainer -- own controllers (not plain strings) so typed text survives
+  // this screen's frequent homeController.update() rebuilds, the same way
+  // a trainer's later edit via ClassDetails still works if the admin
+  // leaves these blank.
+  TextEditingController typeController = TextEditingController();
+  TextEditingController levelController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
+
   Slot({
     required this.start,
     required this.end,
     this.trainerId,
     this.id,
     this.dayId,
+    String? type,
+    String? level,
+    String? description,
     //    this.trainerLink
-  });
+  }) {
+    if (type != null) typeController.text = type;
+    if (level != null) levelController.text = level;
+    if (description != null) descriptionController.text = description;
+  }
 
   factory Slot.fromJson(Map<String, dynamic> json) => Slot(
         start: _decodeTime(json["start"], "Start Time"),
@@ -110,6 +128,9 @@ class Slot {
         dayId: json["TimeId"],
         // trainerLink: json["trainerLink"],
         trainerId: json["trainerId"],
+        type: json["type"] as String?,
+        level: json["level"] as String?,
+        description: json["description"] as String?,
       );
 
   // Tolerates both legacy epoch-ms strings (e.g. "1714560000000") and
@@ -133,7 +154,20 @@ class Slot {
         "trainerId": trainerId,
         "id": id,
         //  "trainerLink": trainerLink,
-        "dayId": dayId
+        "dayId": dayId,
+        // Sent as null (not "") when left blank, so the backend's
+        // update_slots/add_slots only touch these columns when the admin
+        // actually typed something -- an admin who skips them doesn't
+        // wipe out a value a trainer already set the old way.
+        "type": typeController.text.trim().isEmpty
+            ? null
+            : typeController.text.trim(),
+        "level": levelController.text.trim().isEmpty
+            ? null
+            : levelController.text.trim(),
+        "description": descriptionController.text.trim().isEmpty
+            ? null
+            : descriptionController.text.trim(),
       };
 }
 

@@ -37,64 +37,76 @@ class _RecommendedSlotsScreenState extends State<RecommendedSlotsScreen> {
     final token = authController.sharedPreferences.getString(Constants.accessToken) ?? '';
     final userId = authController.sharedPreferences.getString(Constants.userId) ?? '';
 
-    // 1. Load cycle phase
     String? phase;
-    final cycleRepo = Get.find<CycleDataRepository>();
-    final cycleResponse = await cycleRepo.getCycleData(accessToken: token);
+    List<Slot> filtered = [];
 
-    if (cycleResponse.body != null &&
-        cycleResponse.body['status'] == '1' &&
-        cycleResponse.body['data'] != null &&
-        cycleResponse.body['data']['dataProvided'] == 1 &&
-        cycleResponse.body['data']['lastPeriodDate'] != null) {
-      final data = cycleResponse.body['data'];
-      final cycleInfo = CycleEngine.calculate(
-        lastPeriodDate: DateTime.parse(data['lastPeriodDate']),
-        cycleLength: data['averageCycleLength'] ?? 28,
-      );
-      if (cycleInfo != null) {
-        phase = cycleInfo.phase;
-      }
-    }
+    // The network calls below can no longer hang or throw on a bad
+    // connection (api_provider.dart now times out and returns a Response
+    // either way) — but parsing the responses (DateTime.parse, model
+    // mapping) still can. Wrapping the whole thing means any failure here
+    // degrades to an empty list instead of leaving the spinner stuck with
+    // no feedback; the `finally` always turns it off.
+    try {
+      // 1. Load cycle phase
+      final cycleRepo = Get.find<CycleDataRepository>();
+      final cycleResponse = await cycleRepo.getCycleData(accessToken: token);
 
-    // 2. Load all slots
-    final homeRepo = Get.find<HomeRepo>();
-    final slotsResponse = await homeRepo.getUserPlanDetailsWorkout(
-      accessToken: token,
-      planId: '0',
-      userId: userId,
-      showSlots: true,
-    );
-
-    List<Slot> allSlots = [];
-    if (slotsResponse.body != null && slotsResponse.body['status'] == '1' && slotsResponse.body['data'] != null) {
-      final data = slotsResponse.body['data'];
-      if (data['trainerSlots'] is List) {
-        final trainerSlots = (data['trainerSlots'] as List).whereType<Map<String, dynamic>>().map((ts) => TrainerSlot.fromJson(ts)).toList();
-        for (final ts in trainerSlots) {
-          allSlots.addAll(ts.slots);
+      if (cycleResponse.body != null &&
+          cycleResponse.body['status'] == '1' &&
+          cycleResponse.body['data'] != null &&
+          cycleResponse.body['data']['dataProvided'] == 1 &&
+          cycleResponse.body['data']['lastPeriodDate'] != null) {
+        final data = cycleResponse.body['data'];
+        final cycleInfo = CycleEngine.calculate(
+          lastPeriodDate: DateTime.parse(data['lastPeriodDate']),
+          cycleLength: data['averageCycleLength'] ?? 28,
+        );
+        if (cycleInfo != null) {
+          phase = cycleInfo.phase;
         }
       }
-    }
 
-    // 3. Filter recommended or take first 5
-    List<Slot> filtered;
-    if (phase != null) {
-      filtered = RecommendationService.filterRecommended<Slot>(
-        allSlots,
-        (slot) => slot.type,
-        phase,
+      // 2. Load all slots
+      final homeRepo = Get.find<HomeRepo>();
+      final slotsResponse = await homeRepo.getUserPlanDetailsWorkout(
+        accessToken: token,
+        planId: '0',
+        userId: userId,
+        showSlots: true,
       );
-    } else {
-      filtered = allSlots.take(5).toList();
-    }
 
-    if (mounted) {
-      setState(() {
-        _currentPhase = phase;
-        _slots = filtered;
-        _isLoading = false;
-      });
+      List<Slot> allSlots = [];
+      if (slotsResponse.body != null && slotsResponse.body['status'] == '1' && slotsResponse.body['data'] != null) {
+        final data = slotsResponse.body['data'];
+        if (data['trainerSlots'] is List) {
+          final trainerSlots = (data['trainerSlots'] as List).whereType<Map<String, dynamic>>().map((ts) => TrainerSlot.fromJson(ts)).toList();
+          for (final ts in trainerSlots) {
+            allSlots.addAll(ts.slots);
+          }
+        }
+      }
+
+      // 3. Filter recommended or take first 5
+      if (phase != null) {
+        filtered = RecommendationService.filterRecommended<Slot>(
+          allSlots,
+          (slot) => slot.type,
+          phase,
+        );
+      } else {
+        filtered = allSlots.take(5).toList();
+      }
+    } catch (e) {
+      debugPrint('RecommendedSlotsScreen · _loadData failed: $e');
+      filtered = [];
+    } finally {
+      if (mounted) {
+        setState(() {
+          _currentPhase = phase;
+          _slots = filtered;
+          _isLoading = false;
+        });
+      }
     }
   }
 

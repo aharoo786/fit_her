@@ -1,4 +1,5 @@
 import 'package:fitness_zone_2/UI/dashboard_module/paste_link/paste_link.dart';
+import 'package:fitness_zone_2/UI/trial_tokens/trial_token_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/values/my_colors.dart';
 import 'package:fitness_zone_2/widgets/custom_button.dart';
@@ -28,9 +29,7 @@ class CustomerSupportScreen extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(
           children: [
-            SizedBox(
-              height: 50.h,
-            ),
+            SizedBox(height: 50.h),
             Stack(
               alignment: Alignment.bottomLeft,
               children: [
@@ -48,28 +47,23 @@ class CustomerSupportScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                Image.asset(
-                  MyImgs.girl,
-                  scale: 3,
-                ),
+                Image.asset(MyImgs.girl, scale: 3),
               ],
             ),
-            SizedBox(
-              height: 20.h,
-            ),
+            SizedBox(height: 20.h),
+
+            // ── All Users ───────────────────────────────────────────────────
             GestureDetector(
               onTap: () {
-                Get.to(() => AllUsersScreen(
-                      isCustomerSupport: true,
-                    ));
+                Get.to(() => AllUsersScreen(isCustomerSupport: true));
                 homeController.getAllUsersFunc(isCustomerSupport: true);
               },
               child: containerWidget(
                   const Color(0xffCCF2FE), "All Users", MyImgs.userIcon),
             ),
-            SizedBox(
-              height: 20.h,
-            ),
+            SizedBox(height: 20.h),
+
+            // ── Referral link (existing) ────────────────────────────────────
             GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(
@@ -81,8 +75,91 @@ class CustomerSupportScreen extends StatelessWidget {
               child: containerWidget(
                   const Color(0xffCCF2FE), "Your Link", MyImgs.userIcon),
             ),
+            SizedBox(height: 20.h),
+
+            // ── Trial Links ─────────────────────────────────────────────────
+            // Generate deep links that auto-start a 3-day TrialJourney when
+            // the lead taps the link. Backed by the TrialTokens table.
+            GestureDetector(
+              onTap: () => Get.to(() => const TrialTokenScreen()),
+              child: _trialLinkCard(),
+            ),
+            SizedBox(height: 20.h),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Highlighted card for the trial-link panel — distinct from the plain blue
+  /// "All Users" / "Your Link" tiles to signal it's the primary action.
+  Widget _trialLinkCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.r),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF163220), Color(0xFF1A3A28)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF163220).withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42.w,
+            height: 42.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: MyColors.buttonColor.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.add_link,
+              color: MyColors.buttonColor,
+              size: 22.sp,
+            ),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Trial Links',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Generate & share 3-day free trial deep links',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11.sp,
+                    color: Colors.white.withOpacity(0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            color: MyColors.buttonColor,
+            size: 22.sp,
+          ),
+        ],
       ),
     );
   }

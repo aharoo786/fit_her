@@ -4,6 +4,7 @@ import '../../Repos/diet_plan_v2/diet_plan_admin_repository.dart';
 import '../../models/diet_plan_v2/diet_plan_v2_models.dart';
 import '../../../values/constants.dart';
 import '../auth_controller/auth_controller.dart';
+import '../../../helper/analytics_helper.dart';
 
 /// Drives the dietitian-side diet-plan surfaces (Phase E).
 ///
@@ -271,6 +272,12 @@ class DietPlanAdminController extends GetxController {
         reason: reason,
       );
       currentPlan.value = updated;
+      // Admin/dietitian-initiated cancellation — there is no client
+      // self-serve cancel flow, so this is the only place this fires.
+      AnalyticsHelper.trackSubscriptionCancelled(
+        plan.id.toString(),
+        reason: reason,
+      );
       // Either a draft is gone OR an active plan flipped to cancelled —
       // dashboard should reflect both.
       await loadDrafts(refresh: true);

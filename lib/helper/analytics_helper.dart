@@ -396,4 +396,40 @@ class AnalyticsHelper {
   static Future<void> trackProgressV2DoctorShareClicked() async {
     await _analyticsService.logProgressV2DoctorShareClicked();
   }
+// ─── Subscription lifecycle events ──────────────────────────────────
+
+  /// Repeat purchase from an already-active user (renewal), not a
+  /// first-time signup. Caller must already know the user was paid
+  /// before this purchase went through.
+  static Future<void> trackSubscriptionRenewed(String planId,
+      {String? planName, String? planPrice}) async {
+    await _analyticsService.logSubscriptionRenewed(
+      planId: planId,
+      planName: planName,
+      planPrice: planPrice,
+    );
+  }
+
+  /// Fire once per plan id when its expiry date has passed — caller is
+  /// responsible for de-duplicating so this doesn't refire on every
+  /// render of the plan card.
+  static Future<void> trackSubscriptionExpired(String planId,
+      {String? planName, int? daysOverdue, String source = 'client_inferred'}) async {
+    await _analyticsService.logSubscriptionExpired(
+      planId: planId,
+      planName: planName,
+      daysOverdue: daysOverdue,
+      source: source,
+    );
+  }
+
+  /// Admin/dietitian-initiated plan cancellation — there is no client
+  /// self-serve cancellation flow today.
+  static Future<void> trackSubscriptionCancelled(String planId,
+      {String? reason}) async {
+    await _analyticsService.logSubscriptionCancelled(
+      planId: planId,
+      reason: reason,
+    );
+  }
 }

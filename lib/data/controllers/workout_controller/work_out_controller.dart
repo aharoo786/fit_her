@@ -406,52 +406,49 @@ class WorkOutController extends GetxController implements GetxService {
     });
   }
 
-  updateFreeTrialData(List<Map<String, dynamic>> answers) {
-    connectionService.checkConnection().then((value) async {
-      if (!value) {
-        CustomToast.noInternetToast();
-        // Get.back();
-      } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+  // Returns a Future so callers can await completion and prevent double-submits.
+  Future<void> updateFreeTrialData(List<Map<String, dynamic>> answers) async {
+    final connected = await connectionService.checkConnection();
+    if (!connected) {
+      CustomToast.noInternetToast();
+      return;
+    }
 
-        await homeRepo.addFreeTrialUserData(
-          accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-          map: {
-            "mainGoal": answers[0]["other"]
-                ? answers[0]["otherText"]
-                : answers[0]["answersList"].join(","),
-            "specificIssues": answers[1]["other"]
-                ? answers[1]["otherText"]
-                : answers[1]["answersList"].join(","),
-            "prefrences": answers[2]["other"]
-                ? answers[2]["otherText"]
-                : answers[2]["answersList"].join(","),
-            "freeTrialUser":
-                sharedPreferences.getString(Constants.userId) ?? "",
-            "slots": freeTrialSlots
-          },
-        ).then((response) async {
-          Get.back();
+    Get.dialog(const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false);
 
-          if (response.statusCode == 200) {
-            if (response.body["status"] == "0") {
-              CustomToast.failToast(msg: response.body["message"]);
-            } else if (response.body["status"] != "0") {
-              ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
-              if (model.status == "1") {
-                // Track free trial completed
-                AnalyticsHelper.trackFreeTrialEvent('completed', step: 'slots');
+    final response = await homeRepo.addFreeTrialUserData(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      map: {
+        "mainGoal": answers[0]["other"]
+            ? answers[0]["otherText"]
+            : answers[0]["answersList"].join(","),
+        "specificIssues": answers[1]["other"]
+            ? answers[1]["otherText"]
+            : answers[1]["answersList"].join(","),
+        "prefrences": answers[2]["other"]
+            ? answers[2]["otherText"]
+            : answers[2]["answersList"].join(","),
+        "freeTrialUser": sharedPreferences.getString(Constants.userId) ?? "",
+        "slots": freeTrialSlots
+      },
+    );
 
-                CustomToast.successToast(msg: model.message);
-                Get.offAll(() => BottomBarScreen());
-              }
-            }
-          } else {
-            CustomToast.failToast(msg: response.body["message"]);
-          }
-        });
+    Get.back(); // close loading dialog
+
+    if (response.statusCode == 200) {
+      if (response.body["status"] == "0") {
+        CustomToast.failToast(msg: response.body["message"]);
+      } else if (response.body["status"] == "1") {
+        final model = ApiResponse.fromJson(response.body, (p0) {});
+        if (model.status == "1") {
+          AnalyticsHelper.trackFreeTrialEvent('completed', step: 'slots');
+          CustomToast.successToast(msg: model.message);
+          Get.offAll(() => BottomBarScreen());
+        }
       }
-    });
+    } else {
+      CustomToast.failToast(msg: response.body["message"]);
+    }
   }
 }

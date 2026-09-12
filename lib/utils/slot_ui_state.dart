@@ -13,11 +13,11 @@ enum SlotUIState {
   /// actions. Beats every other state.
   cancelled,
 
-  /// More than 15 minutes from start. Neutral upcoming card, no
+  /// More than 20 minutes from start. Neutral upcoming card, no
   /// Join button.
   upcomingFar,
 
-  /// Within 15 minutes of start, before start. Show countdown pill;
+  /// Within 20 minutes of start, before start. Show countdown pill;
   /// button is disabled with "Starts in Xm" label and a toast on tap.
   upcomingSoon,
 
@@ -43,6 +43,11 @@ enum SlotUIState {
   /// "Upcoming Class" / "Class Link Added"). Distinct from [past] so
   /// the UI can flag missed sessions for follow-up.
   endedNotAttended,
+
+  /// Trainer marked the slot "Completed" while we are still inside the
+  /// scheduled time window (i.e. ended the session early via the button).
+  /// Beats all live states — show "Session ended" badge, no actions.
+  endedEarly,
 }
 
 /// Backend status string constants the resolver cares about. Anything
@@ -83,7 +88,7 @@ class UserAccessInput {
   });
 }
 
-const Duration _kSoonWindow = Duration(minutes: 15);
+const Duration _kSoonWindow = Duration(minutes: 20);
 
 bool _wasOrIsLive(String? trimmedStatus) =>
     trimmedStatus == SlotStatus.inProgress ||
@@ -123,12 +128,16 @@ SlotUIState resolveSlotUIState({
         : SlotUIState.endedNotAttended;
   }
 
-  // Before the window — far vs soon split at start - 15 min.
+  // Before the window — far vs soon split at start - 20 min.
   final soonStart = slot.start.subtract(_kSoonWindow);
   if (now.isBefore(soonStart)) return SlotUIState.upcomingFar;
   if (now.isBefore(slot.start)) return SlotUIState.upcomingSoon;
 
   // Inside the window: start <= now < end.
+  // Trainer ended the session early — status flipped to "Completed" before
+  // slot.end. Show "Session ended" card, not the stale "liveNotReady" state.
+  if (status == SlotStatus.completed) return SlotUIState.endedEarly;
+
   if (status != SlotStatus.inProgress || !_hasLink(slot.trainerLink)) {
     return SlotUIState.liveNotReady;
   }
@@ -227,6 +236,7 @@ SlotPresentation presentationForState(
     case SlotUIState.cancelled:
     case SlotUIState.past:
     case SlotUIState.endedNotAttended:
+    case SlotUIState.endedEarly:
     case SlotUIState.upcomingFar:
       return SlotPresentation._hidden;
 

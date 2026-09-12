@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
 import '../new_home/phase_theme.dart';
+import 'paid_sleep_card.dart' show showSleepGoalReachedDialog;
 
 /// Slider-only bottom sheet for logging last night's sleep.
 /// Range: 4.0h..10.0h in 0.5h steps (12 divisions, 13 tick positions).
@@ -59,9 +60,26 @@ class _SleepLogModalState extends State<SleepLogModal> {
 
   Future<void> _onSave() async {
     final controller = Get.find<PaidHomeController>();
+
+    // Capture pre-save values to detect the goal-reached transition —
+    // mirrors PaidSleepCard._onQuickLog/PaidWaterCard._onTap. The slider
+    // is the OTHER way sleep gets logged (besides the 6h/7h/8h quick
+    // buttons), so it needs the same celebration trigger.
+    final s = widget.dashboard.sleep;
+    final prevHours = s?.hoursToday;
+    final target = s?.targetHours;
+    final wasUnderGoal =
+        target != null && target > 0 && (prevHours == null || prevHours < target);
+
     final success = await controller.logSleep(_selectedHours);
     if (!mounted) return;
     if (success) {
+      if (wasUnderGoal) {
+        final newHours = controller.dashboard.value?.sleep?.hoursToday;
+        if (newHours != null && newHours >= target) {
+          showSleepGoalReachedDialog(context);
+        }
+      }
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

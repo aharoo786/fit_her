@@ -5,11 +5,16 @@ import '../../data/services/cycle_engine.dart';
 class HeroGreetingBlock extends StatelessWidget {
   final String? firstName;
   final CycleInfo? cycleInfo;
+  /// True while the cycle API call is in flight.
+  /// Shows a skeleton placeholder instead of "Preview mode" so the hero
+  /// never flashes an empty state during the first-frame load.
+  final bool isLoading;
 
   const HeroGreetingBlock({
     Key? key,
     this.firstName,
     this.cycleInfo,
+    this.isLoading = false,
   }) : super(key: key);
 
   String _timeAwareGreeting() {
@@ -68,9 +73,20 @@ class HeroGreetingBlock extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          // Phase — muted label + bold emoji. When cycle data is missing,
-          // show "Preview mode" in a single muted style (no emoji split).
-          if (phase != null)
+          // Phase line — skeleton while loading, real data or "Preview mode"
+          // once the API responds.
+          if (isLoading)
+            // Skeleton pill — same height as the phase text so the layout
+            // doesn't jump when data arrives.
+            Container(
+              width: 180,
+              height: phaseSize + 2,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            )
+          else if (phase != null)
             Text.rich(
               TextSpan(
                 children: [
@@ -116,28 +132,49 @@ class HeroGreetingBlock extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _chip(dayText, 12, FontWeight.w700,
-                  const Color(0xFFA8F0C0).withOpacity(0.55)),
-              _sep(),
-              _chip('Preview mode', 11, null,
-                  Colors.white.withOpacity(0.65)),
-              _sep(),
-              _chip('—', 11, FontWeight.w600,
-                  Colors.white.withOpacity(0.2)),
-              _sep(),
-              _chip('Start trial', 12, FontWeight.w700,
-                  const Color(0xFF6DC55A).withOpacity(0.7)),
-            ],
-          ),
+          // Chip row — skeleton while loading, real chips once data arrives.
+          if (isLoading)
+            Row(
+              children: [
+                _skeletonChip(60),
+                const SizedBox(width: 8),
+                _skeletonChip(80),
+                const SizedBox(width: 8),
+                _skeletonChip(50),
+              ],
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _chip(dayText, 12, FontWeight.w700,
+                    const Color(0xFFA8F0C0).withOpacity(0.55)),
+                _sep(),
+                _chip('Preview mode', 11, null,
+                    Colors.white.withOpacity(0.65)),
+                _sep(),
+                _chip('—', 11, FontWeight.w600,
+                    Colors.white.withOpacity(0.2)),
+                _sep(),
+                _chip('Start trial', 12, FontWeight.w700,
+                    const Color(0xFF6DC55A).withOpacity(0.7)),
+              ],
+            ),
         ],
       ),
     );
   }
+
+  Widget _skeletonChip(double width) => Container(
+        width: width,
+        height: 12,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
 
   Widget _sep() => Text(
         '·',

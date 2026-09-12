@@ -204,7 +204,14 @@ class MainActivity : FlutterFragmentActivity(), ZoomSDKInitializeListener, Meeti
 
     override fun onDestroy() {
         super.onDestroy()
-        ZoomSDK.getInstance().meetingService?.removeListener(this)
-        ZoomSDK.getInstance().logoutZoom()
+        // classes.jar is missing us.zoom.model.ZmRouterInfo so logoutZoom()
+        // throws NoClassDefFoundError at runtime. Guard with try-catch so a
+        // missing Zoom model class doesn't crash the whole activity teardown.
+        try {
+            ZoomSDK.getInstance().meetingService?.removeListener(this)
+            ZoomSDK.getInstance().logoutZoom()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Zoom SDK cleanup failed on destroy", e)
+        }
     }
 }

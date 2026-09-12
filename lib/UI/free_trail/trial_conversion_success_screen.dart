@@ -47,7 +47,7 @@ class _TrialConversionSuccessScreenState
             ),
             const SizedBox(height: 8),
             Text(
-              "Your 3-day trial is complete and your account is now ready for subscription plans.",
+              "You completed all 3 trial days. Pick a plan below to keep your progress and continue your Fit Her journey.",
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium,
             ),

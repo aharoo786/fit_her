@@ -532,7 +532,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
     final parts = (slot.start).split(' ');
     final time = parts.isNotEmpty ? parts[0] : slot.start;
     final ampm = parts.length > 1 ? parts[1] : '';
-    final muted = _isPastState(state) || state == SlotUIState.cancelled;
+    final muted = _isPastState(state) || state == SlotUIState.cancelled || state == SlotUIState.endedEarly;
     final timeColor = muted ? _textMuted : _textDark;
     final ampmColor = muted ? _textHint : _textMuted;
     return Column(
@@ -600,7 +600,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
         ),
       );
     }
-    if (_isPastState(state)) {
+    if (_isPastState(state) || state == SlotUIState.endedEarly) {
       return Container(
         width: 12.w,
         height: 12.w,
@@ -627,6 +627,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   Widget _buildCard(
       Slot slot, SlotUIState state, SlotPresentation presentation) {
     if (state == SlotUIState.cancelled) return _buildCancelledCard(slot);
+    if (state == SlotUIState.endedEarly) return _buildEndedEarlyCard(slot);
     if (_isPastState(state)) return _buildPastCard(slot);
     if (_isUpcomingState(state)) return _buildUpcomingCard(slot, presentation);
     return _buildLiveCard(slot, presentation);
@@ -792,6 +793,71 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
                     fontSize: 10.sp,
                     fontWeight: FontWeight.w700,
                     color: _liveRed,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Card shown when the trainer ended the session before the scheduled
+  /// end time. Status is "Completed" but [now < slot.end], so [resolveSlotUIState]
+  /// returns [SlotUIState.endedEarly]. No join button — session is over.
+  Widget _buildEndedEarlyCard(Slot slot) {
+    // Amber tone — distinct from the red "Cancelled" badge.
+    const Color amber = Color(0xFFFF9F43);
+    final trainer = _trainerName(slot);
+    final duration = _durationMinutes(slot);
+    final intensity = _intensityFromSlotType(slot.type);
+    return GestureDetector(
+      onTap: () => _onSlotTap(slot),
+      child: Opacity(
+        opacity: 0.7,
+        child: Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                slot.type ?? 'Class',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _textDark,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                _metaLine(trainer, duration, _intensityLabel(intensity)),
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 11.sp,
+                  color: _textMuted,
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: amber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  'Session ended early',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    color: amber,
                   ),
                 ),
               ),

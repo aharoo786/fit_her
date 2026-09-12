@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
@@ -206,13 +205,13 @@ class _LoginState extends State<Login> {
   Widget _buildTitle() {
     return Text(
       'Welcome back',
-      style: GoogleFonts.dmSerifDisplay(
-        textStyle: TextStyle(
-          fontSize: 32.sp,
-          color: _textDark,
-          height: 1.1,
-          letterSpacing: -0.16, // -0.005em × 32
-        ),
+      style: TextStyle(
+        fontFamily: 'DMSerifDisplay',
+        fontWeight: FontWeight.w400,
+        fontSize: 32.sp,
+        color: _textDark,
+        height: 1.1,
+        letterSpacing: -0.16, // -0.005em × 32
       ),
     );
   }
@@ -708,11 +707,11 @@ class _TeamRolePicker extends StatelessWidget {
             SizedBox(height: 16.h),
             Text(
               'Login as',
-              style: GoogleFonts.dmSerifDisplay(
-                textStyle: TextStyle(
-                  fontSize: 22.sp,
-                  color: _textDark,
-                ),
+              style: TextStyle(
+                fontFamily: 'DMSerifDisplay',
+                fontWeight: FontWeight.w400,
+                fontSize: 22.sp,
+                color: _textDark,
               ),
             ),
             SizedBox(height: 4.h),

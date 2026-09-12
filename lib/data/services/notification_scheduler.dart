@@ -41,7 +41,7 @@ class NotificationScheduler {
       return;
     }
 
-    final scheduledDate = _nextOccurrence(8, 0);
+    final scheduledDate = nextOccurrence(8, 0);
 
     try {
       debugPrint('🔔 Scheduling morning nudge for: $scheduledDate');
@@ -73,7 +73,7 @@ class NotificationScheduler {
       return;
     }
 
-    final scheduledDate = _nextDayOfWeek(DateTime.sunday, 19, 0);
+    final scheduledDate = nextDayOfWeek(DateTime.sunday, 19, 0);
 
     await _plugin.zonedSchedule(
       weeklyCheckinId,
@@ -87,12 +87,15 @@ class NotificationScheduler {
     );
   }
 
-  /// Returns true if the current local time falls within quiet hours.
+  /// Returns true if [now] (defaults to the current local time) falls
+  /// within quiet hours.
   ///
-  /// Handles midnight crossing correctly (e.g. 22:00 to 07:00).
-  static bool isQuietHours(String quietStart, String quietEnd) {
-    final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
+  /// Handles midnight crossing correctly (e.g. 22:00 to 07:00). [now] is
+  /// injectable so this can be tested deterministically — see
+  /// test/notifications/notification_scheduler_test.dart.
+  static bool isQuietHours(String quietStart, String quietEnd, [DateTime? now]) {
+    final effectiveNow = now ?? DateTime.now();
+    final currentMinutes = effectiveNow.hour * 60 + effectiveNow.minute;
 
     final startParts = quietStart.split(':');
     final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
@@ -139,14 +142,23 @@ class NotificationScheduler {
     await _plugin.cancel(id);
   }
 
-  // ── Private helpers ──────────────────────────────────────
+  // ── Pure date math (public for testability) ──────────────
+  //
+  // Previously private (_nextOccurrence/_nextDayOfWeek). Made public and
+  // given an injectable [now] so they can be tested deterministically
+  // without depending on the wall clock at test-run time — see
+  // test/notifications/notification_scheduler_test.dart. Behavior for
+  // existing callers (scheduleMorningNudge/scheduleWeeklyCheckin) is
+  // unchanged since they don't pass [now] and get the same
+  // tz.TZDateTime.now(tz.local) default as before.
 
   /// Returns the next occurrence of the given hour:minute in local timezone.
   /// If the time has already passed today, returns tomorrow.
-  static tz.TZDateTime _nextOccurrence(int hour, int minute) {
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    if (scheduled.isBefore(now)) {
+  static tz.TZDateTime nextOccurrence(int hour, int minute, [tz.TZDateTime? now]) {
+    final effectiveNow = now ?? tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+        tz.local, effectiveNow.year, effectiveNow.month, effectiveNow.day, hour, minute);
+    if (scheduled.isBefore(effectiveNow)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;
@@ -154,15 +166,15 @@ class NotificationScheduler {
 
   /// Returns the next occurrence of a specific day of week at hour:minute.
   /// If that day/time has already passed this week, returns next week.
-  static tz.TZDateTime _nextDayOfWeek(int weekday, int hour, int minute) {
-    final now = tz.TZDateTime.now(tz.local);
-    var daysUntil = weekday - now.weekday;
+  static tz.TZDateTime nextDayOfWeek(int weekday, int hour, int minute, [tz.TZDateTime? now]) {
+    final effectiveNow = now ?? tz.TZDateTime.now(tz.local);
+    var daysUntil = weekday - effectiveNow.weekday;
     if (daysUntil < 0) daysUntil += 7;
 
     var scheduled = tz.TZDateTime(
-      tz.local, now.year, now.month, now.day + daysUntil, hour, minute,
+      tz.local, effectiveNow.year, effectiveNow.month, effectiveNow.day + daysUntil, hour, minute,
     );
-    if (scheduled.isBefore(now)) {
+    if (scheduled.isBefore(effectiveNow)) {
       scheduled = scheduled.add(const Duration(days: 7));
     }
     return scheduled;

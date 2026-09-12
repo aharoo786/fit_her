@@ -8,11 +8,13 @@ import 'package:fitness_zone_2/widgets/zoom_meeting_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '/helper/get_di.dart' as di;
+import 'helper/notification_message_classifier.dart' as classifier;
 import 'UI/auth_module/splash.dart';
 import 'data/api_provider/app_link_handler.dart';
 import 'data/controllers/auth_controller/auth_controller.dart';
@@ -30,6 +32,12 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+// Lets any screen detect "I've become visible again because a screen
+// pushed on top of me was popped" (RouteAware.didPopNext), e.g. the
+// paid home screen refreshing freeze/expiry status after the user backs
+// out of Profile having just frozen or unfrozen their plan there.
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -44,6 +52,22 @@ Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Font flash (FOUT) guard.
+  // google_fonts does NOT bundle a font — by default it paints the text in
+  // the system fallback, fetches the .ttf from fonts.gstatic.com in the
+  // background, then repaints once it lands. That is what made the headline
+  // on the welcome / login / diet screens change face a second after the
+  // screen appeared (and it also happened on every cold start, because even
+  // the on-disk cache is read asynchronously).
+  //
+  // DM Serif Display and Fraunces are now declared in pubspec.yaml and
+  // loaded from the asset bundle before the first frame, so nothing needs
+  // fetching. Setting this to false makes google_fonts throw instead of
+  // silently going to the network, so a future GoogleFonts.x() call fails
+  // loudly in development rather than shipping the flash again.
+  GoogleFonts.config.allowRuntimeFetching = false;
+
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.edgeToEdge,
   );
@@ -89,24 +113,14 @@ Future<void> main() async {
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   NotificationServices noti = Get.find();
-  final type = message.data["type"];
-  final isAnnouncement = message.data["annoucement"] != null ||
-      message.data["announcement"] != null ||
-      type == "announcement";
-  final isClassUpdate = type == "upcomingClass" ||
-      type == "classPrep" ||
-      type == "classStart" ||
-      type == "classLinkAdded" ||
-      type == "trainerLinkAdded" ||
-      message.notification?.title == "Class Reminder" ||
-      message.notification?.title == "Upcoming Class" ||
-      message.notification?.title == "Class Link Added" ||
-      message.notification?.title == "Class link Added" ||
-      message.notification?.title == "Trainer link Added" ||
-      message.notification?.title == "Sweat Now, Selfies Later" ||
-      message.notification?.title == "Class Cancelled";
-  final hasClassPayload =
-      message.data["upcomingSlot"] != null && message.data["trainer"] != null;
+  // Shared with NotificationServices' foreground handler (via
+  // helper/notification_message_classifier.dart) so this background/
+  // terminated-state path can never silently drift from the foreground
+  // one — previously each carried its own independent copy of this
+  // exact classification logic.
+  final isAnnouncement = classifier.isAnnouncementMessage(message);
+  final isClassUpdate = classifier.isClassUpdateMessage(message);
+  final hasPayload = classifier.hasClassPayload(message);
 
   if (isAnnouncement) {
     var sharedPreferences = await SharedPreferences.getInstance();
@@ -122,7 +136,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
   UpcomingClassSlot? upcomingClassSlot;
 
-  if (isClassUpdate && hasClassPayload) {
+  if (isClassUpdate && hasPayload) {
     upcomingClassSlot = UpcomingClassSlot(
         upcomingSlot: Slot.fromJson(jsonDecode(message.data["upcomingSlot"])),
         trainer: ClientUser.fromJson(jsonDecode(message.data["trainer"])));
@@ -177,6 +191,7 @@ class _MyAppState extends State<MyApp> {
       designSize: const Size(414, 896),
       builder: (context, Widget) => GetMaterialApp(
         navigatorKey: navigatorKey,
+        navigatorObservers: [routeObserver],
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         getPages: [

@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/controllers/paid_home_controller/paid_home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/post_controller.dart';
+import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/helper/notification_services.dart';
 import 'package:fitness_zone_2/values/constants.dart';
 import 'package:get/get.dart';
@@ -12,11 +14,24 @@ import '../models/get_user_plan/get_workout_user_plan_details.dart';
 import '../models/post_model.dart';
 import '../models/upcoming_class_slot.dart';
 import 'auth_controller/auth_controller.dart';
+import 'socket_time_block.dart';
 
 class SocketController extends GetxController {
   IO.Socket? socket;
 
   HomeController homeController = Get.find();
+
+  // The socket opens bound to whoever was logged in at the time
+  // (onConnect emits "getSlot" with that user's id — see socketInit below)
+  // and nothing ever closed it on logout. Get.delete now calls this
+  // automatically, so logging out actually drops the connection instead of
+  // leaving it open and receiving/emitting events for a signed-out account.
+  @override
+  void onClose() {
+    socket?.disconnect();
+    socket = null;
+    super.onClose();
+  }
 
   void joinCommunity() {
     print('SocketController.joinCommunity');
@@ -39,7 +54,9 @@ class SocketController extends GetxController {
   }
 
   socketInit() {
-    socket = IO.io('https://backend.thefither.com', <String, dynamic>{
+    // Uses Constants.baseUrl so dev builds hit local server and prod
+    // builds hit backend.thefither.com — previously hardcoded to prod.
+    socket = IO.io(Constants.baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
       'reconnection': true,
@@ -83,6 +100,12 @@ class SocketController extends GetxController {
           body: _bodyForStatus(upcomingClassSlot.upcomingSlot?.status),
         );
       }
+
+      // Instantly refresh the new home dashboard (comingUp tiles) and the
+      // workout schedule screen so status changes (Confirmed, Cancelled,
+      // In Progress) appear immediately without waiting for the 30s heartbeat.
+      // Both calls are silent — no loading spinner, no error toast.
+      _silentRefreshSchedule();
     });
 
     socket?.on("newPost", (message) {
@@ -137,7 +160,6 @@ class SocketController extends GetxController {
 
     socket?.on("toggleLike", (message) {
       if (message != null) {
-    
         final post = Get.find<PostController>().postsList.firstWhereOrNull((p) => p.id == int.parse(message["postId"]));
         print('SocketController.socketInit ${post}');
         if (post != null) {
@@ -154,61 +176,45 @@ class SocketController extends GetxController {
     });
   }
 
+  /// Fires silent data refreshes on every screen that shows slot status.
+  /// Called on every incoming [slotUpdate] socket event so Confirmed /
+  /// Cancelled / In Progress changes appear instantly without waiting for
+  /// the 30-second heartbeat timers in PaidHomeScreenV2 and WorkOutBottomScreen.
+  ///
+  /// Both calls are best-effort — we swallow errors so a stale controller
+  /// (e.g., trainer device that never mounted WorkOutBottomScreen) can't
+  /// crash the socket handler.
+  void _silentRefreshSchedule() {
+    // New home screen — refreshes comingUp slot tiles.
+    try {
+      Get.find<PaidHomeController>().silentRefresh();
+    } catch (_) {}
+
+    // Workout schedule screen — refreshes the full slot tree.
+    // planId '0' is the "current plan" sentinel used across the app.
+    try {
+      Get.find<WorkOutController>().getDietPlanDetailsFunc('0', silent: true);
+    } catch (_) {}
+  }
+
   /// Returns true if [slotStart] falls inside the user's preferred time block.
   /// Handles both 24h ("08:00") and 12h ("8:00 AM" / "08:00 PM") formats.
   /// "all" or unset → always true (notify for everything).
+  ///
+  /// Delegates to socket_time_block.dart's pure `isSlotTimeInPreferredBlock`
+  /// so the actual matching logic (and its tests) lives in one shared,
+  /// dependency-free place — this wrapper just supplies the timeBlock
+  /// preference from SharedPreferences. Every existing call site is
+  /// unchanged.
   bool _isInPreferredTimeBlock(String? slotStart) {
     final prefs = Get.find<AuthController>().sharedPreferences;
     final timeBlock = prefs.getString(Constants.timeBlock) ?? 'all';
-
-    if (timeBlock == 'all') return true;
-    if (slotStart == null || slotStart.isEmpty) return true;
-
-    try {
-      int hour;
-      final upper = slotStart.toUpperCase().trim();
-
-      if (upper.contains('AM') || upper.contains('PM')) {
-        // 12h format: "8:00 AM" or "08:00 PM"
-        final isPm = upper.contains('PM');
-        final timePart = upper.replaceAll('AM', '').replaceAll('PM', '').trim();
-        final parts = timePart.split(':');
-        hour = int.parse(parts[0]);
-        if (isPm && hour != 12) hour += 12;
-        if (!isPm && hour == 12) hour = 0;
-      } else {
-        // 24h format: "08:00"
-        final parts = slotStart.split(':');
-        hour = int.parse(parts[0]);
-      }
-
-      switch (timeBlock) {
-        case 'morning':   return hour >= 6  && hour < 11;
-        case 'afternoon': return hour >= 11 && hour < 16;
-        case 'evening':   return hour >= 16 && hour < 20;
-        case 'night':     return hour >= 20 && hour < 23;
-        default:          return true;
-      }
-    } catch (_) {
-      return true; // Parse error → don't silently drop notification
-    }
+    return isSlotTimeInPreferredBlock(timeBlock, slotStart);
   }
 
-  String _titleForStatus(String? status) {
-    switch (status) {
-      case 'Cancelled':    return 'Class Cancelled';
-      case 'In Progress':  return 'Sweat Now, Selfies Later 💪';
-      default:             return 'Class Link Added';
-    }
-  }
+  String _titleForStatus(String? status) => classReminderTitleForStatus(status);
 
-  String _bodyForStatus(String? status) {
-    switch (status) {
-      case 'Cancelled':   return 'Sorry, your upcoming class has been cancelled.';
-      case 'In Progress': return 'Join the session now.';
-      default:            return 'Join the session now.';
-    }
-  }
+  String _bodyForStatus(String? status) => classReminderBodyForStatus(status);
 
   getSlot() {
     socket?.emit("getSlot", {"id": Get.find<AuthController>().logInUser?.id});

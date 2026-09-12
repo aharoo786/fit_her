@@ -178,12 +178,11 @@ class _FreeTrialSlotsState extends State<FreeTrialSlots> {
                   ),
                   CustomButton(
                     text: "Continue to 3-Day Trial",
-                    onPressed: () async {
-                      await homeController.getMyTrialJourney();
-                      if (homeController.trialJourney == null) {
-                        await homeController.startTrial();
-                        await homeController.getMyTrialJourney();
-                      }
+                    onPressed: () {
+                      // Bug 1 fix: do NOT call startTrial() here.
+                      // TrialJourneyScreen._loadJourney() calls getMyTrialJourney()
+                      // first and shows a confirmation dialog before starting —
+                      // calling startTrial() here bypasses that dialog entirely.
                       Get.to(() => const TrialJourneyScreen());
                     },
                   ),
