@@ -55,6 +55,14 @@ class V2BottomSheet extends StatelessWidget {
       isDismissible: dismissible,
       enableDrag: dismissible,
       backgroundColor: Colors.transparent,
+      // Without an explicit barrierColor this had no scrim at all, so
+      // whatever screen opened the sheet (e.g. PlanReviewEditScreen)
+      // stayed fully lit behind it — normal-contrast, fully readable —
+      // instead of dimmed. Combined with the keyboard eating a big
+      // chunk of the viewport for a short form like Edit Meal, that
+      // read as the background "bleeding through" the sheet rather than
+      // a page sitting politely behind a modal.
+      barrierColor: Colors.black.withOpacity(0.45),
     );
   }
 
@@ -63,7 +71,14 @@ class V2BottomSheet extends StatelessWidget {
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
     return SafeArea(
       top: false,
-      child: Padding(
+      // AnimatedPadding (not a static Padding) so the sheet slides up in
+      // step with the keyboard's own show/hide animation instead of
+      // snapping to the new inset a frame late — that one-frame lag was
+      // the other half of the "content looks like it's floating loose
+      // over the page" glitch on lower-end devices.
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
         padding: EdgeInsets.only(bottom: viewInsets),
         child: Container(
           decoration: const BoxDecoration(

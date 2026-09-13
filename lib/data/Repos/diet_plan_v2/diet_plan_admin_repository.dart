@@ -59,10 +59,20 @@ class DietPlanAdminRepository extends GetxService {
       'planDays': planDays,
       if (mealsPerDay != null) 'mealsPerDay': mealsPerDay,
     };
+    // AI generation genuinely runs long — Vertex/Gemini structured JSON
+    // output for up to 14 days × 6 meals (see GeneratePlanScreen's
+    // slider), plus ADC token refresh on a non-GCE dev box, routinely
+    // clears 30s. That used to be exactly ApiProvider's default request
+    // timeout, so a perfectly successful generation would get cut off
+    // client-side and reported to the dietitian as "Request timed out"
+    // even while the backend kept working (and the draft could still
+    // land a few seconds later). Every other call on this repo keeps
+    // the 30s default — this is the one genuinely slow endpoint.
     final res = await _safe(() => apiProvider.postData(
           Constants.dietPlanAdminGenerate,
           body: body,
           headers: _headers(accessToken),
+          timeout: const Duration(seconds: 120),
         ));
     return _extractPlan(res);
   }

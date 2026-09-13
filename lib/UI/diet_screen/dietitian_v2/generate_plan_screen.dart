@@ -46,12 +46,18 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   static const int _kDefaultDays = 7;
   static const int _kDefaultMeals = 5;
 
-  // Rotating progress messages while the AI call is in flight (~30s).
-  // Index advances every 3s so the dietitian sees movement.
+  // Rotating progress messages while the AI call is in flight. Vertex/
+  // Gemini generation for a full multi-day, multi-meal plan can
+  // genuinely take up to ~2 minutes (see the 120s timeout on
+  // DietPlanAdminRepository.generatePlan), so this ticks slowly enough
+  // to still be moving near the end instead of sitting on "Almost
+  // there…" for the better part of a minute looking frozen.
   static const List<String> _kProgressMessages = [
     'Asking Gemini for the best meals…',
     'Balancing calories and nutrition…',
     'Adding cycle-phase awareness…',
+    'Double-checking allergies and preferences…',
+    'Putting the days together…',
     'Almost there…',
   ];
 
@@ -81,7 +87,7 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
   void _startProgressTicker() {
     _progressIdx = 0;
     _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _progressTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted) return;
       setState(() {
         // Hold on the last message rather than looping — looping reads

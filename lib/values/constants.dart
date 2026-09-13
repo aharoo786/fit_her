@@ -257,6 +257,9 @@ class Constants {
   static String trialBookDay = "/trial/book-day";
   static String trialAttendance = "/trial/attendance";
   static String trialConvert = "/trial/convert";
+  // Trial-to-Plan funnel — quick intake -> auto-generated + auto-activated
+  // starter diet plan. See trialDietPlanController.js on the backend.
+  static String trialQuickIntake = "/trial/quick-intake";
 
   /// Trial Token — sales rep deep-link system
   /// Deep-link format: https://backend.thefither.com/trial?token=<token>

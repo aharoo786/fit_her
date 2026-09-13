@@ -68,7 +68,14 @@ class ProgressSubmissionSheet extends StatefulWidget {
 }
 
 class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
-  late final ConsultationController _ctrl;
+  // Nullable + an explicit error string instead of `late final` — a
+  // failed Get.find() used to throw straight out of initState with
+  // nothing on screen but the sheet's own loading frame (dismissible:
+  // false means no close button, so the user was stuck). Now any
+  // failure here renders a real error state with a way out instead of
+  // silently hanging (see `_initError` in build()).
+  ConsultationController? _ctrl;
+  String? _initError;
 
   // Measurements
   final TextEditingController _weight = TextEditingController();
@@ -91,6 +98,14 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
   bool _busy = false;
   bool _addingPhoto = false;
 
+  // Section 9: "previous values pre-filled for comparison". Populated
+  // async, same pattern as _loadPhotos below — the form renders
+  // immediately either way; the "Last: X kg" ghost text under each
+  // measurement just appears once this resolves (or never, on cycle 15 /
+  // a first-time submission / a failed fetch — all silent, expected
+  // states, not errors).
+  Map<String, dynamic>? _previous;
+
   bool get _showsDiet =>
       widget.planType == 'diet' || widget.planType == 'combined';
   bool get _showsWorkout =>
@@ -105,8 +120,39 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
   @override
   void initState() {
     super.initState();
-    _ctrl = Get.find<ConsultationController>();
+    // Marker line — if this never shows up in logcat when the sheet is
+    // opened, the widget tree never reached this file at all (stale
+    // build / a different widget being shown), which is a completely
+    // different bug than anything inside this class.
+    debugPrint(
+        '[ProgressSubmissionSheet] initState cycle=${widget.cycle} userPlanId=${widget.userPlanId} planType=${widget.planType}');
+    try {
+      _ctrl = Get.find<ConsultationController>();
+    } catch (e, st) {
+      debugPrint('[ProgressSubmissionSheet] Get.find<ConsultationController> failed: $e\n$st');
+      _initError = 'Could not load this form ($e). Please close and reopen.';
+      return; // don't kick off loads against a controller we don't have
+    }
     _loadPhotos();
+    _loadPrevious();
+  }
+
+  Future<void> _loadPrevious() async {
+    final ctrl = _ctrl;
+    if (ctrl == null) return;
+    final previous = await ctrl.loadPreviousProgress(
+      userPlanId: widget.userPlanId,
+      cycle: widget.cycle,
+    );
+    if (!mounted || previous == null) return;
+    setState(() => _previous = previous);
+  }
+
+  double? _prevValue(String key) {
+    final v = _previous?[key];
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
   }
 
   @override
@@ -274,15 +320,16 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_canSubmit) return;
+    final ctrl = _ctrl;
+    if (!_canSubmit || ctrl == null) return;
     setState(() => _busy = true);
-    final ok = await _ctrl.submitProgress(_buildBody());
+    final ok = await ctrl.submitProgress(_buildBody());
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok) return;
     // Server retires the matching popup variable on success; mirror
     // client-side as defence in depth.
-    await _ctrl.completePopup(
+    await ctrl.completePopup(
       ProgressSubmissionSheet.popupVariableForCycle(widget.cycle),
       metadata: {'cycle': widget.cycle, 'userPlanId': widget.userPlanId},
     );
@@ -293,6 +340,47 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+        '[ProgressSubmissionSheet] build() cycle=${widget.cycle} initError=$_initError');
+
+    if (_initError != null) {
+      // Visible, actionable failure instead of a silent hang. dismissible
+      // is false on the parent sheet (no close icon in the shell), so
+      // this is the only way out if setup failed.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: Color(0xFFE05C5C), size: 40),
+          const SizedBox(height: 12),
+          const Text(
+            "Something went wrong loading this form.",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A3A22),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _initError!,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              color: Color(0xFF7A8C78),
+            ),
+          ),
+          const SizedBox(height: 20),
+          V2SecondaryButton(
+            label: 'Close',
+            onPressed: () => Get.back<dynamic>(),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -312,10 +400,13 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
         const SizedBox(height: 22),
         const _SectionHeader('Measurements'),
         const SizedBox(height: 12),
+        const _MeasurementGuide(),
+        const SizedBox(height: 16),
         MeasurementInput(
           label: 'Current weight',
           unit: 'kg',
           controller: _weight,
+          previousValue: _prevValue('weightKg'),
         ),
         const SizedBox(height: 14),
         Row(
@@ -325,6 +416,7 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
                 label: 'Waist',
                 unit: 'cm',
                 controller: _waist,
+                previousValue: _prevValue('waistCm'),
               ),
             ),
             const SizedBox(width: 12),
@@ -333,6 +425,7 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
                 label: 'Hips',
                 unit: 'cm',
                 controller: _hips,
+                previousValue: _prevValue('hipsCm'),
               ),
             ),
           ],
@@ -345,6 +438,7 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
                 label: 'Chest',
                 unit: 'cm',
                 controller: _chest,
+                previousValue: _prevValue('chestCm'),
               ),
             ),
             const SizedBox(width: 12),
@@ -353,6 +447,7 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
                 label: 'Arms',
                 unit: 'cm',
                 controller: _arms,
+                previousValue: _prevValue('armsCm'),
               ),
             ),
           ],
@@ -362,6 +457,7 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
           label: 'Thighs',
           unit: 'cm',
           controller: _thighs,
+          previousValue: _prevValue('thighsCm'),
         ),
 
         // ── Diet-specific ─────────────────────────────────
@@ -551,6 +647,134 @@ class _SectionLabel extends StatelessWidget {
           letterSpacing: 0.4,
         ),
       );
+}
+
+/// Section 9: "body measurements with a diagram of where to measure".
+/// A small labelled body silhouette + a one-line consistency tip — not
+/// meant to be anatomically precise, just enough for a user who's never
+/// taken these measurements before to know roughly where each one goes.
+class _MeasurementGuide extends StatelessWidget {
+  const _MeasurementGuide();
+
+  static const Color _label = Color(0xFF1A3A22);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5FDF2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8DEC4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 72,
+            height: 118,
+            child: CustomPaint(painter: _BodyDiagramPainter()),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Where to measure',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _label,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Chest: fullest point  ·  Waist: narrowest point\n'
+                  'Hips: widest point  ·  Arms: relaxed bicep  ·  Thighs: fullest point\n\n'
+                  'Same time of day, same conditions each time keeps the comparison fair.',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11,
+                    height: 1.5,
+                    color: Color(0xFF5C7059),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BodyDiagramPainter extends CustomPainter {
+  static const Color _line = Color(0xFF1A3A22);
+  static const Color _marker = Color(0xFF6DC55A);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = Paint()
+      ..color = _line
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    final marker = Paint()
+      ..color = _marker
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
+
+    // Head.
+    canvas.drawCircle(Offset(cx, h * 0.08), h * 0.07, outline);
+    // Neck + torso outline (a simple tapered silhouette).
+    final torso = Path()
+      ..moveTo(cx - w * 0.16, h * 0.18) // shoulder L
+      ..lineTo(cx + w * 0.16, h * 0.18) // shoulder R
+      ..lineTo(cx + w * 0.22, h * 0.34) // chest R
+      ..lineTo(cx + w * 0.13, h * 0.46) // waist R
+      ..lineTo(cx + w * 0.20, h * 0.58) // hip R
+      ..lineTo(cx + w * 0.14, h * 0.92) // leg R
+      ..moveTo(cx - w * 0.16, h * 0.18)
+      ..lineTo(cx - w * 0.22, h * 0.34) // chest L
+      ..lineTo(cx - w * 0.13, h * 0.46) // waist L
+      ..lineTo(cx - w * 0.20, h * 0.58) // hip L
+      ..lineTo(cx - w * 0.14, h * 0.92); // leg L
+    canvas.drawPath(torso, outline);
+    // Arms (relaxed, at the sides).
+    canvas.drawLine(
+        Offset(cx - w * 0.16, h * 0.19), Offset(cx - w * 0.30, h * 0.42), outline);
+    canvas.drawLine(
+        Offset(cx + w * 0.16, h * 0.19), Offset(cx + w * 0.30, h * 0.42), outline);
+
+    // Measurement markers — short horizontal dashes at each height.
+    void drawMeasureLine(double heightFrac, double halfWidthFrac) {
+      final y = h * heightFrac;
+      final segments = 5;
+      final totalW = w * halfWidthFrac * 2;
+      final start = cx - w * halfWidthFrac;
+      final dash = totalW / (segments * 1.6);
+      for (var i = 0; i < segments; i++) {
+        final x0 = start + i * dash * 1.6;
+        canvas.drawLine(Offset(x0, y), Offset(x0 + dash, y), marker);
+      }
+    }
+
+    drawMeasureLine(0.34, 0.24); // chest
+    drawMeasureLine(0.46, 0.16); // waist
+    drawMeasureLine(0.58, 0.22); // hips
+    drawMeasureLine(0.30, 0.32); // arms (bicep height, wide to reach the arm line)
+    drawMeasureLine(0.75, 0.16); // thighs
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PillChoice extends StatelessWidget {

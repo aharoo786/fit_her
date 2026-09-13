@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,6 +9,15 @@ import '../../../widgets/toasts.dart';
 import '../../Repos/home_repo/home_repo.dart';
 import '../../models/consultation/dietitian_availability.dart';
 import '../../models/consultation/pre_consultation_profile.dart';
+import '../../models/consultation/upcoming_appointment.dart';
+
+/// Result of [ConsultationController.bookConsultation]. See that method's
+/// doc comment for what `appointmentId` means for reschedule callers.
+class BookConsultationOutcome {
+  final bool ok;
+  final int? appointmentId;
+  const BookConsultationOutcome({required this.ok, this.appointmentId});
+}
 
 /// Glue between the consultation-flow pop-ups (Phase 2C) and the new
 /// Phase 1B endpoints. Kept thin: each method is one network call +
@@ -104,24 +114,53 @@ class ConsultationController extends GetxController {
     }
   }
 
+  /// "Remind me tomorrow" — distinct from dismiss: doesn't touch
+  /// dismissCount, just pushes eligibility forward server-side so the
+  /// popup stays away for `days` instead of resurfacing on the very
+  /// next dashboard reload.
+  Future<void> snoozePopup(String variable, {int days = 1}) async {
+    try {
+      await homeRepo.snoozePopup(
+        accessToken: _token,
+        variable: variable,
+        days: days,
+      );
+    } catch (_) {
+      // Best-effort, same as dismiss/complete — a failed snooze just
+      // means it may resurface sooner than intended, not a hard error.
+    }
+  }
+
   // ── Booking calendar ─────────────────────────────────────────────────
 
   /// Loads dietitian availability for the next 14 days (server-side
   /// default) or a custom range. Returns null on failure — sheet shows
   /// an inline error state instead of a stale list.
+  ///
+  /// `.timeout(...)` matters here specifically: this call had no bound
+  /// at all before, so a stalled connection (dropped wifi mid-request,
+  /// a backend restart that never sends a response, etc.) left the
+  /// booking sheet's `_loading` flag stuck true forever — the ONLY
+  /// widget it renders in that state is a bare spinner with no retry
+  /// affordance. Bounding it means the sheet can always fall through to
+  /// its "Couldn't load availability. Tap retry." state instead.
   Future<DietitianAvailability?> loadAvailability({
     required int dietitianId,
     String? from,
     String? to,
   }) async {
+    debugPrint('[ConsultationController] loadAvailability start dietitianId=$dietitianId');
     try {
-      final response = await homeRepo.getDietitianAvailability(
-        accessToken: _token,
-        dietitianId: dietitianId,
-        from: from,
-        to: to,
-      );
+      final response = await homeRepo
+          .getDietitianAvailability(
+            accessToken: _token,
+            dietitianId: dietitianId,
+            from: from,
+            to: to,
+          )
+          .timeout(const Duration(seconds: 15));
       final body = response.body;
+      debugPrint('[ConsultationController] loadAvailability response status=${body is Map ? body['status'] : body.runtimeType}');
       if (body is! Map ||
           body['status'] != '1' ||
           body['data'] is! Map) {
@@ -130,14 +169,22 @@ class ConsultationController extends GetxController {
       return DietitianAvailability.fromJson(
         Map<String, dynamic>.from(body['data'] as Map),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[ConsultationController] loadAvailability failed: $e');
       return null;
     }
   }
 
-  /// Books a consultation. Returns true on success — caller decides what
-  /// to do next (close sheet, retire popup, show toast).
-  Future<bool> bookConsultation({
+  /// Books a consultation. `appointmentId` on success is the row that
+  /// ended up holding the booking: the SAME id as `rescheduleAppointmentId`
+  /// when the backend updated an existing active booking in place instead
+  /// of creating a new row (see the dedup comment on the backend's
+  /// createAppointment — this is what stops the dietitian's queue from
+  /// accumulating duplicate "requests" for one relationship), or a fresh
+  /// id on a genuinely new booking. Callers doing a reschedule compare
+  /// this id against the old one to know whether there's still an old
+  /// row left to clean up.
+  Future<BookConsultationOutcome> bookConsultation({
     required String date,        // YYYY-MM-DD
     required int userId,
     required int dietitianId,
@@ -161,14 +208,20 @@ class ConsultationController extends GetxController {
       );
       final body = response.body;
       final ok = body is Map && body['status'] == '1';
-      if (!ok && body is Map) {
-        CustomToast.failToast(
-            msg: body['message']?.toString() ?? 'Could not book');
+      if (!ok) {
+        if (body is Map) {
+          CustomToast.failToast(
+              msg: body['message']?.toString() ?? 'Could not book');
+        }
+        return const BookConsultationOutcome(ok: false);
       }
-      return ok;
+      final data = body['data'];
+      final apptJson = data is Map ? data['appointment'] : null;
+      final id = apptJson is Map ? (apptJson['id'] as num?)?.toInt() : null;
+      return BookConsultationOutcome(ok: true, appointmentId: id);
     } catch (_) {
       CustomToast.failToast(msg: 'Could not book. Please try again.');
-      return false;
+      return const BookConsultationOutcome(ok: false);
     }
   }
 
@@ -197,6 +250,29 @@ class ConsultationController extends GetxController {
     }
   }
 
+  /// Section 9 "previous values pre-filled for comparison". Returns null
+  /// on cycle 15 (no earlier checkpoint — expected) or on any failure;
+  /// the sheet just shows blank fields with no "Last: ..." text in that
+  /// case, same as today.
+  Future<Map<String, dynamic>?> loadPreviousProgress({
+    required int userPlanId,
+    required int cycle,
+  }) async {
+    try {
+      final response = await homeRepo.getPreviousProgress(
+        accessToken: _token,
+        userPlanId: userPlanId,
+        cycle: cycle,
+      );
+      final body = response.body;
+      if (body is! Map || body['status'] != '1') return null;
+      final previous = body['data']?['previous'];
+      return previous is Map ? Map<String, dynamic>.from(previous) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Day 7 review ─────────────────────────────────────────────────────
 
   /// Submits a Day 7 review. Body must match Day7Review.toJson(). The
@@ -219,6 +295,64 @@ class ConsultationController extends GetxController {
       return ok;
     } catch (_) {
       CustomToast.failToast(msg: 'Could not submit review.');
+      return false;
+    }
+  }
+
+  // ── Upcoming booking ("your booked consultation" card) ───────────────
+
+  /// Cached read for `UpcomingConsultationCard`. Always refetched on
+  /// `loadUpcomingAppointment()` (unlike `bookingContext`, which is
+  /// cached) — status can change server-side (dietitian confirms/
+  /// cancels) between visits, so a stale cache would show the wrong
+  /// state.
+  final Rxn<UpcomingAppointment> upcomingAppointment =
+      Rxn<UpcomingAppointment>();
+  final RxBool isUpcomingAppointmentLoading = false.obs;
+
+  Future<void> loadUpcomingAppointment() async {
+    isUpcomingAppointmentLoading.value = true;
+    try {
+      final response = await homeRepo.getMyCurrentAppointment(
+        accessToken: _token,
+      );
+      final body = response.body;
+      if (body is Map && body['status'] == '1') {
+        final data = body['data'];
+        final apptJson = data is Map ? data['appointment'] : null;
+        upcomingAppointment.value = apptJson is Map
+            ? UpcomingAppointment.fromJson(
+                Map<String, dynamic>.from(apptJson))
+            : null;
+      }
+    } catch (_) {
+      // Leave whatever was cached — a transient failure here shouldn't
+      // wipe a card the user was already looking at.
+    } finally {
+      isUpcomingAppointmentLoading.value = false;
+    }
+  }
+
+  /// Cancels the user's own booking. Returns true on success and clears
+  /// the cached card immediately so the UI doesn't have to wait on a
+  /// refetch to reflect it.
+  Future<bool> cancelAppointment(int appointmentId) async {
+    try {
+      final response = await homeRepo.cancelMyAppointment(
+        accessToken: _token,
+        appointmentId: appointmentId,
+      );
+      final body = response.body;
+      final ok = body is Map && body['status'] == '1';
+      if (ok) {
+        upcomingAppointment.value = null;
+      } else if (body is Map) {
+        CustomToast.failToast(
+            msg: body['message']?.toString() ?? 'Could not cancel');
+      }
+      return ok;
+    } catch (_) {
+      CustomToast.failToast(msg: 'Could not cancel. Please try again.');
       return false;
     }
   }
