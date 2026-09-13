@@ -35,6 +35,7 @@ class _NotificationSettingsScreenState
   int _missedRecovery = 1;
   int _trainerCancelled = 1;
   int _weeklyCheckin = 1;
+  int _dietUpdates = 1;
   String _quietStart = '22:00';
   String _quietEnd = '07:00';
   String _timeBlock = 'all';
@@ -68,6 +69,8 @@ class _NotificationSettingsScreenState
           _missedRecovery = data['missedRecovery'] ?? 1;
           _trainerCancelled = data['trainerCancelled'] ?? 1;
           _weeklyCheckin = data['weeklyCheckin'] ?? 1;
+          _dietUpdates = data['dietUpdates'] ??
+              (authController.sharedPreferences.getBool('pref_dietUpdates') == false ? 0 : 1);
           _quietStart = data['quietStart'] ?? '22:00';
           _quietEnd = data['quietEnd'] ?? '07:00';
           _timeBlock = data['timeBlock'] ?? 'all';
@@ -75,7 +78,13 @@ class _NotificationSettingsScreenState
         });
       }
     } else {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        final authController = Get.find<AuthController>();
+        setState(() {
+          _dietUpdates = authController.sharedPreferences.getBool('pref_dietUpdates') == false ? 0 : 1;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -92,13 +101,15 @@ class _NotificationSettingsScreenState
       'missedRecovery': _missedRecovery,
       'trainerCancelled': _trainerCancelled,
       'weeklyCheckin': _weeklyCheckin,
+      'dietUpdates': _dietUpdates,
       'quietStart': _quietStart,
       'quietEnd': _quietEnd,
       'timeBlock': _timeBlock,
     };
 
-    // Persist timeBlock locally so socket_controller picks it up immediately
+    // Persist timeBlock & diet preference locally
     authController.sharedPreferences.setString(Constants.timeBlock, _timeBlock);
+    authController.sharedPreferences.setBool('pref_dietUpdates', _dietUpdates == 1);
 
     await apiProvider.postData(
       '/users/notification_preferences',
@@ -155,6 +166,9 @@ class _NotificationSettingsScreenState
         case 'weeklyCheckin':
           _weeklyCheckin = value ? 1 : 0;
           break;
+        case 'dietUpdates':
+          _dietUpdates = value ? 1 : 0;
+          break;
       }
     });
     _savePreferences();
@@ -210,174 +224,185 @@ class _NotificationSettingsScreenState
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary))
-          : ListView(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-              children: [
-                Text(
-                  'Notification Types',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+          : SafeArea(
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 32.h),
+                children: [
+                  Text(
+                    'Notification Types',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                SizedBox(height: 12.h),
-                _buildToggleRow(
-                  icon: Icons.wb_sunny_outlined,
-                  title: 'Daily Insights',
-                  description: 'Morning nudge with your daily energy forecast',
-                  value: _morningNudge == 1,
-                  onChanged: (v) => _onToggle('morningNudge', v),
-                ),
-                _buildToggleRow(
-                  icon: Icons.fitness_center_outlined,
-                  title: 'Class Reminders (45 min)',
-                  description: 'Get ready reminder before your session',
-                  value: _classPrep == 1,
-                  onChanged: (v) => _onToggle('classPrep', v),
-                ),
-                _buildToggleRow(
-                  icon: Icons.notifications_active_outlined,
-                  title: 'Class Starting (10 min)',
-                  description:
-                      'Final call for live classes; turn off to avoid frequent trial alerts',
-                  value: _classStart == 1,
-                  onChanged: (v) => _onToggle('classStart', v),
-                ),
-                _buildToggleRow(
-                  icon: Icons.refresh_outlined,
-                  title: 'Missed Session',
-                  description: 'Alternative suggestion if you miss your class',
-                  value: _missedRecovery == 1,
-                  onChanged: (v) => _onToggle('missedRecovery', v),
-                ),
-                _buildToggleRow(
-                  icon: Icons.cancel_outlined,
-                  title: 'Session Cancellations',
-                  description: 'Immediate alert if your trainer cancels',
-                  value: _trainerCancelled == 1,
-                  onChanged: (v) => _onToggle('trainerCancelled', v),
-                ),
-                _buildToggleRow(
-                  icon: Icons.calendar_today_outlined,
-                  title: 'Weekly Check-in',
-                  description:
-                      'Sunday reminder to update your weight and trends',
-                  value: _weeklyCheckin == 1,
-                  onChanged: (v) => _onToggle('weeklyCheckin', v),
-                ),
-                SizedBox(height: 24.h),
+                  SizedBox(height: 12.h),
+                  _buildToggleRow(
+                    icon: Icons.wb_sunny_outlined,
+                    title: 'Daily Insights',
+                    description: 'Morning nudge with your daily energy forecast',
+                    value: _morningNudge == 1,
+                    onChanged: (v) => _onToggle('morningNudge', v),
+                  ),
+                  _buildToggleRow(
+                    icon: Icons.fitness_center_outlined,
+                    title: 'Class Reminders (45 min)',
+                    description: 'Get ready reminder before your session',
+                    value: _classPrep == 1,
+                    onChanged: (v) => _onToggle('classPrep', v),
+                  ),
+                  _buildToggleRow(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Class Starting (10 min)',
+                    description:
+                        'Final call for live classes; turn off to avoid frequent trial alerts',
+                    value: _classStart == 1,
+                    onChanged: (v) => _onToggle('classStart', v),
+                  ),
+                  _buildToggleRow(
+                    icon: Icons.refresh_outlined,
+                    title: 'Missed Session',
+                    description: 'Alternative suggestion if you miss your class',
+                    value: _missedRecovery == 1,
+                    onChanged: (v) => _onToggle('missedRecovery', v),
+                  ),
+                  _buildToggleRow(
+                    icon: Icons.cancel_outlined,
+                    title: 'Session Cancellations',
+                    description: 'Immediate alert if your trainer cancels',
+                    value: _trainerCancelled == 1,
+                    onChanged: (v) => _onToggle('trainerCancelled', v),
+                  ),
+                  _buildToggleRow(
+                    icon: Icons.calendar_today_outlined,
+                    title: 'Weekly Check-in',
+                    description:
+                        'Sunday reminder to update your weight and trends',
+                    value: _weeklyCheckin == 1,
+                    onChanged: (v) => _onToggle('weeklyCheckin', v),
+                  ),
+                  _buildToggleRow(
+                    icon: Icons.restaurant_menu_outlined,
+                    title: 'Diet Plan Updates',
+                    description:
+                        'Alerts when your nutritionist assigns or updates your meal plan',
+                    value: _dietUpdates == 1,
+                    onChanged: (v) => _onToggle('dietUpdates', v),
+                  ),
+                  SizedBox(height: 24.h),
 
-                // ── Preferred Time Block ─────────────────────────────────
-                Text(
-                  'Preferred Class Time',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                  // ── Preferred Time Block ─────────────────────────────────
+                  Text(
+                    'Preferred Class Time',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Only get notified about classes in this time block',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12.sp,
-                    color: AppColors.textHint,
+                  SizedBox(height: 4.h),
+                  Text(
+                    'Only get notified about classes in this time block',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.sp,
+                      color: AppColors.textHint,
+                    ),
                   ),
-                ),
-                SizedBox(height: 12.h),
-                Wrap(
-                  spacing: 10.w,
-                  runSpacing: 10.h,
-                  children: _kTimeBlocks.map((block) {
-                    final isSelected = _timeBlock == block['value'];
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _timeBlock = block['value']!);
-                        _savePreferences();
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary.withOpacity(0.12)
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-                            width: isSelected ? 2 : 1,
+                  SizedBox(height: 12.h),
+                  Wrap(
+                    spacing: 10.w,
+                    runSpacing: 10.h,
+                    children: _kTimeBlocks.map((block) {
+                      final isSelected = _timeBlock == block['value'];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _timeBlock = block['value']!);
+                          _savePreferences();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withOpacity(0.12)
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(block['icon']!, style: TextStyle(fontSize: 16.sp)),
+                              SizedBox(width: 6.w),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    block['label']!,
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    block['sub']!,
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 11.sp,
+                                      color: AppColors.textHint,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(block['icon']!, style: TextStyle(fontSize: 16.sp)),
-                            SizedBox(width: 6.w),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  block['label']!,
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  block['sub']!,
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 11.sp,
-                                    color: AppColors.textHint,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                      );
+                    }).toList(),
+                  ),
 
-                SizedBox(height: 24.h),
-                Text(
-                  'Quiet Hours',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                  SizedBox(height: 24.h),
+                  Text(
+                    'Quiet Hours',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'No notifications during these hours (except cancellations)',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12.sp,
-                    color: AppColors.textHint,
+                  SizedBox(height: 4.h),
+                  Text(
+                    'No notifications during these hours (except cancellations)',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.sp,
+                      color: AppColors.textHint,
+                    ),
                   ),
-                ),
-                SizedBox(height: 12.h),
-                _buildTimeRow(
-                  label: 'From',
-                  value: _formatTimeDisplay(_quietStart),
-                  onTap: () => _pickTime(isStart: true),
-                ),
-                SizedBox(height: 8.h),
-                _buildTimeRow(
-                  label: 'To',
-                  value: _formatTimeDisplay(_quietEnd),
-                  onTap: () => _pickTime(isStart: false),
-                ),
-              ],
+                  SizedBox(height: 12.h),
+                  _buildTimeRow(
+                    label: 'From',
+                    value: _formatTimeDisplay(_quietStart),
+                    onTap: () => _pickTime(isStart: true),
+                  ),
+                  SizedBox(height: 8.h),
+                  _buildTimeRow(
+                    label: 'To',
+                    value: _formatTimeDisplay(_quietEnd),
+                    onTap: () => _pickTime(isStart: false),
+                  ),
+                  SizedBox(height: 36.h),
+                ],
+              ),
             ),
     );
   }

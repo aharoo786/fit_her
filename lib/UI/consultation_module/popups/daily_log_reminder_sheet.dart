@@ -23,12 +23,17 @@ class DailyLogReminderSheet extends StatelessWidget {
   static Future<void> show({required VoidCallback onLogNow}) {
     return Get.bottomSheet<void>(
       Container(
-        padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: DailyLogReminderSheet(onLogNow: onLogNow),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: DailyLogReminderSheet(onLogNow: onLogNow),
+          ),
+        ),
       ),
       isScrollControlled: true,
     );

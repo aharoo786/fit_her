@@ -347,12 +347,13 @@ class AddUserDiet extends StatelessWidget {
           //       },
           //       itemCount: homeController.dietOfUserByDiet.length);
           // }),
-          bottomNavigationBar: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomButton(
+          bottomNavigationBar: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomButton(
                     text: "Update Diet".tr,
                     onPressed: () async {
                       // for (var diet in homeController.dietOfUserByDiet) {
@@ -378,8 +379,9 @@ class AddUserDiet extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> pickPdf() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(

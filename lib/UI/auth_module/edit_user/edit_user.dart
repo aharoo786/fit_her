@@ -211,12 +211,13 @@ class EditUser extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomButton(
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomButton(
                 text: "Update",
                 onPressed: () async {
                   if (user.plans == null) {
@@ -233,6 +234,7 @@ class EditUser extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -14,11 +14,12 @@ import '../../../../widgets/custom_textfield.dart';
 import '../../../../widgets/toasts.dart';
 
 class ResetPassword extends StatelessWidget {
-  ResetPassword({required this.email});
-  String email;
-  AuthController authController = Get.find();
-  TextEditingController pwd = TextEditingController();
-  TextEditingController confirmPwd = TextEditingController();
+  ResetPassword({super.key, required this.email, required this.otp});
+  final String email;
+  final String otp;
+  final AuthController authController = Get.find();
+  final TextEditingController pwd = TextEditingController();
+  final TextEditingController confirmPwd = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +104,11 @@ class ResetPassword extends StatelessWidget {
                                       "Password must be at least 6 characters long"
                                           .tr);
                             } else {
-                              authController.resetPassword(email, pwd.text);
-                              // Get.find<AuthController>()
-                              //     .resetPassword(otp: otp, password: pwd.text);
+                              authController.resetPassword(
+                                email: email,
+                                password: pwd.text,
+                                otp: otp,
+                              );
                             }
                           }
                         } else {

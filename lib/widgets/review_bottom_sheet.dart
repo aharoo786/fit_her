@@ -21,10 +21,11 @@ class FeedbackBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      padding: EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
+      padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0 + bottomInset),
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),

@@ -237,6 +237,16 @@ class NotificationServices {
       UpcomingClassSlot? upcomingClassSlot;
       AuthController authController = Get.find();
       var sharedPreferences = authController.sharedPreferences;
+
+      if (classifier.isDietPlanMessage(message)) {
+        final dietEnabled =
+            sharedPreferences.getBool('pref_dietUpdates') ?? true;
+        if (!dietEnabled) {
+          // User turned off Diet Plan Updates in notification settings
+          return;
+        }
+      }
+
       initLocalNotifications(message, context);
       if (_isClassUpdate(message) && _hasClassPayload(message)) {
         upcomingClassSlot = UpcomingClassSlot(
@@ -291,8 +301,14 @@ class NotificationServices {
           addNotification(message);
         }
       } else if (message.notification?.title == "Congratulations!" ||
-          message.data["type"] == "planActivated") {
-        Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
+          message.data["type"] == "planActivated" ||
+          message.data["type"] == "paymentApproved") {
+        if (Get.isRegistered<AuthController>()) {
+          Get.find<AuthController>().markPaid();
+        }
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
+        }
         addNotification(message);
       }
       if (upcomingClassSlot?.upcomingSlot?.status != "Confirmed") {
@@ -399,8 +415,14 @@ class NotificationServices {
       }
     }
     if (message.notification?.title == "Congratulations!" ||
-        message.data["type"] == "planActivated") {
-      Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
+        message.data["type"] == "planActivated" ||
+        message.data["type"] == "paymentApproved") {
+      if (Get.isRegistered<AuthController>()) {
+        Get.find<AuthController>().markPaid();
+      }
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().getUserHomeFunc(isFromFree: true);
+      }
       noti.addNotification(message);
     }
   }

@@ -28,31 +28,33 @@ class AllPlansScreen extends StatelessWidget {
             }, text: "All Plans")
           : null,
       bottomNavigationBar: isHaveAppBar
-          ? Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: CustomButton(
-                  text: "Update",
-                  onPressed: () {
-                    var index = homeController.selectedPlanIndex.value;
-                    Plan selectedPlan =
-                        homeController.allPlanModel!.plans[index];
-                    planController.packageName.text = selectedPlan.title;
-                    planController.shortDis.text =
-                        selectedPlan.shortDescription;
-                    planController.longDis.text = selectedPlan.longDescription;
-                    planController.getCategories(catId: selectedPlan.catId,subCatId: selectedPlan.subId);
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: CustomButton(
+                    text: "Update",
+                    onPressed: () {
+                      var index = homeController.selectedPlanIndex.value;
+                      Plan selectedPlan =
+                          homeController.allPlanModel!.plans[index];
+                      planController.packageName.text = selectedPlan.title;
+                      planController.shortDis.text =
+                          selectedPlan.shortDescription;
+                      planController.longDis.text = selectedPlan.longDescription;
+                      planController.getCategories(catId: selectedPlan.catId,subCatId: selectedPlan.subId);
 
-                    planController.getAllCountriesFunc(
-                        isFromUpdate: true, plan: selectedPlan);
-                    planController.getAllDurationFunc(isFromUpdate: true);
-                    homeController.selectedDietIdForMember.value = 0;
-                    homeController.getUsersBasedOnUserType(Constants.dietitian);
+                      planController.getAllCountriesFunc(
+                          isFromUpdate: true, plan: selectedPlan);
+                      planController.getAllDurationFunc(isFromUpdate: true);
+                      homeController.selectedDietIdForMember.value = 0;
+                      homeController.getUsersBasedOnUserType(Constants.dietitian);
 
-                    Get.to(() => AddPackage(
-                          isFromUpdate: true,
-                          id: selectedPlan.id.toString(),
-                        ));
-                  }),
+                      Get.to(() => AddPackage(
+                            isFromUpdate: true,
+                            id: selectedPlan.id.toString(),
+                          ));
+                    }),
+              ),
             )
           : null,
       body: Column(

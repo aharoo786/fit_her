@@ -247,13 +247,15 @@ class ProgressScreenV1 extends StatelessWidget {
           return con.progressImagesList[length - 2] == null ||
                   con.progressImagesList[length - 1] == null
               ? SizedBox()
-              : Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CustomButton(
-                    text: 'Update Progress',
-                    onPressed: () {
-                      con.addProgressImages();
-                    },
+              : SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CustomButton(
+                      text: 'Update Progress',
+                      onPressed: () {
+                        con.addProgressImages();
+                      },
+                    ),
                   ),
                 );
         }),
@@ -286,8 +288,10 @@ class _WeeklyProgressWithTrackingState extends State<_WeeklyProgressWithTracking
 
 selectMediaBottomSheet(Function gallery, Function camera, BuildContext context,
     bool isBefore, ProgressController progressController) {
+  final bottomInset = MediaQuery.of(context).padding.bottom;
   Get.bottomSheet(Container(
-    height: 150,
+    height: 150 + bottomInset,
+    padding: EdgeInsets.only(bottom: bottomInset),
     color: MyColors.bodyBackground,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,

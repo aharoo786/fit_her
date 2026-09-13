@@ -379,8 +379,8 @@ class ForgotPassword extends StatelessWidget {
           ),
           onPressed: () async {
             if (emailFormKey.currentState!.validate()) {
-              String? otp = await authController.forgotPassword(email.text);
-              if (otp != null) {
+              bool success = await authController.forgotPassword(email.text);
+              if (success) {
                 // Guard against stale context if the user navigated away
                 // mid-request. Flutter 3+ idiom; replaces the inherited
                 // `use_build_context_synchronously` lint without altering
@@ -395,8 +395,7 @@ class ForgotPassword extends StatelessWidget {
 
                 Future.delayed(const Duration(milliseconds: 1500), () {
                   Get.off(() => OtpScreen(
-                        email: email.text,
-                        otp: otp,
+                        email: email.text.trim(),
                       ));
                 });
               }

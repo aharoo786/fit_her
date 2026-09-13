@@ -189,44 +189,47 @@ class DietDetails extends StatelessWidget {
             )
           ],
         ),
-        bottomNavigationBar: Container(
-          padding: EdgeInsets.only(left: 25.w, right: 25.w, top: 10.h, bottom: 30.h),
-          child: Row(
-            children: [
-              Expanded(
-                  child: RichText(
-                      text: TextSpan(
-                          text: "$currency ",
-                          style: textTheme.bodyMedium!.copyWith(
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Container(
+            padding: EdgeInsets.only(left: 25.w, right: 25.w, top: 10.h, bottom: 20.h),
+            child: Row(
+              children: [
+                Expanded(
+                    child: RichText(
+                        text: TextSpan(
+                            text: "$currency ",
+                            style: textTheme.bodyMedium!.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            children: [
+                      TextSpan(
+                          text: price,
+                          style: textTheme.bodySmall!.copyWith(
                             fontWeight: FontWeight.w600,
-                          ),
-                          children: [
-                    TextSpan(
-                        text: price,
-                        style: textTheme.bodySmall!.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 32.sp,
-                        )),
-                    TextSpan(
-                        text: " /$duration",
-                        style: textTheme.bodySmall!.copyWith(
-                          fontWeight: FontWeight.w600,
-                        )),
-                  ]))),
-              CustomButton(
-                text: 'Continue',
-                onPressed: () {
-                  Get.to(() => SelectPaymentMode(
-                        planId: planId,
-                        price: price,
-                        durationId: durationId ?? 0,
-                      ));
-                },
-                width: 150.w,
-                fontSize: 12.sp,
-                height: 30.h,
-              ),
-            ],
+                            fontSize: 32.sp,
+                          )),
+                      TextSpan(
+                          text: " /$duration",
+                          style: textTheme.bodySmall!.copyWith(
+                            fontWeight: FontWeight.w600,
+                          )),
+                    ]))),
+                CustomButton(
+                  text: 'Continue',
+                  onPressed: () {
+                    Get.to(() => SelectPaymentMode(
+                          planId: planId,
+                          price: price,
+                          durationId: durationId ?? 0,
+                        ));
+                  },
+                  width: 150.w,
+                  fontSize: 12.sp,
+                  height: 30.h,
+                ),
+              ],
+            ),
           ),
         ),
       ),

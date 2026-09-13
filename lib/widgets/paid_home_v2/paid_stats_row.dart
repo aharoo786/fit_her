@@ -353,6 +353,7 @@ void _openMealLogSheet(BuildContext context) {
         maxChildSize: 0.95,
         expand: false,
         builder: (_, scrollController) {
+          final bottomSafe = MediaQuery.of(sheetCtx).padding.bottom;
           return Container(
             decoration: const BoxDecoration(
               color: Color(0xFFF9FCF7),
@@ -363,7 +364,7 @@ void _openMealLogSheet(BuildContext context) {
             ),
             child: SingleChildScrollView(
               controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottomSafe),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

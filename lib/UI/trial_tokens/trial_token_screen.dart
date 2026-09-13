@@ -177,9 +177,15 @@ class _CreateTrialTokenSheetState extends State<_CreateTrialTokenSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final navBottom = MediaQuery.of(context).padding.bottom;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h + bottom),
+      padding: EdgeInsets.fromLTRB(
+        20.w,
+        20.h,
+        20.w,
+        24.h + (bottom > 0 ? bottom : navBottom),
+      ),
       decoration: BoxDecoration(
         color: _kCard,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -347,8 +353,9 @@ class _ShareSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final navBottom = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h + navBottom),
       decoration: BoxDecoration(
         color: _kCard,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),

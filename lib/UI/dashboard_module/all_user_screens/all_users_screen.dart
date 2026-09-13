@@ -89,20 +89,22 @@ class AllUsersScreen extends StatelessWidget {
           ]),
           bottomNavigationBar: isCustomerSupport
               ? null
-              : Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CustomButton(
-                          text: "Add User",
-                          onPressed: () async {
-                            Get.to(() => AddNewUser());
-                            homeController.getUsersBasedOnUserType(homeController.addTeamMember[4].replaceAll(" ", "_"));
-                            homeController.getPlans();
-                            // Get.find<HomeController>().getAllDietitian();
-                          }),
-                    ],
+              : SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CustomButton(
+                            text: "Add User",
+                            onPressed: () async {
+                              Get.to(() => AddNewUser());
+                              homeController.getUsersBasedOnUserType(homeController.addTeamMember[4].replaceAll(" ", "_"));
+                              homeController.getPlans();
+                              // Get.find<HomeController>().getAllDietitian();
+                            }),
+                      ],
+                    ),
                   ),
                 ),
         ),

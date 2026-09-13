@@ -171,10 +171,11 @@ class BmiResult extends StatelessWidget {
           //     : const CircularProgress()),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-        child: CustomButton(
-            text: "Finish",
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+          child: CustomButton(
+              text: "Finish",
             onPressed: () {
               if (double.parse(bmi) > 24.9 || double.parse(bmi) < 18.5) {
                 showDialog(
@@ -346,8 +347,9 @@ class BmiResult extends StatelessWidget {
               }
             }),
       ),
-    );
-  }
+    ),
+  );
+}
 
   getYourColor() {
     Color color = MyColors.buttonColor;

@@ -150,12 +150,13 @@ class UpdateProfile extends StatelessWidget {
               ),
             ),
           ),
-          bottomNavigationBar: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomButton(
+          bottomNavigationBar: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomButton(
                     text: "Update Profile".tr,
                     onPressed: () async {
                       if (speciality.text.isEmpty ||
@@ -180,13 +181,16 @@ class UpdateProfile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   selectMediaBottomSheet(
       Function gallery, Function camera, BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     Get.bottomSheet(Container(
-      height: 150,
+      height: 150 + bottomInset,
+      padding: EdgeInsets.only(bottom: bottomInset),
       color: MyColors.bodyBackground,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

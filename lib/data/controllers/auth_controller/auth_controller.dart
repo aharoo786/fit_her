@@ -60,11 +60,7 @@ class AuthController extends GetxController implements GetxService {
   NotificationServices notificationServices;
   ChatApiProvider chatApiProvider;
   CheckConnectionService connectionService = CheckConnectionService();
-  AuthController(
-      {required this.sharedPreferences,
-      required this.authRepo,
-      required this.notificationServices,
-      required this.chatApiProvider});
+  AuthController({required this.sharedPreferences, required this.authRepo, required this.notificationServices, required this.chatApiProvider});
 
   ///Generating unique id
   var uuid = const Uuid();
@@ -97,14 +93,7 @@ class AuthController extends GetxController implements GetxService {
 
   ///countryCode
   var countryCode = Constants.countryCode;
-  List<String> addTeamMember = [
-    "Dietition",
-    "Trainer",
-    "Gynecologist",
-    "Psychiatrist",
-    "Customer_Support_Representative",
-    "Admin"
-  ];
+  List<String> addTeamMember = ["Dietition", "Trainer", "Gynecologist", "Psychiatrist", "Customer_Support_Representative", "Admin"];
 
   ///Sign in User
   TextEditingController loginUserPhone = TextEditingController();
@@ -131,8 +120,7 @@ class AuthController extends GetxController implements GetxService {
   /// locked tiles, insight card, and CTA banner. Persisted in prefs so a
   /// cold start keeps the activated state; cleared on logout.
   /// See [Constants.trialActivatedKey].
-  late final RxBool trialActivated = RxBool(
-      sharedPreferences.getBool(Constants.trialActivatedKey) ?? false);
+  late final RxBool trialActivated = RxBool(sharedPreferences.getBool(Constants.trialActivatedKey) ?? false);
 
   /// Flip the local trial flag on. Called by `TrialCtaCard` after the
   /// "Trial activated" dialog is acknowledged.
@@ -213,8 +201,7 @@ class AuthController extends GetxController implements GetxService {
 
   ///Listerner
   ///
-  ValueNotifier<List<dynamic>?> sharedPrefNotifier =
-      ValueNotifier<List<dynamic>?>(null);
+  ValueNotifier<List<dynamic>?> sharedPrefNotifier = ValueNotifier<List<dynamic>?>(null);
 
   final fAuth.FirebaseAuth _auth = fAuth.FirebaseAuth.instance;
   final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
@@ -253,12 +240,9 @@ class AuthController extends GetxController implements GetxService {
     sharedPreferences.setBool(Constants.isGuest, false);
     // Persist Option-C feature flags so the router can honor them on cold
     // start before a fresh login response is available.
-    sharedPreferences.setBool(
-        Constants.useNewPaidHomeKey, model.useNewPaidHome);
-    sharedPreferences.setBool(
-        Constants.useNewUnpaidHomeKey, model.useNewUnpaidHome);
-    sharedPreferences.setBool(
-        Constants.useNewProgressHubKey, model.useNewProgressHub);
+    sharedPreferences.setBool(Constants.useNewPaidHomeKey, model.useNewPaidHome);
+    sharedPreferences.setBool(Constants.useNewUnpaidHomeKey, model.useNewUnpaidHome);
+    sharedPreferences.setBool(Constants.useNewProgressHubKey, model.useNewProgressHub);
     // Phase F.3 — persist the IANA zone so the very-first DietPlanUser
     // load on cold-start uses the right zone instead of falling back
     // to device-local. TimezoneSyncService keeps it fresh post-login.
@@ -300,8 +284,7 @@ class AuthController extends GetxController implements GetxService {
         // Get.back();
       } else {
         isLoggingIn.value = true;
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         if (userType != null) {
           loginAsA.value = userType;
         }
@@ -323,15 +306,13 @@ class AuthController extends GetxController implements GetxService {
                 Get.offAll(() => const WalkThroughScreen());
               }
             } else if (response.body["status"] != "0") {
-              ApiResponse<LoginModel> model =
-                  ApiResponse.fromJson(response.body, LoginModel.fromJson);
+              ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
               debugPrint(model.data!.accessToken.toString());
               if (model.status == "1") {
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, password ?? loginUserPassword.text);
-                final trialStarted =
-                    await Get.find<HomeController>().startTrialFromSavedToken();
+                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.trainer) {
                   //  Get.find<HomeController>().getTrainerHomeFunc();
@@ -364,10 +345,8 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  signInUsingGoogle(String userEmail, String name, String signedFrom,
-      {String? userType, bool fromLocal = false}) {
-    Get.dialog(const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false);
+  signInUsingGoogle(String userEmail, String name, String signedFrom, {String? userType, bool fromLocal = false}) {
+    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
     connectionService.checkConnection().then((value) async {
       if (!value) {
         Get.back();
@@ -389,14 +368,12 @@ class AuthController extends GetxController implements GetxService {
               CustomToast.failToast(msg: response.body["message"]);
             } else if (response.body["status"] != "0") {
               if (response.body["status"] == "1") {
-                ApiResponse<LoginModel> model =
-                    ApiResponse.fromJson(response.body, LoginModel.fromJson);
+                ApiResponse<LoginModel> model = ApiResponse.fromJson(response.body, LoginModel.fromJson);
                 debugPrint(model.data!.accessToken.toString());
                 logInUser = model.data;
 
                 addLocalStorage(logInUser!, signedFrom);
-                final trialStarted =
-                    await Get.find<HomeController>().startTrialFromSavedToken();
+                final trialStarted = await Get.find<HomeController>().startTrialFromSavedToken();
 
                 if (loginAsA.value == Constants.user) {
                   if (!logInUser!.status) {
@@ -451,23 +428,14 @@ class AuthController extends GetxController implements GetxService {
           if (response.body["status"] == "0") {
             CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
-            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(
-                response.body, GetUsersBasedOnUserType.fromJson);
+            ApiResponse<GetUsersBasedOnUserType> model = ApiResponse.fromJson(response.body, GetUsersBasedOnUserType.fromJson);
             if (model.status == "1") {
               getUsersBasedOnUserTypeModel = model.data!;
               if (addNull) {
-                getUsersBasedOnUserTypeModel?.users.insert(
-                    0,
-                    UserTypeData(
-                        id: 0,
-                        firstName: "Select",
-                        lastName: "..",
-                        email: "",
-                        phone: ""));
+                getUsersBasedOnUserTypeModel?.users.insert(0, UserTypeData(id: 0, firstName: "Select", lastName: "..", email: "", phone: ""));
               } else {
                 if (getUsersBasedOnUserTypeModel!.users.isNotEmpty) {
-                  selectCustomerSupport.value =
-                      getUsersBasedOnUserTypeModel!.users[0].id;
+                  selectCustomerSupport.value = getUsersBasedOnUserTypeModel!.users[0].id;
                 }
               }
               getUsersBasedOnUserTypeLoad.value = true;
@@ -488,19 +456,15 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
       } else {
         try {
-          final GoogleSignInAccount? googleSignInAccount =
-              await googleSignIn.signIn();
+          final GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
           if (googleSignInAccount != null) {
-            final GoogleSignInAuthentication googleSignInAuthentication =
-                await googleSignInAccount.authentication;
-            final fAuth.AuthCredential credential =
-                fAuth.GoogleAuthProvider.credential(
+            final GoogleSignInAuthentication googleSignInAuthentication = await googleSignInAccount.authentication;
+            final fAuth.AuthCredential credential = fAuth.GoogleAuthProvider.credential(
               accessToken: googleSignInAuthentication.accessToken,
               idToken: googleSignInAuthentication.idToken,
             );
 
-            final fAuth.UserCredential authResult =
-                await _auth.signInWithCredential(credential);
+            final fAuth.UserCredential authResult = await _auth.signInWithCredential(credential);
             final fAuth.User? user = authResult.user;
             if (user != null) {
               signInUsingGoogle(
@@ -534,19 +498,15 @@ class AuthController extends GetxController implements GetxService {
           if (Platform.isIOS) {
             if (user.email == null) {
               if (user.providerData.isNotEmpty) {
-                signInUsingGoogle(user.providerData[0].email ?? "",
-                    user.displayName ?? "", "apple");
+                signInUsingGoogle(user.providerData[0].email ?? "", user.displayName ?? "", "apple");
               } else {
-                signInUsingGoogle(
-                    user.email ?? "", user.displayName ?? "", "apple");
+                signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
               }
             } else {
-              signInUsingGoogle(
-                  user.email ?? "", user.displayName ?? "", "apple");
+              signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
             }
           } else {
-            signInUsingGoogle(
-                user.email ?? "", user.displayName ?? "", "apple");
+            signInUsingGoogle(user.email ?? "", user.displayName ?? "", "apple");
           }
         } else {
           CustomToast.failToast(msg: "Something went wrong");
@@ -574,8 +534,7 @@ class AuthController extends GetxController implements GetxService {
     if (accessToken == null || accessToken.isEmpty) return;
 
     try {
-      final response =
-          await authRepo.getNotifications(accessToken: accessToken);
+      final response = await authRepo.getNotifications(accessToken: accessToken);
       if (response.statusCode == 200 && response.body["status"] == "1") {
         final raw = response.body["data"]?["notifications"];
         if (raw is List) {
@@ -587,8 +546,7 @@ class AuthController extends GetxController implements GetxService {
           sharedPrefNotifier.value = notificationMessages;
           sharedPreferences.setString(
             Constants.notificationList,
-            jsonEncode(
-                notificationMessages.map((msg) => msg.toJson()).toList()),
+            jsonEncode(notificationMessages.map((msg) => msg.toJson()).toList()),
           );
         }
       }
@@ -607,10 +565,7 @@ class AuthController extends GetxController implements GetxService {
     // Firestore update is best-effort — a failure (offline, permission) must
     // NOT prevent navigation or the user gets stuck on the login screen.
     try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(logInUser!.id.toString())
-          .set({
+      await FirebaseFirestore.instance.collection("users").doc(logInUser!.id.toString()).set({
         "id": logInUser!.id.toString(),
         "name": logInUser!.firstName,
         "time": Timestamp.now(),
@@ -665,8 +620,7 @@ class AuthController extends GetxController implements GetxService {
         final data = response.body?['data'];
         if (data != null && data['updatedAt'] != data['createdAt']) {
           // Backend confirms user saved preferences before → seed local flags.
-          sharedPreferences.setString(
-              Constants.timeBlock, data['timeBlock'] ?? 'all');
+          sharedPreferences.setString(Constants.timeBlock, data['timeBlock'] ?? 'all');
           sharedPreferences.setString(Constants.timePreferenceDone, 'true');
           prefDone = true;
         }
@@ -691,13 +645,13 @@ class AuthController extends GetxController implements GetxService {
       // navigating to BottomBarScreen itself — we need to push TrialJourneyScreen
       // on top after BottomBarScreen mounts if the trial was auto-started.
       Get.offAll(() => TimePreferenceScreen(
-        onCompleted: (_) {
-          Get.offAll(() => BottomBarScreen());
-          if (trialStarted) {
-            Get.to(() => const TrialJourneyScreen());
-          }
-        },
-      ));
+            onCompleted: (_) {
+              Get.offAll(() => BottomBarScreen());
+              if (trialStarted) {
+                Get.to(() => const TrialJourneyScreen());
+              }
+            },
+          ));
     } else {
       Get.offAll(() => BottomBarScreen());
       if (trialStarted) {
@@ -715,8 +669,7 @@ class AuthController extends GetxController implements GetxService {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
-        Get.dialog(const Center(child: CircularProgressIndicator()),
-            barrierDismissible: false);
+        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
         await authRepo
             .loginGuestRepo(
           email: emailNameController.text,
@@ -746,69 +699,110 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  Future<String?> forgotPassword(String email) async {
-    String? otp;
+  Future<bool> forgotPassword(String email) async {
+    bool isSuccess = false;
     await connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
-        otp = null;
-        // Get.back();
+        isSuccess = false;
       } else {
         Get.dialog(const Center(child: CircularProgressIndicator()),
             barrierDismissible: false);
         await authRepo
             .forgotPasswordRepo(
-          email: email,
+          email: email.trim().toLowerCase(),
         )
             .then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
-              CustomToast.failToast(msg: response.body["message"]);
-              otp = null;
-            } else if (response.body["status"] != "0") {
-              if (response.body["status"] == "1") {
-                otp = response.body["data"]["otp"];
-              }
+              CustomToast.failToast(
+                  msg: response.body["message"] ?? "Failed to send OTP");
+              isSuccess = false;
+            } else if (response.body["status"] == "1") {
+              isSuccess = true;
             }
           } else {
-            CustomToast.failToast(msg: response.body["message"]);
-            otp = null;
+            CustomToast.failToast(
+                msg: response.body["message"] ?? "Server error");
+            isSuccess = false;
           }
         });
       }
     });
-    return otp;
+    return isSuccess;
   }
 
-  resetPassword(String email, String password) {
+  Future<bool> verifyOtp({required String email, required String otp}) async {
+    bool isValid = false;
+    await connectionService.checkConnection().then((value) async {
+      if (!value) {
+        CustomToast.noInternetToast();
+        isValid = false;
+      } else {
+        Get.dialog(const Center(child: CircularProgressIndicator()),
+            barrierDismissible: false);
+        await authRepo
+            .verifyOtpRepo(
+          email: email.trim().toLowerCase(),
+          otp: otp.trim(),
+        )
+            .then((response) async {
+          Get.back();
+
+          if (response.statusCode == 200) {
+            if (response.body["status"] == "1") {
+              isValid = true;
+            } else {
+              CustomToast.failToast(
+                  msg: response.body["message"] ?? "Invalid OTP code");
+              isValid = false;
+            }
+          } else {
+            CustomToast.failToast(
+                msg: response.body["message"] ?? "Server error");
+            isValid = false;
+          }
+        });
+      }
+    });
+    return isValid;
+  }
+
+  void resetPassword({
+    required String email,
+    required String password,
+    required String otp,
+  }) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
-        // Get.back();
       } else {
         Get.dialog(const Center(child: CircularProgressIndicator()),
             barrierDismissible: false);
         await authRepo
             .resetPasswordRepo(
-          email: email,
+          email: email.trim().toLowerCase(),
           password: password,
+          otp: otp.trim(),
         )
             .then((response) async {
           Get.back();
 
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
-              CustomToast.failToast(msg: response.body["message"]);
-            } else if (response.body["status"] != "0") {
-              if (response.body["status"] == "1") {
-                Get.offAll(() => Login());
-                CustomToast.successToast(msg: response.body["message"]);
-              }
+              CustomToast.failToast(
+                  msg: response.body["message"] ?? "Failed to reset password");
+            } else if (response.body["status"] == "1") {
+              Get.offAll(() => Login());
+              CustomToast.successToast(
+                  msg: response.body["message"] ??
+                      "Password updated successfully!");
             }
           } else {
-            CustomToast.failToast(msg: response.body["message"]);
+            CustomToast.failToast(
+                msg: response.body["message"] ?? "Server error");
           }
         });
       }
@@ -829,14 +823,12 @@ class AuthController extends GetxController implements GetxService {
         var list2 = jsonDecode(list);
 
         // Convert each item back to NotificationMessage and add to notificationMessages list
-        notificationMessages = List<NotificationMessage>.from(
-            list2.map((item) => NotificationMessage.fromJson(item)));
+        notificationMessages = List<NotificationMessage>.from(list2.map((item) => NotificationMessage.fromJson(item)));
       }
 
       notificationMessages.removeAt(index);
       sharedPrefNotifier.value = notificationMessages;
-      sharedPreferences.setString(
-          Constants.notificationList, jsonEncode(notificationMessages));
+      sharedPreferences.setString(Constants.notificationList, jsonEncode(notificationMessages));
     }
   }
 
@@ -913,11 +905,8 @@ class AuthController extends GetxController implements GetxService {
         if (!value) {
           CustomToast.noInternetToast();
         } else {
-          Get.dialog(const Center(child: CircularProgressIndicator()),
-              barrierDismissible: false);
-          await authRepo
-              .logoutUserRepo(deviceToken: token)
-              .then((response) async {
+          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+          await authRepo.logoutUserRepo(deviceToken: token).then((response) async {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {
@@ -927,18 +916,14 @@ class AuthController extends GetxController implements GetxService {
                   CustomToast.successToast(msg: response.body["message"]);
                   // Preserve time-preference keys across logout — device-level
                   // settings; wiping them re-triggers onboarding every login.
-                  final savedTimeBlock =
-                      sharedPreferences.getString(Constants.timeBlock);
-                  final savedPrefDone =
-                      sharedPreferences.getString(Constants.timePreferenceDone);
+                  final savedTimeBlock = sharedPreferences.getString(Constants.timeBlock);
+                  final savedPrefDone = sharedPreferences.getString(Constants.timePreferenceDone);
                   await sharedPreferences.clear();
                   if (savedTimeBlock != null) {
-                    sharedPreferences.setString(
-                        Constants.timeBlock, savedTimeBlock);
+                    sharedPreferences.setString(Constants.timeBlock, savedTimeBlock);
                   }
                   if (savedPrefDone != null) {
-                    sharedPreferences.setString(
-                        Constants.timePreferenceDone, savedPrefDone);
+                    sharedPreferences.setString(Constants.timePreferenceDone, savedPrefDone);
                   }
                   trialActivated.value = false;
                   isPaid.value = false;
@@ -987,12 +972,8 @@ class AuthController extends GetxController implements GetxService {
         if (!value) {
           CustomToast.noInternetToast();
         } else {
-          Get.dialog(const Center(child: CircularProgressIndicator()),
-              barrierDismissible: false);
-          await authRepo
-              .deleteUser(
-                  id: id ?? sharedPreferences.getString(Constants.userId) ?? "")
-              .then((response) async {
+          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+          await authRepo.deleteUser(id: id ?? sharedPreferences.getString(Constants.userId) ?? "").then((response) async {
             Get.back();
             if (response.statusCode == 200) {
               if (response.body["status"] == "0") {

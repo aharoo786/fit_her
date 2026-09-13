@@ -105,20 +105,35 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Widget _topBar() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 10.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Tab-mounted screen — no back button. Title sits left for
-          // visual weight balance with the action pill on the right.
-          const Text(
-            'COMMUNITY',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: _kSage,
-              letterSpacing: 0.84, // ~.07em at 12px
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'COMMUNITY',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _kSage,
+                  letterSpacing: 0.7,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                'FitHer Feed',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _kTextPrimary,
+                ),
+              ),
+            ],
           ),
           const Spacer(),
           _composeButton(),
@@ -131,25 +146,22 @@ class _FeedScreenState extends State<FeedScreen> {
   /// a lock icon otherwise. Tap on the locked variant surfaces the same
   /// toast that gated the previous version.
   Widget _composeButton() {
-    // `_canPostFreely` returns true for trainers/dietitians OR for users
-    // with an active package. Same name (`hasPackage`) preserved below
-    // so the existing render branches keep reading naturally.
     final hasPackage = _canPostFreely();
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _onComposeTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: hasPackage ? _kAccent : _kSage.withOpacity(0.18),
+          color: hasPackage ? _kAccent : _kSage.withOpacity(0.16),
           borderRadius: BorderRadius.circular(20),
           border: hasPackage
               ? null
-              : Border.all(color: _kSage.withOpacity(0.4), width: 1),
+              : Border.all(color: _kSage.withOpacity(0.35), width: 1),
           boxShadow: hasPackage
               ? [
                   BoxShadow(
-                    color: _kAccent.withOpacity(0.30),
+                    color: _kAccent.withOpacity(0.28),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -160,13 +172,13 @@ class _FeedScreenState extends State<FeedScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              hasPackage ? Icons.add : Icons.lock_outline,
+              hasPackage ? Icons.add_rounded : Icons.lock_outline_rounded,
               color: hasPackage ? Colors.white : _kSage,
               size: 16.sp,
             ),
-            SizedBox(width: 6.w),
+            SizedBox(width: 5.w),
             Text(
-              hasPackage ? 'Post' : 'Locked',
+              hasPackage ? 'New Post' : 'Locked',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 color: hasPackage ? Colors.white : _kSage,
@@ -196,52 +208,110 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _upgradeBanner() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      // Same destination as the locked "+ Post" pill — `OurPlansScreen` is
-      // the project-wide upgrade target.
       onTap: () => Get.to(() => OurPlansScreen()),
       child: Container(
         margin: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _kCardBorder, width: 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: _kAccent.withOpacity(0.13),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.lock_outline, color: _kAccent, size: 16.sp),
+          boxShadow: [
+            BoxShadow(
+              color: _kShadowTint.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: Text(
-                'Unlock posting & replies',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: _kTextPrimary,
-                ),
-              ),
-            ),
-            Text(
-              'Upgrade',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                color: _kAccent,
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Icon(Icons.arrow_forward, color: _kAccent, size: 14.sp),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  color: _kAccent,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32.w,
+                          height: 32.w,
+                          decoration: BoxDecoration(
+                            color: _kAccent.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.lock_outline_rounded, color: _kAccent, size: 16.sp),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'COMMUNITY ACCESS',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 9.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _kSage,
+                                  letterSpacing: 0.63,
+                                ),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                'Unlock posting & replies',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _kTextPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: _kAccent,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _kAccent.withOpacity(0.28),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Upgrade',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 4.w),
+                              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12.sp),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -251,23 +321,39 @@ class _FeedScreenState extends State<FeedScreen> {
     if (postsToday == 0) return const SizedBox.shrink();
     final postsLabel = '$postsToday post${postsToday == 1 ? '' : 's'} today';
     final membersLabel = activeMembers > 0
-        ? '$activeMembers member${activeMembers == 1 ? '' : 's'} active'
+        ? '$activeMembers active member${activeMembers == 1 ? '' : 's'}'
         : null;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 10.h),
+      padding: EdgeInsets.fromLTRB(16.w, 2.h, 16.w, 10.h),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: _kAccent.withOpacity(0.10),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _kCardBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: _kShadowTint.withOpacity(0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.bolt, color: _kAccent, size: 12.sp),
-                SizedBox(width: 4.w),
+                Container(
+                  width: 16.w,
+                  height: 16.w,
+                  decoration: BoxDecoration(
+                    color: _kAccent.withOpacity(0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.bolt_rounded, color: _kAccent, size: 11.sp),
+                ),
+                SizedBox(width: 6.w),
                 Text(
                   membersLabel == null
                       ? postsLabel
@@ -276,7 +362,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     fontFamily: 'Poppins',
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w700,
-                    color: _kAccent,
+                    color: _kTextPrimary,
                   ),
                 ),
               ],
@@ -291,14 +377,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Widget _list() {
     final hasPackage = _canPostFreely();
-    // Newest-first display order. Backend returns oldest-first per the
-    // previous scroll-to-bottom convention; reversing client-side keeps
-    // the API contract identical and the most recent posts at the top.
     final posts = controller.postsList.reversed.toList();
-    // Stats strip — derived from existing data, no new endpoint.
-    //   - postsToday: how many posts created today (any user)
-    //   - activeMembers: count of UNIQUE user.id values that posted today
-    // Both drop to a hidden strip when postsToday == 0.
     final today = DateTime.now();
     bool isToday(DateTime c) =>
         c.year == today.year && c.month == today.month && c.day == today.day;
@@ -313,9 +392,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 32.h),
       itemCount: posts.length + 1, // +1 for the header strip
-      separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 12.h),
+      separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 14.h),
       itemBuilder: (context, i) {
         if (i == 0) {
           return Column(
@@ -346,51 +425,61 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Widget _emptyState() {
     return ListView(
-      // Keep pull-to-refresh working when empty.
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 40.h),
       children: [
-        SizedBox(height: 80.h),
-        Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40.w),
-            child: Column(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: _kAccent.withOpacity(0.13),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    Icons.forum_outlined,
-                    size: 28.sp,
-                    color: _kAccent,
-                  ),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 36.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _kCardBorder, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: _kShadowTint.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60.w,
+                height: 60.w,
+                decoration: BoxDecoration(
+                  color: _kAccent.withOpacity(0.12),
+                  shape: BoxShape.circle,
                 ),
-                SizedBox(height: 18.h),
-                Text(
-                  'No posts yet',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w800,
-                    color: _kTextPrimary,
-                  ),
+                child: Icon(
+                  Icons.forum_outlined,
+                  size: 28.sp,
+                  color: _kAccent,
                 ),
-                SizedBox(height: 6.h),
-                Text(
-                  'Be the first to share something with the community.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12.sp,
-                    color: _kTextSecondary,
-                    height: 1.4,
-                  ),
+              ),
+              SizedBox(height: 18.h),
+              Text(
+                'No posts yet',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _kTextPrimary,
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                'Be the first to share your fitness journey, tips, or questions with the community.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12.sp,
+                  color: _kTextSecondary,
+                  height: 1.45,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -418,79 +507,93 @@ class _FeedScreenState extends State<FeedScreen> {
     }
 
     Get.bottomSheet(
-      Container(
-        height: MediaQuery.of(Get.context!).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-          boxShadow: [
-            BoxShadow(
-              color: _kShadowTint.withOpacity(0.08),
-              blurRadius: 24,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Drag handle
-            Padding(
-              padding: EdgeInsets.only(top: 10.h),
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _kSage.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(2),
+      Builder(
+        builder: (sheetContext) {
+          final mediaQuery = MediaQuery.of(sheetContext);
+          final bottomInset = mediaQuery.viewInsets.bottom;
+          final bottomPadding = mediaQuery.padding.bottom;
+          return Container(
+            height: mediaQuery.size.height * 0.75,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+              boxShadow: [
+                BoxShadow(
+                  color: _kShadowTint.withOpacity(0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, -4),
                 ),
-              ),
+              ],
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 12.h),
-              child: Row(
-                children: [
-                  const Text(
-                    'REPLIES',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: _kSage,
-                      letterSpacing: 0.77,
+            child: Column(
+              children: [
+                // Drag handle
+                Padding(
+                  padding: EdgeInsets.only(top: 10.h),
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _kSage.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const Spacer(),
-                  Obx(() => Text(
-                        '${post.replies.length}',
-                        style: const TextStyle(
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 12.h),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'REPLIES',
+                        style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: _kTextSecondary,
+                          color: _kSage,
+                          letterSpacing: 0.77,
                         ),
-                      )),
-                ],
-              ),
+                      ),
+                      const Spacer(),
+                      Obx(() => Text(
+                            '${post.replies.length}',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _kTextSecondary,
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+                Container(height: 1, color: _kCardBorder),
+                Expanded(
+                  child: Obx(() {
+                    final replies = post.replies;
+                    if (replies.isEmpty) return _repliesEmpty();
+                    return ListView.separated(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                      itemCount: replies.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 10.h),
+                      itemBuilder: (_, i) => _replyTile(replies[i]),
+                    );
+                  }),
+                ),
+                _replyInput(
+                  replyController,
+                  send,
+                  bottomPadding: bottomInset > 0
+                      ? bottomInset + 8.h
+                      : bottomPadding + 12.h,
+                ),
+              ],
             ),
-            Container(height: 1, color: _kCardBorder),
-            Expanded(
-              child: Obx(() {
-                final replies = post.replies;
-                if (replies.isEmpty) return _repliesEmpty();
-                return ListView.separated(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                  itemCount: replies.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 10.h),
-                  itemBuilder: (_, i) => _replyTile(replies[i]),
-                );
-              }),
-            ),
-            _replyInput(replyController, send),
-          ],
-        ),
+          );
+        },
       ),
       isScrollControlled: true,
+      ignoreSafeArea: false,
     ).whenComplete(() {
       socketController.leavePost(post.id);
       replyController.dispose();
@@ -530,16 +633,25 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _replyTile(Reply r) {
     final initial =
         (r.user?.firstName ?? 'U').isEmpty ? 'U' : r.user!.firstName[0].toUpperCase();
+    final name = (r.user?.firstName ?? 'Unknown').trim();
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: _kCream,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kCardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: _kShadowTint.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _avatarCircle(initial: initial, size: 32),
+          _avatarCircle(initial: initial, size: 34),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
@@ -549,7 +661,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                        r.user?.firstName ?? 'Unknown',
+                        name.isEmpty ? 'Unknown' : name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -560,7 +672,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    const Spacer(),
                     Text(
                       _formatTime(r.createdAt),
                       style: TextStyle(
@@ -571,14 +683,14 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 3.h),
+                SizedBox(height: 4.h),
                 Text(
                   r.message,
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 12.sp,
+                    fontSize: 12.5.sp,
                     color: _kTextPrimary,
-                    height: 1.4,
+                    height: 1.45,
                   ),
                 ),
               ],
@@ -589,10 +701,11 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _replyInput(TextEditingController controller, VoidCallback onSend) {
+  Widget _replyInput(TextEditingController controller, VoidCallback onSend,
+      {double? bottomPadding}) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16.w, 8.h, 16.w, 12.h + MediaQuery.of(context).padding.bottom),
+          16.w, 8.h, 16.w, bottomPadding ?? 12.h),
       child: Row(
         children: [
           Expanded(
@@ -667,17 +780,32 @@ Widget _avatarCircle({required String initial, double size = 40}) {
     width: size,
     height: size,
     alignment: Alignment.center,
-    decoration: const BoxDecoration(
+    decoration: BoxDecoration(
       shape: BoxShape.circle,
-      color: _kAccent,
+      border: Border.all(color: _kCardBorder, width: 1.5),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF6DC55A),
+          Color(0xFF4FA83D),
+        ],
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: _kShadowTint.withOpacity(0.08),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Text(
       initial,
       style: TextStyle(
         fontFamily: 'Poppins',
         color: Colors.white,
-        fontSize: size * 0.4,
-        fontWeight: FontWeight.w700,
+        fontSize: size * 0.42,
+        fontWeight: FontWeight.w800,
       ),
     ),
   );
@@ -692,7 +820,6 @@ String _normalisePostImageUrl(String raw) {
     try {
       path = Uri.parse(raw).path;
     } catch (_) {
-      // Malformed URL — fall back to using the raw string as a path.
       path = raw;
     }
   }
@@ -700,7 +827,43 @@ String _normalisePostImageUrl(String raw) {
   return '${Constants.baseUrl}/$cleanPath';
 }
 
-// ─── Post card (with read-more local state) ───────────────────────────────
+void _showFullImage(BuildContext context, String imageUrl) {
+  Get.dialog(
+    Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.all(16.w),
+      child: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: CachedNetworkImage(
+              imageUrl: _normalisePostImageUrl(imageUrl),
+              fit: BoxFit.contain,
+            ),
+          ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: GestureDetector(
+              onTap: () => Get.back(),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ─── Post card (styled to match V2 bottombar screens theme) ───────────────
 
 class _PostCard extends StatefulWidget {
   final Post post;
@@ -719,11 +882,6 @@ class _PostCard extends StatefulWidget {
 
 class _PostCardState extends State<_PostCard> {
   bool _expanded = false;
-
-  // Heuristic — long enough that the body would overflow ~4 lines at the
-  // V2 body type scale (13/500 line-height 1.5 across a card width of
-  // roughly 320 logical px). Fine for now; can be replaced with a
-  // TextPainter measurement if precision matters later.
   static const int _readMoreThreshold = 220;
 
   @override
@@ -738,9 +896,9 @@ class _PostCardState extends State<_PostCard> {
         border: Border.all(color: _kCardBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: _kShadowTint.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: _kShadowTint.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -748,23 +906,23 @@ class _PostCardState extends State<_PostCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 14.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _header(p),
                 if (p.text.isNotEmpty) ...[
-                  SizedBox(height: 10.h),
+                  SizedBox(height: 12.h),
                   Text(
                     shouldTruncate
                         ? '${p.text.substring(0, _readMoreThreshold)}…'
                         : p.text,
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
                       color: _kTextPrimary,
-                      height: 1.5,
+                      height: 1.55,
                     ),
                   ),
                   if (p.text.length > _readMoreThreshold)
@@ -774,7 +932,7 @@ class _PostCardState extends State<_PostCard> {
                         behavior: HitTestBehavior.opaque,
                         onTap: () => setState(() => _expanded = !_expanded),
                         child: Text(
-                          _expanded ? 'Show less' : 'Read more',
+                          _expanded ? 'Show less ↑' : 'Read more ↓',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12.sp,
@@ -787,64 +945,85 @@ class _PostCardState extends State<_PostCard> {
                 ],
                 if (p.imageUrl?.isNotEmpty ?? false) ...[
                   SizedBox(height: 12.h),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: CachedNetworkImage(
-                      // Always normalise to <baseUrl>/<path>. Older posts
-                      // stored a fully-qualified http:// URL (the backend
-                      // used req.protocol, which is "http" behind a proxy
-                      // without trust-proxy). iOS ATS / Android cleartext
-                      // protection silently block those, so we strip the
-                      // host and re-prepend our current baseUrl (https).
-                      imageUrl: _normalisePostImageUrl(p.imageUrl!),
-                      placeholder: (_, __) => Container(
-                        height: 200.h,
-                        color: _kCream,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: _kAccent,
-                            strokeWidth: 2,
+                  GestureDetector(
+                    onTap: () => _showFullImage(context, p.imageUrl!),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _kCardBorder, width: 1),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: CachedNetworkImage(
+                          imageUrl: _normalisePostImageUrl(p.imageUrl!),
+                          placeholder: (_, __) => Container(
+                            height: 200.h,
+                            color: _kCream,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: _kAccent,
+                                strokeWidth: 2,
+                              ),
+                            ),
                           ),
+                          errorWidget: (_, __, ___) => Container(
+                            height: 200.h,
+                            color: _kCream,
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              size: 36.sp,
+                              color: _kSage,
+                            ),
+                          ),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
                         ),
                       ),
-                      errorWidget: (_, __, ___) => Container(
-                        height: 200.h,
-                        color: _kCream,
-                        child: Icon(
-                          Icons.broken_image_outlined,
-                          size: 36.sp,
-                          color: _kSage,
-                        ),
-                      ),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
                     ),
                   ),
                 ],
               ],
             ),
           ),
-          Container(height: 1, color: _kCardBorder),
+          // Subtle divider from V2 design system
+          Container(height: 1, color: const Color(0xFFF0F6EE)),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+            padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 10.h),
             child: Row(
               children: [
-                Obx(() => _ActionButton(
+                Obx(() => _ActionPill(
                       icon: p.isLiked.value
-                          ? Icons.favorite
-                          : Icons.favorite_border,
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
                       label: '${p.likesCount.value}',
-                      iconColor:
-                          p.isLiked.value ? _kLikedRose : _kSage,
+                      active: p.isLiked.value,
+                      activeColor: _kLikedRose,
                       onTap: widget.onLike,
                     )),
-                SizedBox(width: 18.w),
-                Obx(() => _ActionButton(
+                SizedBox(width: 8.w),
+                Obx(() => _ActionPill(
                       icon: Icons.chat_bubble_outline_rounded,
-                      label: '${p.replies.length}',
-                      iconColor: _kSage,
+                      label: p.replies.isEmpty
+                          ? 'Reply'
+                          : '${p.replies.length} ${p.replies.length == 1 ? "reply" : "replies"}',
+                      active: false,
+                      activeColor: _kAccent,
                       onTap: widget.onReplyTap,
                     )),
+                const Spacer(),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onReplyTap,
+                  child: Text(
+                    'Join Discussion →',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w700,
+                      color: _kAccent,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -859,10 +1038,12 @@ class _PostCardState extends State<_PostCard> {
         : 'U';
     final fullName = p.user != null
         ? '${p.user?.firstName ?? ''} ${p.user?.lastName ?? ''}'.trim()
-        : 'Unknown';
+        : 'Community Member';
+    final role = _roleLabelFor(p.user?.userType);
+
     return Row(
       children: [
-        _avatarCircle(initial: initial, size: 38),
+        _avatarCircle(initial: initial, size: 40),
         SizedBox(width: 10.w),
         Expanded(
           child: Column(
@@ -872,35 +1053,51 @@ class _PostCardState extends State<_PostCard> {
                 children: [
                   Flexible(
                     child: Text(
-                      fullName.isEmpty ? 'Unknown' : fullName,
+                      fullName.isEmpty ? 'Community Member' : fullName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,
-                        fontSize: 13.sp,
+                        fontSize: 13.5.sp,
                         color: _kTextPrimary,
                       ),
                     ),
                   ),
-                  // Role badge — fed from `ClientUser.userType` (defensive
-                  // parse in lib/data/models/get_clients_diet.dart). Backend
-                  // values per CLAUDE.md: 'Trainer' renders TRAINER,
-                  // 'Dietition' (backend typo) renders as the correctly-
-                  // spelled DIETITIAN. Anything else (incl. null) → no
-                  // badge. Both pills use the same _kAccent green styling.
-                  if (_roleLabelFor(p.user?.userType) != null)
-                    _RoleBadge(label: _roleLabelFor(p.user?.userType)!),
+                  if (role != null) ...[
+                    SizedBox(width: 6.w),
+                    _RoleBadge(label: role),
+                  ],
                 ],
               ),
               SizedBox(height: 2.h),
-              Text(
-                _formatTime(p.createdAt),
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: _kSage,
-                  fontSize: 11.sp,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 11.sp,
+                    color: _kSage,
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    _formatTime(p.createdAt),
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      color: _kSage,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    ' · FitHer Member',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      color: _kSage.withOpacity(0.7),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -921,14 +1118,7 @@ class _PostCardState extends State<_PostCard> {
   }
 }
 
-/// Maps the backend's raw `userType` value to a display label for the
-/// post-author role pill. Returns `null` for regular users (`'User'`),
-/// admins, specialists, or any unknown / null value — those don't show a
-/// badge.
-///
-/// Note the backend's literal `'Dietition'` spelling (typo preserved per
-/// `CLAUDE.md`) — comparison must use that exact string. The display
-/// label is corrected to "DIETITIAN" so the typo never reaches the UI.
+/// Maps backend userType to display label.
 String? _roleLabelFor(String? userType) {
   switch (userType) {
     case 'Trainer':
@@ -940,7 +1130,7 @@ String? _roleLabelFor(String? userType) {
   }
 }
 
-// ─── Role badge (TRAINER / DIETITIAN — same V2 chrome, label varies) ──────
+// ─── Role badge (TRAINER / DIETITIAN with verification check) ──────────────
 
 class _RoleBadge extends StatelessWidget {
   final String label;
@@ -948,41 +1138,55 @@ class _RoleBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: _kAccent.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: _kAccent.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _kAccent.withOpacity(0.35),
+          width: 0.8,
         ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.verified_rounded,
+            size: 10.sp,
             color: _kAccent,
-            letterSpacing: 0.6,
           ),
-        ),
+          SizedBox(width: 3.w),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w800,
+              color: _kAccent,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── Action button (heart / reply) ────────────────────────────────────────
+// ─── Action pill button (Likes & Comments matching V2 chips) ───────────────
 
-class _ActionButton extends StatelessWidget {
+class _ActionPill extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color iconColor;
+  final bool active;
+  final Color activeColor;
   final VoidCallback onTap;
 
-  const _ActionButton({
+  const _ActionPill({
     required this.icon,
     required this.label,
-    required this.iconColor,
+    required this.active,
+    required this.activeColor,
     required this.onTap,
   });
 
@@ -991,20 +1195,37 @@ class _ActionButton extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: active
+              ? activeColor.withOpacity(0.10)
+              : const Color(0xFFF5FBF2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active
+                ? activeColor.withOpacity(0.35)
+                : const Color(0xFFD8EDD4),
+            width: 1,
+          ),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18.sp, color: iconColor),
+            Icon(
+              icon,
+              size: 15.sp,
+              color: active ? activeColor : _kTextSecondary,
+            ),
             SizedBox(width: 5.w),
             Text(
               label,
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                color: _kTextSecondary,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                color: active ? activeColor : _kTextSecondary,
               ),
             ),
           ],

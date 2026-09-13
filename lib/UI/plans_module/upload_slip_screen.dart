@@ -48,183 +48,186 @@ class UploadSlipScreen extends StatelessWidget {
         homeController.update();
         Get.back();
       }, text: "Upload Slip"),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-        child: Column(
-          children: [
-            const Text(
-              'Upload your payment receipt',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: _kTextPrimary,
-                letterSpacing: -0.2,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            children: [
+              const Text(
+                'Upload your payment receipt',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: _kTextPrimary,
+                  letterSpacing: -0.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Snap or pick a clear photo of your transfer / deposit slip. '
-              'Our team verifies it within a few hours.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13,
-                color: _kSage,
-                height: 1.5,
+              const SizedBox(height: 6),
+              const Text(
+                'Snap or pick a clear photo of your transfer / deposit slip. '
+                'Our team verifies it within a few hours.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: _kSage,
+                  height: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: GetBuilder<HomeController>(builder: (cont) {
-                final picked = cont.planPicture;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _selectMediaBottomSheet(context),
-                  child: Container(
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _kCardBorder, width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _kTextPrimary.withOpacity(0.06),
-                          offset: const Offset(0, 6),
-                          blurRadius: 18,
-                        ),
-                      ],
-                    ),
-                    child: picked != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.file(
-                              File(picked.path),
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 72,
-                                height: 72,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: _kIconWashBg,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: SizedBox(
-                                  width: 32,
-                                  height: 32,
-                                  child: SvgPicture.asset(MyImgs.upload),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Tap to upload slip',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: _kTextPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'JPG or PNG, up to 5 MB',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 11,
-                                  color: _kSage,
-                                ),
-                              ),
-                            ],
+              const SizedBox(height: 20),
+              Expanded(
+                child: GetBuilder<HomeController>(builder: (cont) {
+                  final picked = cont.planPicture;
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _selectMediaBottomSheet(context),
+                    child: Container(
+                      width: double.infinity,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _kCardBorder, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kTextPrimary.withOpacity(0.06),
+                            offset: const Offset(0, 6),
+                            blurRadius: 18,
                           ),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () async {
-                if (homeController.planPicture == null) {
-                  CustomToast.failToast(msg: "Please select an image first");
-                  return;
-                }
-                final success = await homeController.addPlanBuyImage(
-                    planId, durationId, price);
-                if (success) {
-                  HelpingWidgets.showCustomDialog(context, () {
-                    Get.back();
-                    Get.back(); // close upload screen
-                    Get.back(); // close payment-method picker
-                  },
-                      "Successfully Uploaded!",
-                      "Our team is reviewing your payment, and you will "
-                          "receive a confirmation shortly. Please wait "
-                          "for approval.",
-                      MyImgs.logo,
-                      buttonText: "OK");
-                }
-              },
-              child: Container(
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _kAccent,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _kAccent.withOpacity(0.32),
-                      offset: const Offset(0, 6),
-                      blurRadius: 16,
+                        ],
+                      ),
+                      child: picked != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.file(
+                                File(picked.path),
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 72,
+                                  height: 72,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: _kIconWashBg,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: SvgPicture.asset(MyImgs.upload),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Tap to upload slip',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: _kTextPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'JPG or PNG, up to 5 MB',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 11,
+                                    color: _kSage,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
-                  ],
-                ),
-                child: const Text(
-                  'Upload payment slip',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  if (homeController.planPicture == null) {
+                    CustomToast.failToast(msg: "Please select an image first");
+                    return;
+                  }
+                  final success = await homeController.addPlanBuyImage(
+                      planId, durationId, price);
+                  if (success) {
+                    HelpingWidgets.showCustomDialog(context, () {
+                      Get.back();
+                      Get.back(); // close upload screen
+                      Get.back(); // close payment-method picker
+                    },
+                        "Successfully Uploaded!",
+                        "Our team is reviewing your payment, and you will "
+                            "receive a confirmation shortly. Please wait "
+                            "for approval.",
+                        MyImgs.logo,
+                        buttonText: "OK");
+                  }
+                },
+                child: Container(
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _kAccent,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kAccent.withOpacity(0.32),
+                        offset: const Offset(0, 6),
+                        blurRadius: 16,
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    'Upload payment slip',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Get.back(),
-              child: Container(
-                height: 46,
-                alignment: Alignment.center,
-                child: const Text(
-                  'Back',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _kSage,
+              const SizedBox(height: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Get.back(),
+                child: Container(
+                  height: 46,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Back',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _kSage,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _selectMediaBottomSheet(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + bottomInset),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(

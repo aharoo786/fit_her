@@ -93,12 +93,13 @@ class SignUpScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 33.w, vertical: 50.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomButton(
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 33.w, vertical: 50.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomButton(
                 text: "Check Your PCOS".tr,
                 onPressed: () async {
                   if (!signUpformKey.currentState!.validate()) {
@@ -121,6 +122,7 @@ class SignUpScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

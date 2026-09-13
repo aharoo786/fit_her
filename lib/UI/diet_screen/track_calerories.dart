@@ -141,24 +141,28 @@ class _TrackCaloriesState extends State<TrackCalories> {
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
-        child: CustomButton(
-            text: "Check",
-            onPressed: () {
-              if (foodName.text.isEmpty || dietController.calorieFile == null) {
-                CustomToast.failToast(msg: "Please provide image and food name");
-                return;
-              }
-              dietController.addCaloriesImage(foodName.text);
-            }),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: CustomButton(
+              text: "Check",
+              onPressed: () {
+                if (foodName.text.isEmpty || dietController.calorieFile == null) {
+                  CustomToast.failToast(msg: "Please provide image and food name");
+                  return;
+                }
+                dietController.addCaloriesImage(foodName.text);
+              }),
+        ),
       ),
     );
   }
 
   selectMediaBottomSheet(Function gallery, Function camera, BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     Get.bottomSheet(Container(
-      height: 150,
+      height: 150 + bottomInset,
+      padding: EdgeInsets.only(bottom: bottomInset),
       color: MyColors.bodyBackground,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

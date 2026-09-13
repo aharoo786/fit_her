@@ -71,12 +71,13 @@ class RemindersScreen extends StatelessWidget {
                 ],
               ),
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomButton(
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomButton(
                 text: "Send".tr,
                 onPressed: () async {
                   if (isAnnouncement) {
@@ -92,6 +93,7 @@ class RemindersScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -78,6 +78,7 @@ class PersonalDetailsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               _editButton(),
+              const SizedBox(height: 24),
             ],
           ),
         ),
