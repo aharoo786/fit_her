@@ -45,9 +45,10 @@ class HomeRepo extends GetxService {
   Future<Response> getRescheduleAppointments({
     required String accessToken,
     required bool reschedule,
+    required String dietitianId,
   }) async {
     return await apiProvider.getData(
-        "${Constants.rescheduleAppointments}/$reschedule",
+        "${Constants.rescheduleAppointments}/$reschedule/$dietitianId",
         headers: {"accessToken": accessToken});
   }
 
@@ -531,6 +532,30 @@ class HomeRepo extends GetxService {
     );
   }
 
+  // Trial-to-Plan funnel — submits the trimmed quick-intake form and
+  // gets back the auto-generated + auto-activated starter DietPlan in
+  // one round trip. Generation can take as long as the dietitian-side
+  // AI generation (that path is up to 14 days; this is only 7, but
+  // still a real Gemini call), so this uses the same 120s override as
+  // DietPlanAdminRepository.generatePlan rather than the default 30s.
+  Future<Response> submitTrialQuickIntake({
+    required String accessToken,
+    required String goal,
+    String? allergies,
+    int? mealsPerDay,
+  }) async {
+    return await apiProvider.postData(
+      Constants.trialQuickIntake,
+      body: {
+        "goal": goal,
+        if (allergies != null && allergies.isNotEmpty) "allergies": allergies,
+        if (mealsPerDay != null) "mealsPerDay": mealsPerDay,
+      },
+      headers: {"accessToken": accessToken},
+      timeout: const Duration(seconds: 120),
+    );
+  }
+
   Future<Response> bookTrialDay({
     required String accessToken,
     required int day,
@@ -844,6 +869,29 @@ class HomeRepo extends GetxService {
     );
   }
 
+  /// The signed-in user's own current active (pending/confirmed/In
+  /// Progress) consultation booking, if any. Powers the Diet tab's
+  /// "your booked consultation" card. Path: GET /appointment/me/current.
+  Future<Response> getMyCurrentAppointment({required String accessToken}) async {
+    return await apiProvider.getData(
+      "/appointment/me/current",
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  /// User-initiated cancel (ownership + status guarded server-side).
+  /// Path: POST /appointment/:id/cancel.
+  Future<Response> cancelMyAppointment({
+    required String accessToken,
+    required int appointmentId,
+  }) async {
+    return await apiProvider.postData(
+      "/appointment/$appointmentId/cancel",
+      body: {},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
   Future<Response> upsertMealLog({
     required String accessToken,
     required Map<String, dynamic>
@@ -897,6 +945,21 @@ class HomeRepo extends GetxService {
     );
   }
 
+  /// Section 9 "previous values pre-filled for comparison". Day 15 has no
+  /// earlier checkpoint on the plan — server always returns `previous:
+  /// null` for cycle 15, which is expected, not an error. Day 30's
+  /// previous values are the same plan's cycle-15 submission.
+  Future<Response> getPreviousProgress({
+    required String accessToken,
+    required int userPlanId,
+    required int cycle,
+  }) async {
+    return await apiProvider.getData(
+      "${Constants.progressSubmission}/previous?userPlanId=$userPlanId&cycle=$cycle",
+      headers: {"accessToken": accessToken},
+    );
+  }
+
   /// User-side escalation: MEDICAL or PLAN_DELAYED.
   Future<Response> openEscalation({
     required String accessToken,
@@ -935,6 +998,22 @@ class HomeRepo extends GetxService {
     return await apiProvider.postData(
       "${Constants.popupAck}/$variable/complete",
       body: {if (metadata != null) "metadata": metadata},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  /// "Remind me tomorrow" — pushes the popup's eligibility forward
+  /// server-side (see popupEligibility.js's snoozedUntil handling)
+  /// instead of the plain dismiss, which only bumps dismissCount and
+  /// doesn't actually delay re-eligibility.
+  Future<Response> snoozePopup({
+    required String accessToken,
+    required String variable,
+    int days = 1,
+  }) async {
+    return await apiProvider.postData(
+      "${Constants.popupAck}/$variable/snooze",
+      body: {"days": days},
       headers: {"accessToken": accessToken},
     );
   }

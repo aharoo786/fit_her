@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../UI/free_trail/trial_journey_screen.dart';
+import '../../UI/free_trail/trial_quick_intake_screen.dart';
 import '../../UI/plans_module/all_plans.dart';
 import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../data/controllers/home_controller/home_controller.dart';
 
 /// Shows the trial-start confirmation dialog.
 /// Shared by [TrialCtaCard] and [HeroLiveSection] so either entry-point
-/// triggers the same flow: confirm → POST /trial/start → TrialJourneyScreen.
+/// triggers the same flow: confirm → POST /trial/start →
+/// TrialQuickIntakeScreen (Trial-to-Plan funnel Step 3) — its own "Skip
+/// for now" still reaches TrialJourneyScreen for the live-class booking.
 void showTrialStartDialog() {
   const accent = Color(0xFF6DC55A);
   final auth = Get.find<AuthController>();
@@ -88,7 +90,10 @@ void showTrialStartDialog() {
                 final started = await home.startTrial();
                 if (started) {
                   auth.activateTrial();
-                  Get.to<void>(() => const TrialJourneyScreen());
+                  // Trial-to-Plan funnel Step 3 — quick intake first;
+                  // its own "Skip for now" still reaches
+                  // TrialJourneyScreen for live-class-only users.
+                  Get.to<void>(() => const TrialQuickIntakeScreen());
                 }
               },
               child: Container(
@@ -124,9 +129,10 @@ void showTrialStartDialog() {
 ///                 trial →". Tapping the button shows a confirmation dialog;
 ///                 on confirm it calls [HomeController.startTrial] (creates
 ///                 a TrialJourney row on the backend) then navigates to
-///                 [TrialJourneyScreen]. The local [AuthController.trialActivated]
-///                 flag is also set so the card shows "activated" if the user
-///                 navigates back to this screen later.
+///                 TrialQuickIntakeScreen. The local
+///                 [AuthController.trialActivated] flag is also set so the
+///                 card shows "activated" if the user navigates back to
+///                 this screen later.
 ///   • activated → "Trial active · 3 days remaining" + "Explore more plans
 ///                 →" which routes to `OurPlansScreen`.
 class TrialCtaCard extends StatelessWidget {

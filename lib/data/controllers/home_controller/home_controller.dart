@@ -200,6 +200,9 @@ class HomeController extends GetxController implements GetxService {
   var trialActionLoad = false.obs;
   Map<String, dynamic>? trialJourney;
 
+  // Trial-to-Plan funnel — quick-intake submit state.
+  var trialQuickIntakeLoad = false.obs;
+
   ///testimonials pic
   XFile? testiPicture;
   XFile? dietPicture;
@@ -1836,6 +1839,40 @@ class HomeController extends GetxController implements GetxService {
     trialActionLoad.value = false;
     update();
     return started;
+  }
+
+  // Trial-to-Plan funnel Steps 3+4+5 in one call. Returns true once the
+  // starter plan is generated AND auto-activated server-side — the
+  // caller can go straight to the meal-log screen on true. On false,
+  // this has already shown the user-facing error via CustomToast
+  // (mirrors startTrial()'s pattern above) so the caller just stays put.
+  Future<bool> submitTrialQuickIntake({
+    required String goal,
+    String? allergies,
+    int? mealsPerDay,
+  }) async {
+    bool success = false;
+    trialQuickIntakeLoad.value = true;
+    await homeRepo
+        .submitTrialQuickIntake(
+      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      goal: goal,
+      allergies: allergies,
+      mealsPerDay: mealsPerDay,
+    )
+        .then((response) {
+      if (response.statusCode == 200 && response.body["status"] == "1") {
+        success = true;
+      } else {
+        CustomToast.failToast(
+          msg: response.body["message"] ??
+              "Couldn't generate your plan yet — please try again",
+        );
+      }
+    });
+    trialQuickIntakeLoad.value = false;
+    update();
+    return success;
   }
 
   Future<void> getMyTrialJourney() async {

@@ -32,11 +32,26 @@ class Cliet {
   DateTime expireDate;
   ClientUser? user;
 
+  /// Server-computed status so the Clients list can show something
+  /// actionable instead of just a purchase date range. One of: FLAGGED,
+  /// CONSULTATION_TODAY, PLAN_OVERDUE, AWAITING_PLAN, ON_TRACK, NEW.
+  /// Null when talking to an older backend that doesn't send it yet —
+  /// callers should treat that the same as "ON_TRACK" (unknown, not
+  /// urgent) rather than crash.
+  String? status;
+  String? statusDetail;
+  bool hasConsultationToday;
+  DateTime? consultationTodayAt;
+
   Cliet({
     required this.id,
     required this.buyingDate,
     required this.expireDate,
     required this.user,
+    this.status,
+    this.statusDetail,
+    this.hasConsultationToday = false,
+    this.consultationTodayAt,
   });
 
   factory Cliet.fromJson(Map<String, dynamic> json) => Cliet(
@@ -44,6 +59,12 @@ class Cliet {
         buyingDate: DateTime.parse(json["buyingDate"] ?? DateTime.now()),
         expireDate: DateTime.parse(json["expireDate"] ?? DateTime.now()),
         user: json["User"] == null ? null : ClientUser.fromJson(json["User"]),
+        status: json["status"] as String?,
+        statusDetail: json["statusDetail"] as String?,
+        hasConsultationToday: json["hasConsultationToday"] == true,
+        consultationTodayAt: json["consultationTodayAt"] == null
+            ? null
+            : DateTime.tryParse(json["consultationTodayAt"].toString()),
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,6 +72,10 @@ class Cliet {
         "buyingDate": buyingDate.toIso8601String(),
         "expireDate": expireDate.toIso8601String(),
         "User": user?.toJson(),
+        "status": status,
+        "statusDetail": statusDetail,
+        "hasConsultationToday": hasConsultationToday,
+        "consultationTodayAt": consultationTodayAt?.toIso8601String(),
       };
 }
 
