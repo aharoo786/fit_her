@@ -79,341 +79,450 @@ class AddTrainerSlots extends StatelessWidget {
                             Builder(builder: (context) {
                               var slot = dayTime.slots[timeIndex];
                               print("${slot.toJson()}");
-                              // No more fixed height -- the three new
-                              // workout-detail fields below make this row
-                              // taller than the old start/end/trainer-only
-                              // version, and a fixed 130 would just clip
-                              // them.
+
+                              // Collapsed-by-default summary so a day with
+                              // several slots doesn't dump every slot's full
+                              // edit form (time pickers, trainer dropdown,
+                              // workout-detail fields) on screen at once --
+                              // tap a slot to open just that one.
+                              String trainerLabel = 'No trainer selected';
+                              if (slot.trainerId != null) {
+                                final matches = home
+                                        .getUsersBasedOnUserTypeModel?.users
+                                        .where(
+                                            (u) => u.id == slot.trainerId)
+                                        .toList() ??
+                                    [];
+                                if (matches.isNotEmpty) {
+                                  trainerLabel =
+                                      '${matches.first.firstName} ${matches.first.lastName}';
+                                }
+                              }
+
                               return Container(
+                                // `slotKey` lives on the Slot object itself
+                                // (not tied to its index), so it stays
+                                // attached to this exact slot across
+                                // add/remove and rebuilds, letting us scroll
+                                // straight to it once it's expanded.
+                                key: slot.slotKey,
                                 child: Row(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
-                                      child: Column(
-                                        children: [
-                                          Row(children: [
-                                            Expanded(
-                                              child: GestureDetector(
-                                                  onTap: () async {
-                                                    TimeOfDay? time =
-                                                        await showTimePicker(
-                                                      context: context,
-                                                      initialTime:
-                                                          TimeOfDay.now(),
-                                                      builder: (BuildContext
-                                                              context,
-                                                          Widget? child) {
-                                                        return Theme(
-                                                          data: ThemeData
-                                                                  .light()
-                                                              .copyWith(
-                                                            primaryColor:
-                                                                Colors.blue,
-                                                            dialogBackgroundColor:
-                                                                Colors.white,
-                                                            textTheme:
-                                                                const TextTheme(
-                                                              bodyLarge: TextStyle(
-                                                                  color: Colors
-                                                                      .black),
-                                                            ),
-                                                          ),
-                                                          child: child!,
-                                                        );
-                                                      },
-                                                    );
-                                                    if (time != null) {
-                                                      final now =
-                                                          DateTime.now();
-                                                      final formatted =
-                                                          DateFormat.jm()
-                                                              .format(
-                                                        DateTime(
-                                                            now.year,
-                                                            now.month,
-                                                            now.day,
-                                                            time.hour,
-                                                            time.minute),
-                                                      );
-                                                      slot.start =
-                                                          time.format(context);
-                                                      homeController.update();
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    height: 56.h,
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            horizontal: 5.w),
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                        border: Border.all(
-                                                            color: Colors
-                                                                .black)),
-                                                    child: Text(
-                                                      slot.start,
-                                                      style: slot.start ==
-                                                              "Start Time"
-                                                          ? TextStyle(
-                                                              color: MyColors
-                                                                  .hintText,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .normal,
-                                                              fontSize: 14.sp)
-                                                          : TextStyle(
-                                                              color: MyColors
-                                                                  .textColor,
-                                                              fontSize: 16.sp,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w400),
-                                                    ),
-                                                  )),
-                                            ),
-                                            SizedBox(
-                                              width: 10.w,
-                                            ),
-                                            Expanded(
-                                              child: GestureDetector(
-                                                  onTap: () async {
-                                                    TimeOfDay? time =
-                                                        await showTimePicker(
-                                                      context: context,
-                                                      initialTime:
-                                                          TimeOfDay.now(),
-                                                      builder: (BuildContext
-                                                              context,
-                                                          Widget? child) {
-                                                        return Theme(
-                                                          data: ThemeData
-                                                                  .light()
-                                                              .copyWith(
-                                                            primaryColor:
-                                                                Colors.blue,
-                                                            dialogBackgroundColor:
-                                                                Colors.white,
-                                                            textTheme:
-                                                                const TextTheme(
-                                                              bodyLarge: TextStyle(
-                                                                  color: Colors
-                                                                      .black),
-                                                            ),
-                                                          ),
-                                                          child: child!,
-                                                        );
-                                                      },
-                                                    );
-                                                    if (time != null) {
-                                                      final now =
-                                                          DateTime.now();
-                                                      final formatted =
-                                                          DateFormat.jm()
-                                                              .format(
-                                                        DateTime(
-                                                            now.year,
-                                                            now.month,
-                                                            now.day,
-                                                            time.hour,
-                                                            time.minute),
-                                                      );
-
-                                                      print(
-                                                          'AddTrainerSlots.build  ${time}');
-                                                      slot.end =
-                                                          time.format(context);
-                                                      print(
-                                                          'AddTrainerSlots.build  ${time.format(context)}');
-                                                      homeController.update();
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    height: 56.h,
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            horizontal: 5.w),
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                        border: Border.all(
-                                                            color: Colors
-                                                                .black)),
-                                                    child: Text(
-                                                      slot.end,
-                                                      style: slot.end ==
-                                                              "End Time"
-                                                          ? TextStyle(
-                                                              color: MyColors
-                                                                  .hintText,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .normal,
-                                                              fontSize: 14.sp)
-                                                          : TextStyle(
-                                                              color: MyColors
-                                                                  .textColor,
-                                                              fontSize: 16.sp,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w400),
-                                                    ),
-                                                  )),
-                                            ),
-                                          ]),
-                                          const SizedBox(
-                                            height: 10,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.black26),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: ExpansionTile(
+                                          tilePadding: EdgeInsets.symmetric(
+                                              horizontal: 10.w),
+                                          childrenPadding:
+                                              EdgeInsets.fromLTRB(
+                                                  10.w, 0, 10.w, 10.h),
+                                          onExpansionChanged: (expanded) {
+                                            if (!expanded) return;
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                              final slotContext =
+                                                  slot.slotKey.currentContext;
+                                              if (slotContext != null) {
+                                                Scrollable.ensureVisible(
+                                                  slotContext,
+                                                  duration: const Duration(
+                                                      milliseconds: 300),
+                                                  curve: Curves.easeInOut,
+                                                  alignment: 0.05,
+                                                );
+                                              }
+                                            });
+                                          },
+                                          title: Text(
+                                            '${slot.start} - ${slot.end}',
+                                            style: textTheme.bodyMedium,
                                           ),
-                                          Obx(() => home
-                                                  .getUsersBasedOnUserTypeLoad
-                                                  .value
-                                              ? Container(
-                                                    // width: 80,
-                                                    decoration: BoxDecoration(
-                                                      border: Border.all(
-                                                          color: Colors.black),
-                                                      color: MyColors
-                                                          .textFieldColor,
-                                                      borderRadius:
-                                                          BorderRadius
-                                                              .circular(8),
-                                                    ),
-                                                    child:
-                                                        DropdownButtonFormField<
-                                                            UserTypeData>(
-                                                      style: TextStyle(
-                                                          color: MyColors
-                                                              .textColor,
-                                                          fontSize: 16.sp,
-                                                          fontWeight:
-                                                              FontWeight
-                                                                  .w600),
-                                                      decoration:
-                                                          InputDecoration(
-                                                        contentPadding:
-                                                            EdgeInsets
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        16.w,
-                                                                    vertical:
-                                                                        12.h),
-                                                        border:
-                                                            InputBorder.none,
-                                                      ),
+                                          subtitle: Text(
+                                            trainerLabel,
+                                            style: TextStyle(
+                                                color: MyColors.hintText,
+                                                fontSize: 13.sp),
+                                          ),
+                                          children: [
+                                            Column(
+                                              children: [
+                                                Row(children: [
+                                                  Expanded(
+                                                    child: GestureDetector(
+                                                        onTap: () async {
+                                                          TimeOfDay? time =
+                                                              await showTimePicker(
+                                                            context: context,
+                                                            initialTime:
+                                                                TimeOfDay
+                                                                    .now(),
+                                                            builder:
+                                                                (BuildContext
+                                                                        context,
+                                                                    Widget?
+                                                                        child) {
+                                                              return Theme(
+                                                                data: ThemeData
+                                                                        .light()
+                                                                    .copyWith(
+                                                                  primaryColor:
+                                                                      Colors
+                                                                          .blue,
+                                                                  dialogBackgroundColor:
+                                                                      Colors
+                                                                          .white,
+                                                                  textTheme:
+                                                                      const TextTheme(
+                                                                    bodyLarge:
+                                                                        TextStyle(
+                                                                            color:
+                                                                                Colors.black),
+                                                                  ),
+                                                                ),
+                                                                child: child!,
+                                                              );
+                                                            },
+                                                          );
+                                                          if (time != null) {
+                                                            final now =
+                                                                DateTime.now();
+                                                            final formatted =
+                                                                DateFormat.jm()
+                                                                    .format(
+                                                              DateTime(
+                                                                  now.year,
+                                                                  now.month,
+                                                                  now.day,
+                                                                  time.hour,
+                                                                  time
+                                                                      .minute),
+                                                            );
+                                                            slot.start = time
+                                                                .format(
+                                                                    context);
+                                                            homeController
+                                                                .update();
+                                                          }
+                                                        },
+                                                        child: Container(
+                                                          height: 56.h,
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                                  horizontal:
+                                                                      5.w),
+                                                          alignment: Alignment
+                                                              .centerLeft,
+                                                          decoration: BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              border: Border.all(
+                                                                  color: Colors
+                                                                      .black)),
+                                                          child: Text(
+                                                            slot.start,
+                                                            style: slot.start ==
+                                                                    "Start Time"
+                                                                ? TextStyle(
+                                                                    color: MyColors
+                                                                        .hintText,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .normal,
+                                                                    fontSize:
+                                                                        14.sp)
+                                                                : TextStyle(
+                                                                    color: MyColors
+                                                                        .textColor,
+                                                                    fontSize:
+                                                                        16.sp,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w400),
+                                                          ),
+                                                        )),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 10.w,
+                                                  ),
+                                                  Expanded(
+                                                    child: GestureDetector(
+                                                        onTap: () async {
+                                                          TimeOfDay? time =
+                                                              await showTimePicker(
+                                                            context: context,
+                                                            initialTime:
+                                                                TimeOfDay
+                                                                    .now(),
+                                                            builder:
+                                                                (BuildContext
+                                                                        context,
+                                                                    Widget?
+                                                                        child) {
+                                                              return Theme(
+                                                                data: ThemeData
+                                                                        .light()
+                                                                    .copyWith(
+                                                                  primaryColor:
+                                                                      Colors
+                                                                          .blue,
+                                                                  dialogBackgroundColor:
+                                                                      Colors
+                                                                          .white,
+                                                                  textTheme:
+                                                                      const TextTheme(
+                                                                    bodyLarge:
+                                                                        TextStyle(
+                                                                            color:
+                                                                                Colors.black),
+                                                                  ),
+                                                                ),
+                                                                child: child!,
+                                                              );
+                                                            },
+                                                          );
+                                                          if (time != null) {
+                                                            final now =
+                                                                DateTime.now();
+                                                            final formatted =
+                                                                DateFormat.jm()
+                                                                    .format(
+                                                              DateTime(
+                                                                  now.year,
+                                                                  now.month,
+                                                                  now.day,
+                                                                  time.hour,
+                                                                  time
+                                                                      .minute),
+                                                            );
 
-                                                      //padding: EdgeInsets.symmetric(horizontal: 10.w),
-                                                      value: slot.trainerId ==
-                                                              null
-                                                          ? home
-                                                              .getUsersBasedOnUserTypeModel
-                                                              ?.users[0]
-                                                          : home
-                                                              .getUsersBasedOnUserTypeModel
-                                                              ?.users
-                                                              .firstWhere((value) =>
-                                                                  value.id ==
-                                                                  (slot
-                                                                      .trainerId)),
-                                                      onChanged:
-                                                          (UserTypeData?
-                                                              newValue) {
-                                                        if (newValue != null) {
-                                                          slot.trainerId =
-                                                              newValue.id == 0
+                                                            print(
+                                                                'AddTrainerSlots.build  ${time}');
+                                                            slot.end = time
+                                                                .format(
+                                                                    context);
+                                                            print(
+                                                                'AddTrainerSlots.build  ${time.format(context)}');
+                                                            homeController
+                                                                .update();
+                                                          }
+                                                        },
+                                                        child: Container(
+                                                          height: 56.h,
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                                  horizontal:
+                                                                      5.w),
+                                                          alignment: Alignment
+                                                              .centerLeft,
+                                                          decoration: BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              border: Border.all(
+                                                                  color: Colors
+                                                                      .black)),
+                                                          child: Text(
+                                                            slot.end,
+                                                            style: slot.end ==
+                                                                    "End Time"
+                                                                ? TextStyle(
+                                                                    color: MyColors
+                                                                        .hintText,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .normal,
+                                                                    fontSize:
+                                                                        14.sp)
+                                                                : TextStyle(
+                                                                    color: MyColors
+                                                                        .textColor,
+                                                                    fontSize:
+                                                                        16.sp,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w400),
+                                                          ),
+                                                        )),
+                                                  ),
+                                                ]),
+                                                const SizedBox(
+                                                  height: 10,
+                                                ),
+                                                Obx(() => home
+                                                        .getUsersBasedOnUserTypeLoad
+                                                        .value
+                                                    ? Container(
+                                                        // width: 80,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          border: Border.all(
+                                                              color: Colors
+                                                                  .black),
+                                                          color: MyColors
+                                                              .textFieldColor,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      8),
+                                                        ),
+                                                        child:
+                                                            DropdownButtonFormField<
+                                                                UserTypeData>(
+                                                          style: TextStyle(
+                                                              color: MyColors
+                                                                  .textColor,
+                                                              fontSize: 16.sp,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600),
+                                                          decoration:
+                                                              InputDecoration(
+                                                            contentPadding:
+                                                                EdgeInsets
+                                                                    .symmetric(
+                                                                        horizontal:
+                                                                            16.w,
+                                                                        vertical:
+                                                                            12.h),
+                                                            border: InputBorder
+                                                                .none,
+                                                          ),
+
+                                                          //padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                                          value: slot
+                                                                      .trainerId ==
+                                                                  null
+                                                              ? home
+                                                                  .getUsersBasedOnUserTypeModel
+                                                                  ?.users[0]
+                                                              : home
+                                                                  .getUsersBasedOnUserTypeModel
+                                                                  ?.users
+                                                                  .firstWhere((value) =>
+                                                                      value.id ==
+                                                                      (slot
+                                                                          .trainerId)),
+                                                          onChanged:
+                                                              (UserTypeData?
+                                                                  newValue) {
+                                                            if (newValue !=
+                                                                null) {
+                                                              slot.trainerId = newValue
+                                                                          .id ==
+                                                                      0
                                                                   ? null
                                                                   : newValue
                                                                       .id;
-                                                        }
-                                                      },
-                                                      items: home
-                                                          .getUsersBasedOnUserTypeModel!
-                                                          .users
-                                                          .map((UserTypeData
-                                                              cat) {
-                                                        return DropdownMenuItem<
-                                                            UserTypeData>(
-                                                          value: cat,
-                                                          child: SizedBox(
-                                                            //  width: 60.w,
-                                                            child: Text(
-                                                              ("${cat.firstName} ${cat.lastName}")
-                                                                  .toString(),
-                                                              maxLines: 1,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style: textTheme
-                                                                  .bodySmall!
-                                                                  .copyWith(
-                                                                      color: Colors
-                                                                          .black,
-                                                                      overflow:
-                                                                          TextOverflow.ellipsis),
-                                                            ),
-                                                          ),
-                                                        );
-                                                      }).toList(),
-                                                    ),
-                                                  )
-                                              : CircularProgress()),
-                                          // Workout details -- admin can now
-                                          // fill these in right here instead
-                                          // of a trainer having to add them
-                                          // separately afterward via the
-                                          // Class Details screen. Optional:
-                                          // left blank, nothing changes -- so
-                                          // these don't use the mandatory
-                                          // "Please enter some text"
-                                          // validator CustomTextField shows
-                                          // by default (that validator error
-                                          // state also changes the field's
-                                          // rendered height, which is exactly
-                                          // the kind of mid-animation resize
-                                          // that broke layout above).
-                                          const SizedBox(height: 10),
-                                          CustomTextField(
-                                            keyboardType: TextInputType.text,
-                                            text: "Class Type".tr,
-                                            length: 30,
-                                            controller: slot.typeController,
-                                            inputFormatters:
-                                                FilteringTextInputFormatter
-                                                    .singleLineFormatter,
-                                            validator: (value) => null,
-                                          ),
-                                          const SizedBox(height: 10),
-                                          CustomTextField(
-                                            keyboardType: TextInputType.text,
-                                            text: "Intensity Level".tr,
-                                            length: 30,
-                                            controller: slot.levelController,
-                                            inputFormatters:
-                                                FilteringTextInputFormatter
-                                                    .singleLineFormatter,
-                                            validator: (value) => null,
-                                          ),
-                                          const SizedBox(height: 10),
-                                          CustomTextField(
-                                            height: 80,
-                                            moreThanOneLine: true,
-                                            keyboardType: TextInputType.text,
-                                            text: "Description".tr,
-                                            length: 300,
-                                            controller:
-                                                slot.descriptionController,
-                                            inputFormatters:
-                                                FilteringTextInputFormatter
-                                                    .singleLineFormatter,
-                                            validator: (value) => null,
-                                          ),
-                                        ],
+                                                              homeController
+                                                                  .update();
+                                                            }
+                                                          },
+                                                          items: home
+                                                              .getUsersBasedOnUserTypeModel!
+                                                              .users
+                                                              .map(
+                                                                  (UserTypeData
+                                                                      cat) {
+                                                            return DropdownMenuItem<
+                                                                UserTypeData>(
+                                                              value: cat,
+                                                              child: SizedBox(
+                                                                //  width: 60.w,
+                                                                child: Text(
+                                                                  ("${cat.firstName} ${cat.lastName}")
+                                                                      .toString(),
+                                                                  maxLines: 1,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style: textTheme
+                                                                      .bodySmall!
+                                                                      .copyWith(
+                                                                          color:
+                                                                              Colors.black,
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }).toList(),
+                                                        ),
+                                                      )
+                                                    : CircularProgress()),
+                                                // Workout details -- admin can
+                                                // now fill these in right
+                                                // here instead of a trainer
+                                                // having to add them
+                                                // separately afterward via
+                                                // the Class Details screen.
+                                                // Optional: left blank,
+                                                // nothing changes -- so these
+                                                // don't use the mandatory
+                                                // "Please enter some text"
+                                                // validator CustomTextField
+                                                // shows by default (that
+                                                // validator error state also
+                                                // changes the field's
+                                                // rendered height, which is
+                                                // exactly the kind of
+                                                // mid-animation resize that
+                                                // broke layout before).
+                                                const SizedBox(height: 10),
+                                                CustomTextField(
+                                                  keyboardType:
+                                                      TextInputType.text,
+                                                  text: "Class Type".tr,
+                                                  length: 30,
+                                                  controller:
+                                                      slot.typeController,
+                                                  inputFormatters:
+                                                      FilteringTextInputFormatter
+                                                          .singleLineFormatter,
+                                                  validator: (value) => null,
+                                                ),
+                                                const SizedBox(height: 10),
+                                                CustomTextField(
+                                                  keyboardType:
+                                                      TextInputType.text,
+                                                  text: "Intensity Level".tr,
+                                                  length: 30,
+                                                  controller:
+                                                      slot.levelController,
+                                                  inputFormatters:
+                                                      FilteringTextInputFormatter
+                                                          .singleLineFormatter,
+                                                  validator: (value) => null,
+                                                ),
+                                                const SizedBox(height: 10),
+                                                CustomTextField(
+                                                  height: 80,
+                                                  moreThanOneLine: true,
+                                                  keyboardType:
+                                                      TextInputType.text,
+                                                  text: "Description".tr,
+                                                  length: 300,
+                                                  controller: slot
+                                                      .descriptionController,
+                                                  inputFormatters:
+                                                      FilteringTextInputFormatter
+                                                          .singleLineFormatter,
+                                                  validator: (value) => null,
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(

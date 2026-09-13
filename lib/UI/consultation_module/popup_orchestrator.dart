@@ -3,9 +3,11 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/controllers/consultation_controller/consultation_controller.dart';
+import '../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
 import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../../data/models/consultation/pending_popup.dart';
-import '../diet_screen/diet_module.dart';
+import '../plans_module/all_plans.dart';
+import 'booking/book_consultation_sheet.dart';
 import 'popups/book_initial_reminder_sheet.dart';
 import 'popups/consultant_no_show_sheet.dart';
 import 'popups/daily_log_reminder_sheet.dart';
@@ -71,12 +73,27 @@ class _PendingPopupOrchestratorState extends State<PendingPopupOrchestrator> {
   // Per-popup overrides for cases where the default 24h is wrong:
   //   - Reminders that should nag faster get a shorter window
   //   - Non-urgent nudges that already have server-side cadence get a longer one
-  // Server-side gates (e.g. POPUP_BOOK_INITIAL_REMINDER's 2-day lastShownAt)
-  // still apply on top — this map only widens the local floor where needed.
+  // Server-side gates still apply on top of whatever's left here.
+  //
+  // POPUP_BOOK_INITIAL_REMINDER: product direction is "resurface on
+  // every dashboard reload while unbooked" (popupEligibility.js's
+  // evalBookInitialReminder no longer enforces its own 2-day gate
+  // either) — but this can NOT be Duration.zero. `_markShown` fires the
+  // instant the sheet opens, and `_maybeShowNext` calls
+  // `paid.refreshDashboard()` right after every dispatch, which retriggers
+  // the `ever()` worker immediately. With a zero cooldown that second
+  // evaluation sees the exact same still-eligible row (tapping "Book now"
+  // only navigates now — see book_initial_reminder_sheet.dart, it
+  // deliberately no longer completes/dismisses/snoozes) and reshows the
+  // same popup on the spot, on top of whatever screen the user just
+  // navigated to — an instant show → refresh → show loop, not "shows
+  // again next time you reload". A short floor absorbs that immediate
+  // re-evaluation while still resurfacing well within any realistic
+  // "reload" (reopening the app, coming back to Home after a bit).
   static const Map<String, Duration> _perPopupCooldown = {
     'POPUP_CONSULTANT_NO_SHOW': Duration(minutes: 15),
     'POPUP_PLAN_DELAYED': Duration(hours: 12),
-    'POPUP_BOOK_INITIAL_REMINDER': Duration(days: 2),
+    'POPUP_BOOK_INITIAL_REMINDER': Duration(minutes: 5),
     'POPUP_INACTIVITY_REMINDER': Duration(days: 3),
     'POPUP_RENEW_PLAN': Duration(days: 7),
     'POPUP_DAILY_LOG_REMINDER': Duration(hours: 20),
@@ -177,6 +194,44 @@ class _PendingPopupOrchestratorState extends State<PendingPopupOrchestrator> {
     } catch (_) {}
   }
 
+  // Loads booking-context IDs (dietitianId/userId/userPlanId) and opens
+  // the actual working booking flow, BookConsultationSheet — mirrors
+  // v2_today_meals_section.dart's `_bookFollowUpFromContext`.
+  //
+  // This replaces routing to `DietScreen` (lib/UI/diet_screen/
+  // diet_module.dart), which the "Book now" / booking popups used to
+  // open. That screen shows a spinner and NEVER resolves: it only
+  // renders once `HomeController.getUsersBasedOnUserTypeLoad` flips
+  // true, and that only happens inside `getUsersBasedOnUserType(...)`
+  // — a method nothing in the app actually calls. It's leftover/legacy
+  // code, not a working "existing Consultation entry" as an earlier
+  // pass through this file assumed. BookConsultationSheet (the
+  // dietitian calendar picker) is the flow that's actually wired up
+  // end-to-end and already used elsewhere in the app.
+  Future<void> _openBookingSheet({
+    required String popupVariable,
+    required String kind, // 'initial' | 'followup'
+  }) async {
+    final dietCtrl = Get.find<DietPlanUserController>();
+    await dietCtrl.loadBookingContext();
+    final ctx = dietCtrl.bookingContext.value;
+    if (ctx != null && ctx.canBook) {
+      await BookConsultationSheet.show(
+        popupVariable: popupVariable,
+        dietitianId: ctx.dietitianId!,
+        userId: ctx.userId!,
+        userPlanId: ctx.userPlanId!,
+        kind: kind,
+      );
+    } else {
+      // No dietitian/plan context yet (shouldn't normally happen — the
+      // evaluators that fire these popups already confirmed an active
+      // diet/combined plan — but fail safe rather than strand the user
+      // on a dead screen).
+      Get.to<dynamic>(() => OurPlansScreen());
+    }
+  }
+
   Future<void> _dispatch(PendingPopup p) async {
     final ctrl = Get.find<ConsultationController>();
     final meta = p.metadata ?? const {};
@@ -247,28 +302,35 @@ class _PendingPopupOrchestratorState extends State<PendingPopupOrchestrator> {
 
       case 'POPUP_BOOK_INITIAL_REMINDER':
         await BookInitialReminderSheet.show(
-          // Per UX direction: "Book now" hands off to the existing
-          // Diet consultation flow (DietScreen) — the surface users
-          // already know. The reminder sheet itself retires the popup
-          // (calls completePopup) before invoking onBookNow, so even
-          // if the user backs out of DietScreen without booking, the
-          // reminder won't re-fire in the same session.
-          onBookNow: () => Get.to<dynamic>(
-              () => DietScreen(fromBottomBar: false)),
+          // "Book now" opens the real booking flow via booking-context
+          // + BookConsultationSheet (see _openBookingSheet above). It
+          // does NOT complete this popup itself — BookConsultationSheet
+          // completes POPUP_BOOK_INITIAL_CONSULTATION once a slot is
+          // actually booked, and the backend's evalBookInitialReminder
+          // independently retires this reminder once a real Appointment
+          // exists. So backing out of the booking sheet without booking
+          // correctly leaves the reminder eligible to resurface.
+          onBookNow: () => _openBookingSheet(
+            popupVariable: 'POPUP_BOOK_INITIAL_CONSULTATION',
+            kind: 'initial',
+          ),
         );
         break;
 
       case 'POPUP_BOOK_INITIAL_CONSULTATION':
       case 'POPUP_BOOK_FOLLOWUP_CONSULTATION':
-        // Per UX direction: route booking pop-ups to the existing
-        // DietScreen (the "Consultation" entry already in the app)
-        // instead of the standalone BookConsultationSheet. The Phase
-        // 1B `kind` field on Appointments stays NULL for bookings made
-        // through this surface; downstream code should fall back to
-        // "first appointment for the plan = initial, rest = followup"
-        // when kind is missing.
-        await ctrl.completePopup(p.variable);
-        Get.to<dynamic>(() => DietScreen(fromBottomBar: false));
+        // Booking success (not opening the sheet) is what should retire
+        // these — BookConsultationSheet calls completePopup itself once
+        // a slot is actually booked. Don't complete on open: that would
+        // let a user who backs out without booking evade the popup for
+        // the rest of the session, the same class of bug just fixed on
+        // the initial reminder.
+        await _openBookingSheet(
+          popupVariable: p.variable,
+          kind: p.variable == 'POPUP_BOOK_INITIAL_CONSULTATION'
+              ? 'initial'
+              : 'followup',
+        );
         break;
 
       case 'POPUP_PRE_CONSULTATION_FORM':

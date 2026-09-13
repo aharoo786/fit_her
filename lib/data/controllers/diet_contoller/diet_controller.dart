@@ -159,6 +159,7 @@ class DietController extends GetxController implements GetxService {
             .getRescheduleAppointments(
           accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
           reschedule: reschedule,
+          dietitianId: sharedPreferences.getString(Constants.userId) ?? "",
         )
             .then((response) async {
           // Get.back();

@@ -105,6 +105,13 @@ class Slot {
   TextEditingController levelController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
+  // Tied to this Slot object (not to its position in the list), so it
+  // survives slots being added/removed above/below it and the day's
+  // GetBuilder rebuilds. Used by the Add Trainer Slots screen to keep this
+  // slot's collapsed/expanded state stable and to scroll this exact row
+  // into view when the admin taps it open.
+  final GlobalKey slotKey = GlobalKey();
+
   Slot({
     required this.start,
     required this.end,

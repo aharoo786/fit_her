@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../data/controllers/consultation_controller/consultation_controller.dart';
 import '../../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
+import '../../consultation_module/booking/upcoming_consultation_card.dart';
 import '../../../widgets/v2/v2_diet_hero.dart';
 import '../../../widgets/v2/v2_today_meals_section.dart';
 
@@ -29,6 +31,16 @@ class DietPlansOfUser extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<DietPlanUserController>();
+    final consultCtrl = Get.find<ConsultationController>();
+    // Fired on every build rather than tucked into a StatefulWidget's
+    // initState on purpose: this tab rebuilds whenever the bottom-nav
+    // switches to it, which is exactly when we want a fresh read — the
+    // dietitian may have confirmed/canceled since the user last looked.
+    // loadUpcomingAppointment() always refetches (no caching), unlike
+    // loadBookingContext().
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      consultCtrl.loadUpcomingAppointment();
+    });
     // Hero paints edge-to-edge under the system status bar (matches
     // paid_home_screen_v2.dart). No outer SafeArea — the hero handles
     // its own top padding via MediaQuery.padding.top inside _TopBar.
@@ -36,13 +48,19 @@ class DietPlansOfUser extends StatelessWidget {
       backgroundColor: _kCream,
       body: RefreshIndicator(
         color: _kAccent,
-        onRefresh: () => ctrl.loadActivePlan(refresh: true),
+        onRefresh: () async {
+          await Future.wait([
+            ctrl.loadActivePlan(refresh: true),
+            consultCtrl.loadUpcomingAppointment(),
+          ]);
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
           child: Column(
             children: [
               V2DietHero(showBackButton: showBackButton),
+              const UpcomingConsultationCard(),
               const V2TodayMealsSection(),
             ],
           ),
