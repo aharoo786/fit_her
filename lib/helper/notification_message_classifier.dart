@@ -46,3 +46,15 @@ bool isClassUpdateMessage(RemoteMessage message) {
 /// + `trainer`) needed to build an `UpcomingClassSlot`.
 bool hasClassPayload(RemoteMessage message) =>
     message.data['upcomingSlot'] != null && message.data['trainer'] != null;
+
+/// True if [message] represents a diet/meal plan update from a nutritionist.
+bool isDietPlanMessage(RemoteMessage message) {
+  final type = message.data['type'];
+  final title = message.notification?.title?.toLowerCase() ?? '';
+  return type == 'dietPlanUpdated' ||
+      type == 'diet' ||
+      type == 'dietPlan' ||
+      title.contains('diet') ||
+      title.contains('meal plan');
+}
+

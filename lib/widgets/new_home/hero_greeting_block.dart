@@ -5,6 +5,7 @@ import '../../data/services/cycle_engine.dart';
 class HeroGreetingBlock extends StatelessWidget {
   final String? firstName;
   final CycleInfo? cycleInfo;
+
   /// True while the cycle API call is in flight.
   /// Shows a skeleton placeholder instead of "Preview mode" so the hero
   /// never flashes an empty state during the first-frame load.
@@ -45,15 +46,13 @@ class HeroGreetingBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final double hPad = (w * 22 / 414).clamp(16.0, 24.0);
-    final double phaseSize =
-        (28 + (w - 360) / 54 * 4).clamp(28.0, 32.0);
+    final double phaseSize = (28 + (w - 360) / 54 * 4).clamp(28.0, 32.0);
 
     final name = (firstName ?? '').trim().isEmpty ? 'there' : firstName!.trim();
     final greeting = '${_timeAwareGreeting()}, $name 🌿';
 
     final phase = cycleInfo == null ? null : _phaseDisplay(cycleInfo!.phase);
-    final dayText =
-        cycleInfo == null ? '—' : 'Day ${cycleInfo!.cycleDay}';
+    final dayText = cycleInfo == null ? '—' : 'Day ${cycleInfo!.cycleDay}';
 
     return Padding(
       padding: EdgeInsets.fromLTRB(hPad, 18, hPad, 20),
@@ -149,17 +148,13 @@ class HeroGreetingBlock extends StatelessWidget {
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _chip(dayText, 12, FontWeight.w700,
-                    const Color(0xFFA8F0C0).withOpacity(0.55)),
+                _chip(dayText, 12, FontWeight.w700, const Color(0xFFA8F0C0).withOpacity(0.55)),
                 _sep(),
-                _chip('Preview mode', 11, null,
-                    Colors.white.withOpacity(0.65)),
+                _chip('Preview mode', 11, null, Colors.white.withOpacity(0.65)),
                 _sep(),
-                _chip('—', 11, FontWeight.w600,
-                    Colors.white.withOpacity(0.2)),
+                _chip('—', 11, FontWeight.w600, Colors.white.withOpacity(0.2)),
                 _sep(),
-                _chip('Start trial', 12, FontWeight.w700,
-                    const Color(0xFF6DC55A).withOpacity(0.7)),
+                _chip('Start trial', 12, FontWeight.w700, const Color(0xFF6DC55A).withOpacity(0.7)),
               ],
             ),
         ],
@@ -185,13 +180,8 @@ class HeroGreetingBlock extends StatelessWidget {
         ),
       );
 
-  Widget _chip(String text, double size, FontWeight? weight, Color color) =>
-      Text(
+  Widget _chip(String text, double size, FontWeight? weight, Color color) => Text(
         text,
-        style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: size,
-            fontWeight: weight,
-            color: color),
+        style: TextStyle(fontFamily: 'Poppins', fontSize: size, fontWeight: weight, color: color),
       );
 }

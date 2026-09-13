@@ -26,11 +26,12 @@
 
     <application
         android:label="Fit Her"
+        tools:replace="android:usesCleartextTraffic"
         android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true"
         android:name=".MyApp"
         android:icon="@mipmap/ic_launcher"
-        tools:targetApi="11">
+        tools:targetApi="23">
         <meta-data android:name="com.facebook.sdk.ApplicationId"
             android:value="1559880995342722"/>
         <meta-data
@@ -75,7 +76,7 @@
             <!-- Local dev / ngrok — no autoVerify (ngrok domain changes each restart).
                  Android shows an "Open with…" chooser; pick Fit Her to test the flow.
                  *.ngrok-free.app covers every free-tier ngrok URL. -->
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -84,19 +85,22 @@
             </intent-filter>
 
         </activity>
-        <activity android:name="io.flutter.embedding.android.FlutterActivity">
+        <activity android:name="io.flutter.embedding.android.FlutterActivity"
+            tools:ignore="MissingClass">
             <meta-data android:name="android.webkit.WebView.METADATA_PERMISSION" android:value="true" />
         </activity>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
 
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"
             android:exported="false"
             android:grantUriPermissions="true"
-            tools:replace="android:authorities">
+            tools:replace="android:authorities"
+            tools:ignore="MissingClass">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths"

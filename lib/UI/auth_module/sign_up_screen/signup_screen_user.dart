@@ -337,7 +337,11 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                               ),
                               onChanged: (phone) {
                                 _completePhoneNumber = phone.completeNumber;
-                                _isPhoneValid = phone.isValidNumber();
+                                try {
+                                  _isPhoneValid = phone.isValidNumber();
+                                } catch (_) {
+                                  _isPhoneValid = false;
+                                }
                               },
                             ),
                             SizedBox(height: 16.h),

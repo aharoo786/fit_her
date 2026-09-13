@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../data/Repos/cycle_repo/cycle_data_repository.dart';
 import '../data/controllers/auth_controller/auth_controller.dart';
 import '../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
+import '../data/controllers/home_controller/home_controller.dart';
 import '../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../data/controllers/workout_controller/work_out_controller.dart';
 import '../data/services/cycle_engine.dart';
@@ -86,6 +87,10 @@ class _UnpaidHomeScreenV2State extends State<UnpaidHomeScreenV2> {
     if (_auth.trialActivated.value) {
       _fetchTrialSlots();
       _paidController.loadDashboard();
+    }
+    // Also re-check user plans in case an admin approved payment
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().getUserHomeFunc();
     }
     await fresh;
   }

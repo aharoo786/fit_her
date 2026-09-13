@@ -97,7 +97,7 @@ class Constants {
   // static String baseUrl = "https://test.thefither.com";
   // static String baseUrl = "http://192.168.1.31:9005";
 //   static String baseUrl = "https://backend.thefither.com";
-  static String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.47.229.64:8000";
+  static String baseUrl = dotenv.env['BASE_URL'] ?? "http://192.168.100.20:3306";
   static String customerSupportLink =
       "https://backend.thefither.com/customerSupport/";
   static const chatBaseUrl =
@@ -118,6 +118,8 @@ class Constants {
   static String socialLogin = "/admin/socialLogin";
   static String guestLogin = "/admin/guestlogin";
   static String forgotPassword = "/users/forget_password";
+  static String verifyOtp = "/users/verify_otp";
+  static String resendOtp = "/users/resend_otp";
   static String resetPassword = "/users/change_password_after_otp";
   static String dietitianLogin = "/users/dietition_login";
   static String trainerLogin = "/users/trainer_login";

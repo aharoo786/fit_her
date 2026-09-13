@@ -153,39 +153,22 @@ class GenericScreeningResult extends StatelessWidget {
                     ),
                     SizedBox(height: 24.h),
 
-                    if (isHigh || isMod) ...[
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: Navigate to specialist booking
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _green, foregroundColor: Colors.white, elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: 14.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
-                          ),
-                          child: Text(config.result.ctaButtonText,
-                            style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                    ],
-
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton(
+                      child: ElevatedButton(
                         onPressed: () {
                           Get.back();
                           Get.back();
                         },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: _green, width: 1.5),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _green,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
                           padding: EdgeInsets.symmetric(vertical: 14.h),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
                         ),
                         child: Text('Continue to Fit Her',
-                          style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp, fontWeight: FontWeight.w600, color: _green)),
+                          style: TextStyle(fontFamily: 'Poppins', fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.white)),
                       ),
                     ),
                     SizedBox(height: 30.h),

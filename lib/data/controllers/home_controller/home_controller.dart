@@ -869,6 +869,11 @@ class HomeController extends GetxController implements GetxService {
               }
               if (userHomeData!.userAllPlans.isNotEmpty) {
                 await FirebaseMessaging.instance.subscribeToTopic('userPlan');
+                final hasPaidPlan = userHomeData!.userAllPlans
+                    .any((p) => p.title != "Free Trial");
+                if (hasPaidPlan && Get.isRegistered<AuthController>()) {
+                  Get.find<AuthController>().markPaid();
+                }
               }
 
               if (isFromFree) {
@@ -1528,6 +1533,9 @@ class HomeController extends GetxController implements GetxService {
               ApiResponse model = ApiResponse.fromJson(response.body, (p0) {});
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
+                if (Get.isRegistered<AuthController>()) {
+                  Get.find<AuthController>().markPaid();
+                }
                 getUserHomeFunc();
               }
             }
@@ -1713,6 +1721,7 @@ class HomeController extends GetxController implements GetxService {
                 } else if (ocr is Map) {
                   debugPrint('🧾 OCR · confidence=${ocr['confidence']} · '
                       'amount=${ocr['amount']} · bank=${ocr['bank']} · '
+                      'receiver=${ocr['receiver']} (verified=${ocr['receiverVerified']}) · '
                       'date=${ocr['date']} · refNumber=${ocr['refNumber']}');
                 }
               }

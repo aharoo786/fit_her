@@ -255,57 +255,28 @@ class PcosResultScreen extends StatelessWidget {
                     SizedBox(height: 24.h),
 
                     // Buttons
-                    if (isHigh || isMod) ...[
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: Navigate to gynecologist booking
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _green,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: 14.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14.r),
-                            ),
-                          ),
-                          child: Text(
-                            'Book a gynaecologist consultation',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                    ],
-
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton(
+                      child: ElevatedButton(
                         onPressed: () {
                           _saveAndContinue();
                         },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: _green, width: 1.5),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _green,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
                           padding: EdgeInsets.symmetric(vertical: 14.h),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14.r),
                           ),
                         ),
                         child: Text(
-                          isHigh
-                              ? 'Continue to Fit Her'
-                              : 'Continue to Fit Her',
+                          'Continue to Fit Her',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
-                            color: _green,
+                            color: Colors.white,
                           ),
                         ),
                       ),

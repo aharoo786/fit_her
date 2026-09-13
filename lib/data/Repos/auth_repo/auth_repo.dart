@@ -121,9 +121,26 @@ class AuthRepo extends GetxService {
     return await apiProvider.postData(Constants.forgotPassword, body: body);
   }
 
-  Future<Response> resetPasswordRepo(
-      {required String email, required String password}) async {
-    var body = {"email": email, "password": password};
+  Future<Response> verifyOtpRepo(
+      {required String email, required String otp}) async {
+    var body = {
+      "email": email,
+      "otp": otp,
+    };
+
+    return await apiProvider.postData(Constants.verifyOtp, body: body);
+  }
+
+  Future<Response> resetPasswordRepo({
+    required String email,
+    required String password,
+    required String otp,
+  }) async {
+    var body = {
+      "email": email,
+      "password": password,
+      "otp": otp,
+    };
 
     return await apiProvider.postData(Constants.resetPassword, body: body);
   }

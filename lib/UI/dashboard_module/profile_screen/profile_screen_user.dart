@@ -4,10 +4,13 @@ import 'package:get/get.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart' show openWhatsAppChat;
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/goal_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
+import 'package:fitness_zone_2/UI/auth_module/cycle_settings_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
+import 'package:fitness_zone_2/data/controllers/motivation_controller/motivation_controller.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/notification_settings_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/personal_details_screen.dart';
+import 'package:fitness_zone_2/UI/dashboard_module/profile_screen/my_reports_screen.dart';
 import 'package:fitness_zone_2/UI/support/report_issue_screen.dart';
 import 'package:fitness_zone_2/UI/plans_module/all_plans.dart';
 import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
@@ -43,7 +46,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
   // every rebuild. The chip would briefly flash through its loading state
   // (an empty SizedBox) every time the screen rebuilt, which made it look
   // like the phase wasn't displaying at all.
-  late final Future<Map<String, dynamic>?> _phaseFuture = _fetchCyclePhase();
+  late Future<Map<String, dynamic>?> _phaseFuture = _fetchCyclePhase();
 
   // Tracks the freeze sheet's local "selected days" state without forcing
   // a full screen rebuild — only the sheet's StatefulBuilder reads it.
@@ -81,6 +84,20 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
   void initState() {
     super.initState();
     _fetchFreezeStatus();
+    _fetchAttendanceStats();
+  }
+
+  void _fetchAttendanceStats() {
+    try {
+      final mc = Get.isRegistered<MotivationController>()
+          ? Get.find<MotivationController>()
+          : null;
+      if (mc != null && !mc.isLoadingStats.value) {
+        mc.fetchMotivationStats();
+      }
+    } catch (_) {
+      // Best-effort — attendance card falls back to placeholders or empty
+    }
   }
 
   Future<void> _fetchFreezeStatus() async {
@@ -255,6 +272,9 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                     final hc = Get.find<HomeController>();
                     hc.userHomeLoad.value;
                     hc.trialLoad.value;
+                  }
+                  if (Get.isRegistered<MotivationController>()) {
+                    Get.find<MotivationController>().motivationStats.value;
                   }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -518,7 +538,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                   border: Border.all(color: _kMintHero, width: 3),
                 ),
                 child: const Icon(
-                  Icons.camera_alt_outlined,
+                  Icons.edit_outlined,
                   color: Colors.white,
                   size: 12,
                 ),
@@ -538,71 +558,97 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
           return const SizedBox(height: 30);
         }
         if (snap.data == null) {
-          // No cycle data yet — keep a subtle placeholder so the layout
-          // doesn't collapse under the avatar.
-          return _chip(text: 'Add cycle data', icon: Icons.add_circle_outline);
+          // No cycle data yet — tap navigates to CycleSettingsScreen to add it.
+          return _chip(
+            text: 'Add cycle data',
+            icon: Icons.add_circle_outline,
+            onTap: _openCycleSettings,
+          );
         }
         final phase = snap.data!['phase'] as String;
         final day = snap.data!['day'] as int;
         final theme = PhaseTheme.forPhaseString(phase);
         final label = 'Day $day · ${theme.phaseLabel} ${theme.emoji}';
-        return _chip(text: label);
+        return _chip(
+          text: label,
+          onTap: _openCycleSettings,
+        );
       },
     );
   }
 
-  Widget _chip({required String text, IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: _kMintRingA, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: _kAccent),
-            const SizedBox(width: 6),
-          ] else ...[
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: _kAccent,
+  Future<void> _openCycleSettings() async {
+    await Get.to(() => const CycleSettingsScreen());
+    if (mounted) {
+      setState(() {
+        _phaseFuture = _fetchCyclePhase();
+      });
+    }
+  }
+
+  Widget _chip({required String text, IconData? icon, VoidCallback? onTap}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: _kMintRingA, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 12, color: _kAccent),
+              const SizedBox(width: 6),
+            ] else ...[
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _kAccent,
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              text,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: _kTextPrimary,
               ),
             ),
-            const SizedBox(width: 6),
           ],
-          Text(
-            text,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: _kTextPrimary,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   // ─── Stats card (3 columns, overlaps hero by -30) ──────────────────────
   Widget _statsCard() {
-    // Backend doesn't expose attendance counters yet; show em-dashes so
-    // the surface is shaped correctly and ready to wire when ready.
+    final mc = Get.isRegistered<MotivationController>()
+        ? Get.find<MotivationController>()
+        : null;
+    final stats = mc?.motivationStats.value;
+
+    final classesStr = stats != null ? '${stats.daysAttendedLast30}' : '—';
+    final streakStr = stats != null ? '${stats.streak} 🔥' : '— 🔥';
+    final workoutsStr = stats != null ? '${stats.daysAttendedLast30}' : '—';
+
     return _card(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
         children: [
-          Expanded(child: _statColumn(value: '—', label: 'Classes')),
+          Expanded(child: _statColumn(value: classesStr, label: 'Classes')),
           _statDivider(),
           Expanded(
             child: _statColumn(
-              value: '— 🔥',
+              value: streakStr,
               label: 'Streak',
               valueColor: _kStreak,
             ),
@@ -610,7 +656,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
           _statDivider(),
           Expanded(
             child: _statColumn(
-              value: '—',
+              value: workoutsStr,
               label: 'Workouts',
               valueColor: _kAccent,
             ),
@@ -1103,12 +1149,34 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
 
   // ─── Attendance card (weekly progression bars) ─────────────────────────
   Widget _attendanceCard() {
-    // Placeholder data — replace when GET /users/attendance/monthly ships.
+    final mc = Get.isRegistered<MotivationController>()
+        ? Get.find<MotivationController>()
+        : null;
+    final stats = mc?.motivationStats.value;
+    final history = stats?.attendanceHistory ?? [];
+
+    int countAttended(int startIdx, int endIdx) {
+      if (history.isEmpty) return 0;
+      final start = startIdx.clamp(0, history.length);
+      final end = endIdx.clamp(start, history.length);
+      int count = 0;
+      for (int i = start; i < end; i++) {
+        if (history[i].attended == 1) count++;
+      }
+      return count;
+    }
+
+    final hLen = history.length;
+    final thisWkCompleted = countAttended(hLen - 7, hLen);
+    final week3Completed = countAttended(hLen - 14, hLen - 7);
+    final week2Completed = countAttended(hLen - 21, hLen - 14);
+    final week1Completed = countAttended(hLen - 28, hLen - 21);
+
     final weeks = <_WeekRow>[
-      const _WeekRow(label: 'Week 1', completed: 0, target: 7),
-      const _WeekRow(label: 'Week 2', completed: 0, target: 7),
-      const _WeekRow(label: 'Week 3', completed: 0, target: 7),
-      const _WeekRow(label: 'This wk', completed: 0, target: 7),
+      _WeekRow(label: 'Week 1', completed: week1Completed, target: 7),
+      _WeekRow(label: 'Week 2', completed: week2Completed, target: 7),
+      _WeekRow(label: 'Week 3', completed: week3Completed, target: 7),
+      _WeekRow(label: 'This wk', completed: thisWkCompleted, target: 7),
     ];
     return _card(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -1133,9 +1201,11 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      '— of 30 days',
-                      style: TextStyle(
+                    Text(
+                      stats != null
+                          ? '${stats.daysAttendedLast30} of 30 days'
+                          : '— of 30 days',
+                      style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -1152,9 +1222,9 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                   color: _kIconWashBg,
                   borderRadius: BorderRadius.circular(100),
                 ),
-                child: const Text(
-                  '—%',
-                  style: TextStyle(
+                child: Text(
+                  stats != null ? '${stats.regularityPercentage}%' : '—%',
+                  style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -1172,34 +1242,13 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
           const SizedBox(height: 14),
           Container(height: 1, color: _kCardBorder),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Track each week of activity',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 11,
-                    color: _kSage,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  // F4 Activity History screen ships in a follow-up.
-                },
-                child: const Text(
-                  'View all →',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: _kAccent,
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'Track each week of activity',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11,
+              color: _kSage,
+            ),
           ),
         ],
       ),
@@ -1279,10 +1328,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
       _MenuItem(
         icon: Icons.description_outlined,
         label: 'My reports',
-        onTap: () {
-          // No reports screen yet — leave as a no-op so the row is tappable
-          // but doesn't navigate to a half-built surface.
-        },
+        onTap: () => Get.to(() => const MyReportsScreen()),
       ),
       _MenuItem(
         icon: Icons.report_problem_outlined,
@@ -1463,18 +1509,23 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
               );
             }
 
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
+            final bottomSafe = MediaQuery.of(sheetCtx).padding.bottom;
+            final bottomInsets = MediaQuery.of(sheetCtx).viewInsets.bottom;
+            return Container(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                24 + (bottomInsets > 0 ? bottomInsets : bottomSafe),
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
-                child: Column(
+              ),
+              child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1672,8 +1723,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
                     ),
                   ],
                 ),
-              ),
-            );
+              );
           },
         );
       },
@@ -1854,15 +1904,17 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+      builder: (sheetCtx) {
+        final bottomSafe = MediaQuery.of(sheetCtx).padding.bottom;
+        return Container(
+          padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + bottomSafe),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
           ),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1947,9 +1999,10 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   // ─── Sign-out link (red text) ──────────────────────────────────────────
   Widget _signOutLink(BuildContext context, TextTheme textTheme) {

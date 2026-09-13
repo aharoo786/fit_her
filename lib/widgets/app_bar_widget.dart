@@ -130,11 +130,13 @@ class HelpingWidgets {
   }
 
   Widget bottomBarButtonWidget({String text = "Submit", VoidCallback? onTap}) {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: CustomButton(
-        text: text,
-        onPressed: onTap ?? () => Get.back(),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: CustomButton(
+          text: text,
+          onPressed: onTap ?? () => Get.back(),
+        ),
       ),
     );
   }
@@ -434,106 +436,112 @@ class HelpingWidgets {
         ),
       ),
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (BuildContext sheetContext) {
         final textTheme = Theme.of(sheetContext).textTheme;
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.keyboard_arrow_down, size: 32),
-            if (state == SlotUIState.cancelled)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Text('This class was cancelled.',
-                    style: TextStyle(
-                        color: Colors.redAccent, fontWeight: FontWeight.w600)),
-              ),
-            if (state == SlotUIState.endedNotAttended)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Text('You missed this session.',
-                    style: TextStyle(
-                        color: Colors.grey, fontWeight: FontWeight.w600)),
-              ),
-            const SizedBox(height: 16),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        return SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Column(
+                const Icon(Icons.keyboard_arrow_down, size: 32),
+                if (state == SlotUIState.cancelled)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text('This class was cancelled.',
+                        style: TextStyle(
+                            color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                  ),
+                if (state == SlotUIState.endedNotAttended)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text('You missed this session.',
+                        style: TextStyle(
+                            color: Colors.grey, fontWeight: FontWeight.w600)),
+                  ),
+                const SizedBox(height: 16),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Icon(Icons.access_time, color: Colors.green, size: 32),
-                    SizedBox(height: 8),
-                    Text(
-                      '50 Min',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Column(
+                      children: [
+                        Icon(Icons.access_time, color: Colors.green, size: 32),
+                        SizedBox(height: 8),
+                        Text(
+                          '50 Min',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text('Time'),
+                      ],
                     ),
-                    Text('Time'),
+                    Column(
+                      children: [
+                        Icon(Icons.local_fire_department,
+                            color: Colors.green, size: 32),
+                        SizedBox(height: 8),
+                        Text(
+                          '254',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text('Calories'),
+                      ],
+                    ),
                   ],
                 ),
-                Column(
-                  children: [
-                    Icon(Icons.local_fire_department,
-                        color: Colors.green, size: 32),
-                    SizedBox(height: 8),
-                    Text(
-                      '254',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text('Calories'),
-                  ],
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    slot?.description ?? "",
+                    style: textTheme.bodySmall,
+                    maxLines: 4,
+                  ),
                 ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.access_time_sharp),
+                  title: Text(
+                    '${slot?.start}-${slot?.end}',
+                    style: textTheme.bodySmall,
+                  ),
+                  visualDensity: const VisualDensity(vertical: -4),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.fitness_center),
+                  title: Text(slot?.level ?? 'High Intensity Workout Session',
+                      style: textTheme.bodySmall),
+                  visualDensity: const VisualDensity(vertical: -4),
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundImage: AssetImage(MyImgs.profilePicture),
+                    maxRadius: 10,
+                  ),
+                  title: Text(
+                      'with ${slot?.trainer?.firstName} ${slot?.trainer?.lastName}',
+                      style: textTheme.bodySmall),
+                  visualDensity: const VisualDensity(vertical: -4),
+                ),
+                const SizedBox(height: 16),
+                if (presentation.appearance != SlotButtonAppearance.hidden)
+                  _buildPopupActionButton(
+                    context: sheetContext,
+                    slot: slot,
+                    anchorDate: anchor,
+                    presentation: presentation,
+                    homeController: homeController,
+                  ),
+                const SizedBox(height: 16),
               ],
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                slot?.description ?? "",
-                style: textTheme.bodySmall,
-                maxLines: 4,
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.access_time_sharp),
-              title: Text(
-                '${slot?.start}-${slot?.end}',
-                style: textTheme.bodySmall,
-              ),
-              visualDensity: const VisualDensity(vertical: -4),
-            ),
-            ListTile(
-              leading: const Icon(Icons.fitness_center),
-              title: Text(slot?.level ?? 'High Intensity Workout Session',
-                  style: textTheme.bodySmall),
-              visualDensity: const VisualDensity(vertical: -4),
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundImage: AssetImage(MyImgs.profilePicture),
-                maxRadius: 10,
-              ),
-              title: Text(
-                  'with ${slot?.trainer?.firstName} ${slot?.trainer?.lastName}',
-                  style: textTheme.bodySmall),
-              visualDensity: const VisualDensity(vertical: -4),
-            ),
-            const SizedBox(height: 16),
-            if (presentation.appearance != SlotButtonAppearance.hidden)
-              _buildPopupActionButton(
-                context: sheetContext,
-                slot: slot,
-                anchorDate: anchor,
-                presentation: presentation,
-                homeController: homeController,
-              ),
-            const SizedBox(height: 16),
-          ],
+          ),
         );
       },
     );

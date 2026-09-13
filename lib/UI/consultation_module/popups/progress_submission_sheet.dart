@@ -193,9 +193,10 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
     }
     // Show source picker — gallery vs camera. Keeping inline (small)
     // rather than another shared widget.
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     final source = await Get.bottomSheet<ImageSource>(
       Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.fromLTRB(0, 12, 0, 12 + bottomInset),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

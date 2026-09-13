@@ -19,10 +19,8 @@ import '../../../../widgets/toasts.dart';
 
 class OtpScreen extends StatefulWidget {
   final String email;
-  final String otp;
   final AuthController authController = Get.find();
-  OtpScreen({Key? key, required this.email, required this.otp})
-      : super(key: key);
+  OtpScreen({Key? key, required this.email}) : super(key: key);
 
   @override
   State<OtpScreen> createState() => _EmailVerificationState();
@@ -243,23 +241,60 @@ class _EmailVerificationState extends State<OtpScreen> {
                   child: CustomButton(
                       text: 'Next'.tr,
                       color: _isExpired ? AppColors.textHint : null,
-                      onPressed: () {
+                      onPressed: () async {
                         if (_isExpired) {
-                          CustomToast.failToast(msg: "OTP has expired. Please request a new one.");
+                          CustomToast.failToast(
+                              msg: "OTP has expired. Please request a new one.");
                           return;
                         }
-                        if (otpController.text.length < 4) {
-                          CustomToast.failToast(msg: "Invalid otp");
-                        } else {
-                          if (otpController.text != widget.otp) {
-                            CustomToast.failToast(msg: "Invalid otp");
-                          } else {
-                            Get.off(() => ResetPassword(
-                                  email: widget.email,
-                                ));
-                          }
+                        if (otpController.text.trim().length < 4) {
+                          CustomToast.failToast(
+                              msg: "Please enter a 4-digit code");
+                          return;
+                        }
+
+                        bool isValid = await widget.authController.verifyOtp(
+                          email: widget.email,
+                          otp: otpController.text.trim(),
+                        );
+
+                        if (isValid) {
+                          Get.off(() => ResetPassword(
+                                email: widget.email,
+                                otp: otpController.text.trim(),
+                              ));
                         }
                       }),
+                ),
+                SizedBox(
+                  height: Dimens.size20.h,
+                ),
+                GestureDetector(
+                  onTap: () async {
+                    bool success = await widget.authController
+                        .forgotPassword(widget.email);
+                    if (success) {
+                      CustomToast.successToast(
+                          msg: "New OTP code sent to your email");
+                      setState(() {
+                        _remainingSeconds = 600;
+                        otpController.clear();
+                      });
+                    }
+                  },
+                  child: Text(
+                    "Resend Code".tr,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: MyColors.primaryColor,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: Dimens.size30.h,
                 ),
               ],
             ),
