@@ -18,6 +18,9 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../values/constants.dart';
+import '../UI/diet_screen/dietitian_v2/plans_to_deliver_screen.dart';
+import '../UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
+import '../UI/free_trail/trial_summary_screen.dart';
 import '../values/my_imgs.dart';
 import '../widgets/app_bar_widget.dart';
 import 'notification_message_classifier.dart' as classifier;
@@ -387,6 +390,40 @@ class NotificationServices {
   void handleNotificationTap(
       RemoteMessage message, BuildContext context) async {
     NotificationServices noti = Get.find();
+
+    // "Plan due in 24h / 36h" reminder: take the dietitian straight to
+    // Plans to deliver. Admins get the same push type at 36h but have no
+    // client list of their own, so they just land on their dashboard.
+    // Short delay so a cold start finishes routing to the home screen
+    // first; otherwise this screen would get replaced by it.
+    // Trial class reminder ("starts soon" / "it's live"): open the live
+    // class schedule (Workout tab) so she can join in one tap.
+    // Last-day offer reminder: open her trial summary + offer.
+    if (message.data["type"] == "trialOfferReminder") {
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        Get.to(() => const TrialSummaryScreen());
+      });
+      return;
+    }
+
+    if (message.data["type"] == "trialClassReminder") {
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        Get.offAll(() => BottomBarScreen(index: 1));
+      });
+      return;
+    }
+
+    if (message.data["type"] == "planDeliveryReminder") {
+      final isDietitian = Get.isRegistered<AuthController>() &&
+          Get.find<AuthController>().loginAsA.value == Constants.dietitian;
+      if (isDietitian) {
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          Get.to(() => const PlansToDeliverScreen());
+        });
+      }
+      return;
+    }
+
     if (_isAnnouncement(message)) {
       var sharedPreferences = await SharedPreferences.getInstance();
       var announcement = {

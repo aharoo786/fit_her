@@ -133,13 +133,35 @@ class _PaidSleepCardState extends State<PaidSleepCard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          '🌙 Sleep',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF9AB09A),
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Indigo badge — matches this card's own celebration dialog
+            // (showSleepGoalReachedDialog uses #6D6DC5), instead of the
+            // plain grey label it had before. Deliberately NOT water's
+            // green, so the two cards read as their own destinations
+            // rather than reskins of each other.
+            Container(
+              width: 18,
+              height: 18,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6D6DC5).withOpacity(0.14),
+              ),
+              child: const Text('🌙', style: TextStyle(fontSize: 10, height: 1.0)),
+            ),
+            const SizedBox(width: 5),
+            const Text(
+              'Sleep',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF163220),
+              ),
+            ),
+          ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -162,6 +184,12 @@ class _PaidSleepCardState extends State<PaidSleepCard> {
                 color: Color(0xFF9AB09A),
               ),
             ),
+            const SizedBox(width: 3),
+            // The whole card is already tappable (opens the slider modal
+            // for a custom value) but nothing signaled that before this —
+            // a user could go months without discovering it.
+            Icon(Icons.chevron_right_rounded,
+                size: 14, color: const Color(0xFF6D6DC5).withOpacity(0.55)),
           ],
         ),
       ],
@@ -169,12 +197,16 @@ class _PaidSleepCardState extends State<PaidSleepCard> {
   }
 
   Widget _buildProgressBar(double fraction) {
+    // Thickened from 3px (matches the Water card's meter), and recolored
+    // from a borrowed green to this card's own indigo — was previously
+    // the exact same gradient as PaidWaterCard, which made Sleep feel
+    // like a reskinned copy rather than its own thing.
     return Container(
-      height: 3,
+      height: 6,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFFD8EDD4),
-        borderRadius: BorderRadius.circular(3),
+        color: const Color(0xFFE3E0F5),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Align(
         alignment: Alignment.centerLeft,
@@ -184,7 +216,7 @@ class _PaidSleepCardState extends State<PaidSleepCard> {
           child: const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF6DC55A), Color(0xFFA8F0C0)],
+                colors: [Color(0xFF6D6DC5), Color(0xFFBFB8ED)],
               ),
             ),
           ),
@@ -263,17 +295,20 @@ class _SleepButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        height: 26,
+        height: 28,
         alignment: Alignment.center,
+        // A touch more fill than the old near-transparent outline (0.08)
+        // so these read as tappable chips — mirrors PaidWaterCard's
+        // _ActionButton treatment.
         decoration: BoxDecoration(
-          color: accent.withOpacity(0.08),
+          color: accent.withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: accent.withOpacity(0.40), width: 1),
+          border: Border.all(color: accent.withOpacity(0.45), width: 1),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 10.5,
             fontWeight: FontWeight.w700,
             color: accent,
           ),

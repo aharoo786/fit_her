@@ -75,12 +75,19 @@ class HomeDashboardModel {
 class UserInfo {
   final String? firstName;
   final String? initial;
+  // Signup goal category (Lose weight / Build strength & tone / etc.),
+  // set by GoalScreen and re-settable from the PaidHero "Set goal →"
+  // chip. Null means the user never picked one. Distinct from
+  // GoalInfo.deltaKg below — that's numeric weight-tracking progress,
+  // not this category.
+  final String? mainGoal;
 
-  const UserInfo({this.firstName, this.initial});
+  const UserInfo({this.firstName, this.initial, this.mainGoal});
 
   factory UserInfo.fromJson(Map<String, dynamic> json) => UserInfo(
         firstName: json['firstName'] as String?,
         initial: json['initial'] as String?,
+        mainGoal: json['mainGoal'] as String?,
       );
 }
 
@@ -113,6 +120,11 @@ class CycleInfo {
 
 class GoalInfo {
   final double? targetWeightKg;
+  // 'lose' | 'gain' | null. Only meaningful when the signup mainGoal
+  // (UserInfo.mainGoal) doesn't already say which way weight should
+  // move — 'Lose weight' implies this on its own. See
+  // save_target_weight's backend doc comment for the full contract.
+  final String? weightGoalDirection;
   final double? currentWeightKg;
   final double? startingWeightKg;
   final double? deltaKg;
@@ -123,6 +135,7 @@ class GoalInfo {
 
   const GoalInfo({
     this.targetWeightKg,
+    this.weightGoalDirection,
     this.currentWeightKg,
     this.startingWeightKg,
     this.deltaKg,
@@ -134,6 +147,7 @@ class GoalInfo {
 
   factory GoalInfo.fromJson(Map<String, dynamic> json) => GoalInfo(
         targetWeightKg: _toDouble(json['targetWeightKg']),
+        weightGoalDirection: json['weightGoalDirection'] as String?,
         currentWeightKg: _toDouble(json['currentWeightKg']),
         startingWeightKg: _toDouble(json['startingWeightKg']),
         deltaKg: _toDouble(json['deltaKg']),

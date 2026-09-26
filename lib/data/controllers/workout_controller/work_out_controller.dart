@@ -1,5 +1,5 @@
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
-import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
+import 'package:fitness_zone_2/widgets/new_home/trial_cta_card.dart';
 import 'package:fitness_zone_2/data/models/get_user_plan/get_workout_user_plan_details.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -73,7 +73,11 @@ class WorkOutController extends GetxController implements GetxService {
               print(
                   'WorkOutController.getWorkoutAllPlansFunc ${(workoutPlans?.plans.isNotEmpty)}');
               if (isFree && !(workoutPlans?.plans.isNotEmpty ?? true)) {
-                Get.to(() => const TrialJourneyScreen());
+                // Consolidated: route through the same confirm-and-start
+                // dialog every other entry point uses, instead of jumping
+                // straight to TrialJourneyScreen's own (redundant, and
+                // quick-intake-skipping) confirm dialog.
+                showTrialStartDialog();
               }
             }
           }

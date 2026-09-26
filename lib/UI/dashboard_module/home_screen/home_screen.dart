@@ -48,6 +48,13 @@ class HomeScreen extends StatelessWidget {
               return const PaidHomeScreenV2();
             }
             if (user != null && user.status == false) {
+              // Free trial running (form done, AI plan created, 3 days
+              // not up): give her the full paid home, with a trial banner
+              // on top. Flips back to the unpaid home when the trial ends.
+              if (authController.trialActivated.value &&
+                  homeController.trialLive.value) {
+                return const PaidHomeScreenV2();
+              }
               return const UnpaidHomeScreenV2();
             }
             return UserHomeScreen();

@@ -250,9 +250,17 @@ class _PaidHeroLiveSectionState extends State<PaidHeroLiveSection> {
       case _Phase.getReady:
       case _Phase.waitingForLink:
         if (hasStarted) {
-          // Class time has technically arrived, just not flipped live yet.
-          pillColor = _liveRed;
-          pillLabel = 'LIVE';
+          // Scheduled start time has technically arrived, but the
+          // resolver says `state` is still liveNotReady -- the trainer
+          // hasn't flipped the class to "In Progress" yet (or hasn't
+          // posted the link). This used to show a red "LIVE" pill here,
+          // which was wrong: LIVE is reserved for _Phase.live, i.e. the
+          // real backend status, not wall-clock time. Reuse the same
+          // amber "not live yet" treatment as the pre-start countdown,
+          // just with copy that matches where we actually are (waiting
+          // on the trainer, not waiting on the clock).
+          pillColor = _amber;
+          pillLabel = 'GETTING READY';
           pillTextColor = Colors.white;
         } else {
           final mins = minutesUntilStart(start, now) ?? 0;
@@ -294,7 +302,10 @@ class _PaidHeroLiveSectionState extends State<PaidHeroLiveSection> {
         statusText = hasStarted ? 'Trainer is setting up' : '';
         break;
       case _Phase.getReady:
-        statusText = '';
+        // Same "meaningful, not misleading" treatment as the pill above:
+        // once class time has passed but the trainer hasn't started it,
+        // say so instead of staying blank.
+        statusText = hasStarted ? 'Trainer is setting up' : '';
         break;
     }
 

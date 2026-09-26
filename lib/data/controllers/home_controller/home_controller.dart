@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
@@ -25,6 +26,10 @@ import 'package:fitness_zone_2/data/models/paymetn/direct_pay_url_response.dart'
 import 'package:fitness_zone_2/data/models/paymetn/payment_link.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:fitness_zone_2/UI/free_trail/trial_onboarding_screen.dart';
+import 'package:fitness_zone_2/UI/free_trail/trial_class_celebration_screen.dart';
+import 'package:fitness_zone_2/data/controllers/consultation_controller/consultation_controller.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:share_plus/share_plus.dart';
@@ -56,6 +61,7 @@ class HomeController extends GetxController implements GetxService {
   @override
   void onInit() {
     initUpcomingSlot();
+    _restoreTrialRx();
     dietOfUserByDiet = [
       getDietOfUser("Monday"),
       getDietOfUser("Tuesday"),
@@ -199,6 +205,222 @@ class HomeController extends GetxController implements GetxService {
   var trialLoad = false.obs;
   var trialActionLoad = false.obs;
   Map<String, dynamic>? trialJourney;
+
+  // ── Free trial "live" state ─────────────────────────────────────────
+  // True while her 3-day trial is running (started, not expired, not
+  // converted). Drives the home switch: a live trial user sees the paid
+  // home with a trial banner instead of the unpaid home. Persisted so a
+  // cold start doesn't flash the unpaid home before the journey loads.
+  static const String _kTrialStartedAtKey = 'trialStartedAtIso';
+  static const String _kTrialDaysKey = 'trialDays';
+  /// Trial length in days, sent by the backend (TRIAL_DAYS in .env) in
+  /// the journey payload. Defaults to 3 until the first load.
+  final RxInt trialDays = 3.obs;
+  Duration get kTrialLength => Duration(days: trialDays.value);
+
+  /// From the backend (TRIAL_JOIN_WINDOW_MINUTES / TRIAL_CLASS_GOAL).
+  final RxInt joinWindowMinutes = 10.obs;
+  final RxInt classGoal = 3.obs;
+  final RxInt classesAttended = 0.obs;
+  final RxInt attendanceMinutes = 10.obs;
+
+  /// Last loaded class schedule (GET /trial/classes), shared by the home
+  /// "next class" card, the trial screen and the late-join message.
+  final Rxn<Map<String, dynamic>> trialClassData = Rxn<Map<String, dynamic>>();
+
+  /// Live class schedule for the trial class picker. Null on failure.
+  Future<Map<String, dynamic>?> loadTrialClasses() async {
+    try {
+      final res = await homeRepo.getTrialClasses(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+      );
+      final body = res.body;
+      if (body is Map && body['status'] == '1' && body['data'] is Map) {
+        final data = Map<String, dynamic>.from(body['data'] as Map);
+        trialClassData.value = data;
+        return data;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// "My trial" summary + offer (GET /trial/summary). Null on failure.
+  Future<Map<String, dynamic>?> loadTrialSummary() async {
+    try {
+      final country = await getCountryCode();
+      final res = await homeRepo.getTrialSummary(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        country: country,
+      );
+      final body = res.body;
+      if (body is Map && body['status'] == '1' && body['data'] is Map) {
+        return Map<String, dynamic>.from(body['data'] as Map);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  List<Map<String, dynamic>> get trialClasses {
+    final raw = trialClassData.value?['classes'];
+    if (raw is! List) return const [];
+    return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// Her next class: first a picked class she can still join today, then
+  /// any class today, then her first picked class tomorrow. Returns the
+  /// class plus a label like "Today 7:30 PM" / "Tomorrow 8:00 AM".
+  ({Map<String, dynamic> data, String label, bool today})? nextTrialClass({
+    bool pickedOnly = false,
+  }) {
+    final all = trialClasses;
+    if (all.isEmpty) return null;
+    final picked = all.where((c) => c['picked'] == true).toList();
+    final now = DateTime.now();
+    final window = Duration(minutes: joinWindowMinutes.value);
+    DateTime? at(Map<String, dynamic> c, DateTime day) {
+      try {
+        final t = DateFormat('hh:mm a').parse('${c['startLocal']}');
+        return DateTime(day.year, day.month, day.day, t.hour, t.minute);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    ({Map<String, dynamic> data, DateTime when})? firstFrom(
+        List<Map<String, dynamic>> list, DateTime day, bool todayOnly) {
+      final items = list
+          .map((c) => (data: c, when: at(c, day)))
+          .where((x) => x.when != null)
+          .map((x) => (data: x.data, when: x.when!))
+          .where((x) => !todayOnly || now.isBefore(x.when.add(window)))
+          .toList()
+        ..sort((a, b) => a.when.compareTo(b.when));
+      return items.isEmpty ? null : items.first;
+    }
+
+    final tomorrow = now.add(const Duration(days: 1));
+    final hit = firstFrom(picked, now, true) ??
+        (pickedOnly ? null : firstFrom(all, now, true));
+    if (hit != null) {
+      return (
+        data: hit.data,
+        label: 'Today ${DateFormat('h:mm a').format(hit.when)}',
+        today: true,
+      );
+    }
+    final next = firstFrom(picked.isNotEmpty ? picked : all, tomorrow, false);
+    if (next == null) return null;
+    return (
+      data: next.data,
+      label: 'Tomorrow ${DateFormat('h:mm a').format(next.when)}',
+      today: false,
+    );
+  }
+
+  /// Adds a class to her reminder picks (from the late-join "Remind me").
+  Future<bool> addTrialReminderSlot(int slotId) =>
+      updateTrialReminderSlots(add: {slotId});
+
+  /// Replaces (replace != null) or extends (add) her reminder picks,
+  /// keeping the rest of her workout answers untouched.
+  Future<bool> updateTrialReminderSlots({Set<int>? replace, Set<int> add = const {}}) async {
+    try {
+      final consult = Get.find<ConsultationController>();
+      final profile = await consult.loadProfile();
+      final ws = Map<String, dynamic>.from(profile?.workoutSection ?? {});
+      final ids = <int>{
+        ...(replace ??
+            ((ws['preferredSlotIds'] as List?) ?? const [])
+                .map((e) => int.tryParse('$e'))
+                .whereType<int>()),
+        ...add,
+      };
+      ws['preferredSlotIds'] = ids.toList();
+      final ok = await consult.patchProfile({'workoutSection': ws});
+      if (ok) await loadTrialClasses();
+      return ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static const String _kCelebratedKey = 'trialCelebratedClasses';
+
+  /// Show the "Class N of M done" celebration once for each new class.
+  void _maybeCelebrate() {
+    if (!trialLive.value) return;
+    final done = classesAttended.value;
+    final last = sharedPreferences.getInt(_kCelebratedKey) ?? 0;
+    if (done <= last) return;
+    sharedPreferences.setInt(_kCelebratedKey, done);
+    Future.delayed(const Duration(milliseconds: 700), () {
+      Get.to(() => TrialClassCelebrationScreen(
+            attended: done,
+            goal: classGoal.value,
+          ));
+    });
+  }
+  final Rxn<DateTime> trialStartedAt = Rxn<DateTime>();
+  final RxBool trialLive = false.obs;
+  Timer? _trialEndTimer;
+
+  DateTime? get trialEndsAt => trialStartedAt.value?.add(kTrialLength);
+
+  void _syncTrialRx() {
+    final j = trialJourney;
+    DateTime? started;
+    var ended = true;
+    if (j != null) {
+      final w = int.tryParse('${j['joinWindowMinutes'] ?? ''}');
+      if (w != null && w > 0) joinWindowMinutes.value = w;
+      final g = int.tryParse('${j['classGoal'] ?? ''}');
+      if (g != null && g > 0) classGoal.value = g;
+      final a = int.tryParse('${j['classesAttended'] ?? ''}');
+      if (a != null && a >= 0) classesAttended.value = a;
+      final am = int.tryParse('${j['attendanceMinutes'] ?? ''}');
+      if (am != null && am > 0) attendanceMinutes.value = am;
+      final d = int.tryParse('${j['trialDays'] ?? ''}');
+      if (d != null && d > 0) {
+        trialDays.value = d;
+        sharedPreferences.setInt(_kTrialDaysKey, d);
+      }
+      started = DateTime.tryParse('${j['startedAt'] ?? ''}')?.toLocal();
+      ended = started == null ||
+          j['convertedAt'] != null ||
+          j['isExpired'] == true ||
+          DateTime.now().isAfter(started.add(kTrialLength));
+    }
+    trialStartedAt.value = started;
+    _applyTrialLive(started, ended);
+    if (!ended && started != null) {
+      sharedPreferences.setString(_kTrialStartedAtKey, started.toIso8601String());
+    } else {
+      sharedPreferences.remove(_kTrialStartedAtKey);
+    }
+    if (j != null && j['classesAttended'] != null) _maybeCelebrate();
+  }
+
+  void _applyTrialLive(DateTime? started, bool ended) {
+    trialLive.value = !ended;
+    _trialEndTimer?.cancel();
+    if (!ended && started != null) {
+      final left = started.add(kTrialLength).difference(DateTime.now());
+      // Flip back to the unpaid home the moment the 3 days are up, even
+      // if the app stays open.
+      _trialEndTimer = Timer(left, () => trialLive.value = false);
+    }
+  }
+
+  void _restoreTrialRx() {
+    final savedDays = sharedPreferences.getInt(_kTrialDaysKey);
+    if (savedDays != null && savedDays > 0) trialDays.value = savedDays;
+    final saved = DateTime.tryParse(
+        sharedPreferences.getString(_kTrialStartedAtKey) ?? '');
+    if (saved == null) return;
+    final ended = DateTime.now().isAfter(saved.add(kTrialLength));
+    trialStartedAt.value = ended ? null : saved;
+    _applyTrialLive(saved, ended);
+  }
 
   // Trial-to-Plan funnel — quick-intake submit state.
   var trialQuickIntakeLoad = false.obs;
@@ -1780,7 +2002,8 @@ class HomeController extends GetxController implements GetxService {
     return success;
   }
 
-  Future<bool> validateTrialToken(String token, {bool showToastOnSuccess = false}) async {
+  Future<bool> validateTrialToken(String token,
+      {bool showToastOnSuccess = false, bool quiet = false}) async {
     bool isValid = false;
     trialActionLoad.value = true;
 
@@ -1792,12 +2015,15 @@ class HomeController extends GetxController implements GetxService {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             sharedPreferences.setString(Constants.trialToken, token);
             trialJourney = response.body["data"]?["journey"];
+        _syncTrialRx();
             isValid = true;
             if (showToastOnSuccess) {
               CustomToast.successToast(msg: response.body["message"]);
             }
           } else {
-            CustomToast.failToast(msg: response.body["message"] ?? "Invalid trial token");
+            if (!quiet) {
+              CustomToast.failToast(msg: response.body["message"] ?? "Invalid trial token");
+            }
           }
         });
       }
@@ -1808,43 +2034,48 @@ class HomeController extends GetxController implements GetxService {
     return isValid;
   }
 
+  /// True when she's logged in and has a saved invite token from a rep's
+  /// link (tapped, or read from the install referrer). Callers use it to
+  /// send her into trial onboarding.
+  ///
+  /// It no longer starts the trial here: the trial and its day clock
+  /// start only when she finishes onboarding (startTrial() below, which
+  /// uses and consumes this saved token). Name kept so existing callers
+  /// in auth_controller / app_link_handler don't change.
   Future<bool> startTrialFromSavedToken() async {
     final accessToken = sharedPreferences.getString(Constants.accessToken) ?? "";
     final token = sharedPreferences.getString(Constants.trialToken) ?? "";
-
-    if (accessToken.isEmpty || token.isEmpty) {
-      return false;
-    }
-
-    bool started = false;
-    trialActionLoad.value = true;
-    await homeRepo.startTrial(accessToken: accessToken, token: token).then((response) async {
-      if (response.statusCode == 200 && response.body["status"] == "1") {
-        trialJourney = response.body["data"]?["journey"];
-        sharedPreferences.remove(Constants.trialToken);
-        started = true;
-      }
-    });
-    trialActionLoad.value = false;
-    update();
-    return started;
+    return accessToken.isNotEmpty && token.isNotEmpty;
   }
 
   Future<bool> startTrial() async {
     bool started = false;
     trialActionLoad.value = true;
-    await homeRepo
-        .startTrial(
-      accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-    )
-        .then((response) async {
-      if (response.statusCode == 200 && response.body["status"] == "1") {
-        trialJourney = response.body["data"]?["journey"];
-        started = true;
-      } else {
-        CustomToast.failToast(msg: response.body["message"] ?? "Unable to start trial");
-      }
-    });
+    final accessToken = sharedPreferences.getString(Constants.accessToken) ?? "";
+    // If she came from a rep's invite, attach it now, at the moment the
+    // trial actually starts (end of onboarding), so the rep gets credit.
+    final inviteToken = sharedPreferences.getString(Constants.trialToken) ?? "";
+
+    Future<Response> call(String? token) =>
+        homeRepo.startTrial(accessToken: accessToken, token: token);
+
+    var response = await call(inviteToken.isEmpty ? null : inviteToken);
+    var ok = response.statusCode == 200 && response.body["status"] == "1";
+    // The invite may have expired or been used since she tapped it. Don't
+    // block her trial over that: start it without the invite instead.
+    if (!ok && inviteToken.isNotEmpty) {
+      sharedPreferences.remove(Constants.trialToken);
+      response = await call(null);
+      ok = response.statusCode == 200 && response.body["status"] == "1";
+    }
+    if (ok) {
+      trialJourney = response.body["data"]?["journey"];
+      _syncTrialRx();
+      sharedPreferences.remove(Constants.trialToken);
+      started = true;
+    } else {
+      CustomToast.failToast(msg: response.body["message"] ?? "Unable to start trial");
+    }
     trialActionLoad.value = false;
     update();
     return started;
@@ -1856,7 +2087,7 @@ class HomeController extends GetxController implements GetxService {
   // this has already shown the user-facing error via CustomToast
   // (mirrors startTrial()'s pattern above) so the caller just stays put.
   Future<bool> submitTrialQuickIntake({
-    required String goal,
+    String? goal,
     String? allergies,
     int? mealsPerDay,
   }) async {
@@ -1871,6 +2102,16 @@ class HomeController extends GetxController implements GetxService {
     )
         .then((response) {
       if (response.statusCode == 200 && response.body["status"] == "1") {
+        success = true;
+      } else if (response.statusCode == 200 &&
+          (response.body["message"] ?? "")
+              .toString()
+              .toLowerCase()
+              .contains("already got a plan")) {
+        // Not a real failure -- the desired end state (a plan exists) is
+        // already met, most often because a second trial-start trigger
+        // fired after the first one already ran this. Let the caller
+        // proceed to the meal plan instead of dead-ending on an error.
         success = true;
       } else {
         CustomToast.failToast(
@@ -1903,6 +2144,7 @@ class HomeController extends GetxController implements GetxService {
             .then((response) async {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             trialJourney = response.body["data"]?["journey"];
+        _syncTrialRx();
 
             // Sync the local trialActivated flag with server truth so the
             // TrialCtaCard always shows the correct state:
@@ -1941,7 +2183,14 @@ class HomeController extends GetxController implements GetxService {
         .then((response) async {
       if (response.statusCode == 200 && response.body["status"] == "1") {
         trialJourney = response.body["data"]?["journey"];
+        _syncTrialRx();
         CustomToast.successToast(msg: response.body["message"]);
+      } else if (response.body["data"] is Map &&
+          response.body["data"]["needsForm"] == true) {
+        // Trial classes are locked until her trial form is done. Take her
+        // straight to it instead of a dead-end error.
+        CustomToast.failToast(msg: response.body["message"]);
+        Get.to(() => const TrialOnboardingScreen());
       } else {
         CustomToast.failToast(msg: response.body["message"] ?? "Unable to book day");
       }
@@ -1961,6 +2210,7 @@ class HomeController extends GetxController implements GetxService {
         .then((response) async {
       if (response.statusCode == 200 && response.body["status"] == "1") {
         trialJourney = response.body["data"]?["journey"];
+        _syncTrialRx();
         CustomToast.successToast(msg: response.body["message"]);
       } else {
         CustomToast.failToast(msg: response.body["message"] ?? "Unable to mark attendance");
@@ -2014,6 +2264,7 @@ class HomeController extends GetxController implements GetxService {
         .then((response) async {
       if (response.statusCode == 200 && response.body["status"] == "1") {
         trialJourney = response.body["data"]?["journey"];
+        _syncTrialRx();
         converted = true;
         await AnalyticsHelper.trackFreeTrialEvent(
           'trial_converted_backend_confirmed',

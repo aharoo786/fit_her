@@ -38,6 +38,18 @@ class _SetTargetWeightModalState extends State<SetTargetWeightModal> {
 
   late double _selectedKg;
 
+  // Whether we need to ask "lose or gain" at all. The signup mainGoal
+  // already answers this when it's specifically 'Lose weight' — asking
+  // again there would be redundant. For every other goal (Build
+  // strength & tone / Improve fitness / Reduce stress / no goal set),
+  // weight direction isn't implied by anything else the user has told
+  // us, so we ask here, once, and remember the answer.
+  late final bool _needsDirectionPicker;
+  // 'lose' | 'gain' — always resolved to a concrete value before save,
+  // even when the picker isn't shown, so the backend always receives a
+  // definite direction rather than leaving it ambiguous.
+  late String _direction;
+
   @override
   void initState() {
     super.initState();
@@ -48,11 +60,20 @@ class _SetTargetWeightModalState extends State<SetTargetWeightModal> {
       debugPrint('[SetTargetWeightModal] Clamping out-of-range seed: $seed');
     }
     _selectedKg = seed.clamp(_minKg, _maxKg);
+
+    _needsDirectionPicker = widget.dashboard.user?.mainGoal != 'Lose weight';
+    _direction = _needsDirectionPicker
+        ? (goal?.weightGoalDirection ?? 'lose')
+        : 'lose';
   }
 
   Future<void> _onSave() async {
     final controller = Get.find<PaidHomeController>();
-    final success = await controller.saveTargetWeight(_selectedKg);
+    final success = await controller.saveTargetWeight(
+      _selectedKg,
+      weightGoalDirection: _direction,
+      includeDirection: true,
+    );
     if (!mounted) return;
     if (success) {
       Navigator.of(context).pop();
@@ -114,6 +135,14 @@ class _SetTargetWeightModalState extends State<SetTargetWeightModal> {
               color: Color(0xFF9AB09A),
             ),
           ),
+          if (_needsDirectionPicker) ...[
+            const SizedBox(height: 20),
+            _DirectionPicker(
+              accent: theme.accent,
+              direction: _direction,
+              onChanged: (d) => setState(() => _direction = d),
+            ),
+          ],
           const SizedBox(height: 32),
           Center(
             child: Text(
@@ -187,6 +216,105 @@ class _SetTargetWeightModalState extends State<SetTargetWeightModal> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "I'm trying to: Lose weight / Gain weight" segmented toggle. Only
+/// shown when the signup mainGoal doesn't already say which way — see
+/// _SetTargetWeightModalState._needsDirectionPicker. Answer determines
+/// whether a future week-over-week change reads as good news or a
+/// heads-up on the home screen's Weight card.
+class _DirectionPicker extends StatelessWidget {
+  final Color accent;
+  final String direction; // 'lose' | 'gain'
+  final ValueChanged<String> onChanged;
+
+  const _DirectionPicker({
+    required this.accent,
+    required this.direction,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "I'm trying to",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF9AB09A),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _DirectionPill(
+                label: 'Lose weight',
+                selected: direction == 'lose',
+                accent: accent,
+                onTap: () => onChanged('lose'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DirectionPill(
+                label: 'Gain weight',
+                selected: direction == 'gain',
+                accent: accent,
+                onTap: () => onChanged('gain'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DirectionPill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _DirectionPill({
+    required this.label,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? accent : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? accent : const Color(0xFFD8EDD4),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : const Color(0xFF163220),
+          ),
+        ),
       ),
     );
   }

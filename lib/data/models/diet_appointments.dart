@@ -39,6 +39,17 @@ class Appointment {
   String message;
   ClientUser? clientUser;
   SlotDiet? slotDiet;
+  // 'initial' | 'followup' | null (legacy rows predate this column —
+  // treat null as 'initial', same convention the backend itself uses
+  // wherever it queries by kind).
+  String? kind;
+  // Per-appointment snapshot of the meeting link, taken at confirm time
+  // (see backend Appointments.js meetLink doc comment). Null for older
+  // rows or ones confirmed before a link existed on the slot yet — in
+  // that case fall back to slotDiet.dietitionLink, same rule the client
+  // side already applies server-side. Use `resolvedMeetLink` below
+  // rather than reading this directly.
+  dynamic meetLink;
 
   Appointment({
     required this.id,
@@ -50,7 +61,20 @@ class Appointment {
     required this.clientUser,
     required this.message,
     required this.slotDiet,
+    this.meetLink,
+    this.kind,
   });
+
+  /// The link to actually open for this appointment: this appointment's
+  /// own frozen snapshot if it has one, otherwise the weekly slot's
+  /// current link. Null (or blank) means no link has been set yet.
+  String? get resolvedMeetLink {
+    final own = meetLink?.toString().trim();
+    if (own != null && own.isNotEmpty) return own;
+    final slotLink = slotDiet?.dietitionLink?.toString().trim();
+    if (slotLink != null && slotLink.isNotEmpty) return slotLink;
+    return null;
+  }
 
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
     // Same `?? 0` defensive pattern already used for userId below.
@@ -67,6 +91,8 @@ class Appointment {
     timeSlotId: json["timeSlotId"] ?? 0,
     clientUser:json["ClientUser"]==null?null: ClientUser.fromJson(json["ClientUser"]),
     slotDiet: json["SlotDiet"]==null?null:SlotDiet.fromJson(json["SlotDiet"]),
+    meetLink: json["meetLink"],
+    kind: json["kind"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -79,6 +105,8 @@ class Appointment {
     "timeSlotId": timeSlotId,
     "ClientUser": clientUser?.toJson(),
     "SlotDiet": slotDiet?.toJson(),
+    "meetLink": meetLink,
+    "kind": kind,
   };
 }
 

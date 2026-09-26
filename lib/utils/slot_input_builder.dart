@@ -74,7 +74,7 @@ bool hasActiveThreeDayTrial(HomeController homeController) {
   final startedAt = DateTime.tryParse(rawStartedAt.toString());
   if (startedAt == null) return false;
 
-  return AppClock.now().isBefore(startedAt.add(const Duration(days: 3)));
+  return AppClock.now().isBefore(startedAt.add(homeController.kTrialLength));
 }
 
 /// Pick the right block reason for [SlotUIState.liveBlocked] given the

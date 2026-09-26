@@ -30,6 +30,7 @@ class PaidHomeController extends GetxController {
   final RxBool isSavingSleep = false.obs;
   final RxBool isSavingWeight = false.obs;
   final RxBool isSavingTargetWeight = false.obs;
+  final RxBool isSavingMainGoal = false.obs;
   final RxString errorMessage = ''.obs;
 
   Future<void> loadDashboard() async {
@@ -175,11 +176,19 @@ class PaidHomeController extends GetxController {
 
   /// Set (or clear with null) the user's target weight. Refetches dashboard
   /// so the stats card can flip from "Set a goal →" to the progress state.
-  Future<bool> saveTargetWeight(double? kg) async {
+  Future<bool> saveTargetWeight(
+    double? kg, {
+    String? weightGoalDirection,
+    bool includeDirection = false,
+  }) async {
     if (isSavingTargetWeight.value) return false;
     isSavingTargetWeight.value = true;
     try {
-      final success = await homeRepo.saveTargetWeight(kg);
+      final success = await homeRepo.saveTargetWeight(
+        kg,
+        weightGoalDirection: weightGoalDirection,
+        includeDirection: includeDirection,
+      );
       if (success) {
         await loadDashboard();
         return true;
@@ -192,6 +201,29 @@ class PaidHomeController extends GetxController {
       return false;
     } finally {
       isSavingTargetWeight.value = false;
+    }
+  }
+
+  /// Set/update the signup goal category (Lose weight / Build strength &
+  /// tone / etc.) via the PaidHero "Set goal →" chip. Refetches dashboard
+  /// so the chip flips from "Set goal →" to the chosen goal's label.
+  Future<bool> saveMainGoal(String goal) async {
+    if (isSavingMainGoal.value) return false;
+    isSavingMainGoal.value = true;
+    try {
+      final success = await homeRepo.saveMainGoal(goal);
+      if (success) {
+        await loadDashboard();
+        return true;
+      }
+      errorMessage.value = 'Could not save goal';
+      return false;
+    } catch (e) {
+      errorMessage.value = 'Error: $e';
+      debugPrint('[PaidHomeController.saveMainGoal] $e');
+      return false;
+    } finally {
+      isSavingMainGoal.value = false;
     }
   }
 

@@ -509,6 +509,20 @@ class HomeRepo extends GetxService {
     });
   }
 
+  // Flips a confirmed consultation to "In Progress" and turns the
+  // client's Join Meeting button green. Separate from updateAppointment
+  // above — the backend endpoint enforces its own confirm-first check
+  // and sends the client a "session starting" push, so this hits
+  // /appointment/:id/start directly rather than going through the
+  // generic status-patch endpoint.
+  Future<Response> startAppointmentSession(
+      {required String accessToken, required String id}) async {
+    return await apiProvider.postData("/appointment/$id/start",
+        body: {}, headers: {
+      "accessToken": accessToken,
+    });
+  }
+
   Future<Response> validateTrialToken({required String token}) async {
     return await apiProvider.postData(
       Constants.trialValidateToken,
@@ -521,6 +535,26 @@ class HomeRepo extends GetxService {
     return await apiProvider.postData(
       Constants.trialStart,
       body: {"token": token ?? ""},
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  /// End-of-trial summary + offer, priced for [country] (same country
+  /// name the plans screen uses).
+  Future<Response> getTrialSummary({
+    required String accessToken,
+    required String country,
+  }) async {
+    return await apiProvider.getData(
+      '${Constants.trialSummary}?country=${Uri.encodeQueryComponent(country)}',
+      headers: {"accessToken": accessToken},
+    );
+  }
+
+  /// Class schedule for the trial onboarding class picker.
+  Future<Response> getTrialClasses({required String accessToken}) async {
+    return await apiProvider.getData(
+      Constants.trialClasses,
       headers: {"accessToken": accessToken},
     );
   }
@@ -540,14 +574,14 @@ class HomeRepo extends GetxService {
   // DietPlanAdminRepository.generatePlan rather than the default 30s.
   Future<Response> submitTrialQuickIntake({
     required String accessToken,
-    required String goal,
+    String? goal,
     String? allergies,
     int? mealsPerDay,
   }) async {
     return await apiProvider.postData(
       Constants.trialQuickIntake,
       body: {
-        "goal": goal,
+        if (goal != null && goal.isNotEmpty) "goal": goal,
         if (allergies != null && allergies.isNotEmpty) "allergies": allergies,
         if (mealsPerDay != null) "mealsPerDay": mealsPerDay,
       },
@@ -723,21 +757,58 @@ class HomeRepo extends GetxService {
 
   /// Set (or clear with null) the user's target weight. Updates
   /// `User.targetWeightKg` server-side.
-  Future<bool> saveTargetWeight(double? kg) async {
+  ///
+  /// [weightGoalDirection] ('lose' | 'gain' | null) is only sent when
+  /// [includeDirection] is true — the backend distinguishes "omitted"
+  /// (leave whatever's saved untouched) from "sent as null" (clear it),
+  /// same contract as `targetWeightKg` itself. The modal always passes
+  /// includeDirection: true since it always resolves a concrete value
+  /// (either inferred from mainGoal or picked by the user) before saving.
+  Future<bool> saveTargetWeight(
+    double? kg, {
+    String? weightGoalDirection,
+    bool includeDirection = false,
+  }) async {
+    try {
+      final prefs = Get.find<SharedPreferences>();
+      final token = prefs.getString(Constants.accessToken) ?? '';
+      if (token.isEmpty) return false;
+      final body = <String, dynamic>{'targetWeightKg': kg};
+      if (includeDirection) {
+        body['weightGoalDirection'] = weightGoalDirection;
+      }
+      final response = await apiProvider.postData(
+        Constants.targetWeight,
+        body: body,
+        headers: {"accessToken": token},
+      ).timeout(const Duration(seconds: 10));
+      final resBody = response.body;
+      if (resBody is Map && resBody['status'] == '1') return true;
+      return false;
+    } catch (e) {
+      debugPrint('[HomeRepo.saveTargetWeight] $e');
+      return false;
+    }
+  }
+
+  /// Set/update `User.mainGoal` server-side — the signup goal category
+  /// (Lose weight / Build strength & tone / etc.), not the numeric
+  /// [saveTargetWeight] above. Backs the PaidHero "Set goal →" chip.
+  Future<bool> saveMainGoal(String goal) async {
     try {
       final prefs = Get.find<SharedPreferences>();
       final token = prefs.getString(Constants.accessToken) ?? '';
       if (token.isEmpty) return false;
       final response = await apiProvider.postData(
-        Constants.targetWeight,
-        body: {'targetWeightKg': kg},
+        Constants.mainGoal,
+        body: {'mainGoal': goal},
         headers: {"accessToken": token},
       ).timeout(const Duration(seconds: 10));
       final body = response.body;
       if (body is Map && body['status'] == '1') return true;
       return false;
     } catch (e) {
-      debugPrint('[HomeRepo.saveTargetWeight] $e');
+      debugPrint('[HomeRepo.saveMainGoal] $e');
       return false;
     }
   }

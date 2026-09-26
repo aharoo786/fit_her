@@ -126,9 +126,12 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
               style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
+                // Softened from a saturated error-red — being under your
+                // water goal at 2pm is completely normal, not a problem,
+                // so the "in progress" state shouldn't read as alarming.
                 color: goalReached
                     ? const Color(0xFF6DC55A)
-                    : const Color(0xFFE24B4A),
+                    : const Color(0xFFD9A441),
               ),
             ),
           // Spacer pushes buttons to the bottom so both cards align.
@@ -143,13 +146,34 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          '💧 Water',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF9AB09A),
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Small color badge behind the icon — was a bare tiny 10px
+            // grey label before, easy to skip past even though hydration
+            // is a core daily metric. Blue = water's own identity,
+            // distinct from Sleep's indigo below.
+            Container(
+              width: 18,
+              height: 18,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF5B9BD5).withOpacity(0.14),
+              ),
+              child: const Text('💧', style: TextStyle(fontSize: 10, height: 1.0)),
+            ),
+            const SizedBox(width: 5),
+            const Text(
+              'Water',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF163220),
+              ),
+            ),
+          ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -181,11 +205,13 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
   }
 
   Widget _buildProgressBar(double fraction, bool goalReached) {
+    // Thickened from 3px — at that size the bar barely registered as
+    // "progress" on a glance, closer to a divider line than a meter.
     return Container(
-      height: 3,
+      height: 6,
       decoration: BoxDecoration(
         color: const Color(0xFFD8EDD4),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(4),
         boxShadow: goalReached
             ? [
                 BoxShadow(
@@ -196,7 +222,7 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
             : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(4),
         child: Align(
           alignment: Alignment.centerLeft,
           child: FractionallySizedBox(
@@ -277,17 +303,19 @@ class _ActionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        height: 26,
+        height: 28,
         alignment: Alignment.center,
+        // A touch more fill than the old near-transparent outline (0.08)
+        // so the buttons read as tappable chips, not faint ghost text.
         decoration: BoxDecoration(
-          color: accent.withOpacity(0.08),
+          color: accent.withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: accent.withOpacity(0.40), width: 1),
+          border: Border.all(color: accent.withOpacity(0.45), width: 1),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 10.5,
             fontWeight: FontWeight.w700,
             color: accent,
           ),

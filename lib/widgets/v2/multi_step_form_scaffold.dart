@@ -20,6 +20,7 @@ class MultiStepFormScaffold extends StatelessWidget {
   final bool busy;
   final String? skipLabel; // e.g. "Skip for now" on optional steps
   final VoidCallback? onSkip;
+  final String submitLabel; // last step's button, e.g. "Create my plan"
 
   static const Color _activeDot = Color(0xFF6DC55A);
   static const Color _inactiveDot = Color(0xFFC8DEC4);
@@ -39,6 +40,7 @@ class MultiStepFormScaffold extends StatelessWidget {
     this.busy = false,
     this.skipLabel,
     this.onSkip,
+    this.submitLabel = 'Submit',
   }) : super(key: key);
 
   bool get _isLastStep => currentStep >= totalSteps - 1;
@@ -115,7 +117,7 @@ class MultiStepFormScaffold extends StatelessWidget {
             Expanded(
               flex: 2,
               child: V2PrimaryButton(
-                label: _isLastStep ? 'Submit' : 'Next',
+                label: _isLastStep ? submitLabel : 'Next',
                 busy: busy,
                 onPressed: !nextEnabled
                     ? null

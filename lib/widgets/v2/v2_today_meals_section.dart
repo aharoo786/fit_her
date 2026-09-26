@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../UI/consultation_module/booking/book_consultation_sheet.dart';
 import '../../UI/diet_screen/user_v2/day7_review_screen.dart';
 import '../../UI/plans_module/all_plans.dart';
+import '../../data/controllers/consultation_controller/consultation_controller.dart';
 import '../../data/controllers/day7_review_controller/day7_review_controller.dart';
 import '../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
 import '../../data/models/diet_plan_v2/diet_plan_v2_models.dart';
@@ -13,6 +14,7 @@ import 'v2_bottom_sheet.dart';
 import 'v2_buttons.dart';
 import 'v2_day_strip.dart';
 import 'v2_plan_timeline_banner.dart';
+import 'v2_plan_preparing_card.dart';
 
 const Color _kCream = Color(0xFFEAF7E4);
 const Color _kHeroDark = Color(0xFF163220);
@@ -340,71 +342,103 @@ class _NoPlanState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      child: _Card(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(child: Text('🥗', style: TextStyle(fontSize: 48.sp))),
-            SizedBox(height: 14.h),
-            Center(
-              child: Text(
-                'NO PLAN YET',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _kSage,
-                  letterSpacing: 0.84,
+    // Reactive off ConsultationController — the same signal
+    // UpcomingConsultationCard (the card right above this one) uses to
+    // show "CONSULTATION BOOKED". When a booking already exists, this
+    // card would otherwise say "book a consultation" directly under a
+    // card that says one is already booked — confusing, and duplicate
+    // work if tapped. Swap to "plan's on its way" copy instead, and
+    // drop the CTA (Reschedule/Cancel already live on the card above;
+    // no second action needed here).
+    final consultCtrl = Get.find<ConsultationController>();
+    final planCtrl = Get.find<DietPlanUserController>();
+    return Obx(() {
+      // Consultation done, plan not delivered yet: tell her it's being
+      // prepared (and when), instead of asking her to book again.
+      final preparing = planCtrl.bookingContext.value?.planPreparing;
+      if (preparing != null) {
+        return V2PlanPreparingCard(info: preparing);
+      }
+      final appt = consultCtrl.upcomingAppointment.value;
+      final hasPendingBooking = appt != null;
+
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        child: _Card(
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Text(hasPendingBooking ? '🗓️' : '🥗',
+                    style: TextStyle(fontSize: 48.sp)),
+              ),
+              SizedBox(height: 14.h),
+              Center(
+                child: Text(
+                  hasPendingBooking ? 'PLAN ON THE WAY' : 'NO PLAN YET',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kSage,
+                    letterSpacing: 0.84,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              "Your dietitian hasn't shared a plan yet",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w800,
-                color: _kHeroDark,
-                letterSpacing: -0.2,
-                height: 1.3,
+              SizedBox(height: 8.h),
+              Text(
+                hasPendingBooking
+                    ? 'Your consultation is booked'
+                    : "Your dietitian hasn't shared a plan yet",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _kHeroDark,
+                  letterSpacing: -0.2,
+                  height: 1.3,
+                ),
               ),
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              'Book a consultation with your dietitian to get a '
-              'personalized AI-powered meal plan tailored to your '
-              'goals, cycle, and preferences.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 14.sp,
-                color: _kBodyMuted,
-                height: 1.5,
+              SizedBox(height: 10.h),
+              Text(
+                hasPendingBooking
+                    ? 'Once your consultation is done, your dietitian will '
+                        'build a personalized AI-powered meal plan around '
+                        'your goals, cycle, and preferences — it will show '
+                        'up right here.'
+                    : 'Book a consultation with your dietitian to get a '
+                        'personalized AI-powered meal plan tailored to your '
+                        'goals, cycle, and preferences.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14.sp,
+                  color: _kBodyMuted,
+                  height: 1.5,
+                ),
               ),
-            ),
-            SizedBox(height: 18.h),
-            V2PrimaryButton(
-              label: 'Book a Consultation',
-              leadingIcon: Icons.event_note_rounded,
-              onPressed: _onBookConsultation,
-            ),
-            SizedBox(height: 6.h),
-            Center(
-              child: V2GhostButton(
-                label: 'Talk to support',
-                onPressed: _onTalkToSupport,
-                fullWidth: false,
+              SizedBox(height: 18.h),
+              if (!hasPendingBooking)
+                V2PrimaryButton(
+                  label: 'Book a Consultation',
+                  leadingIcon: Icons.event_note_rounded,
+                  onPressed: _onBookConsultation,
+                ),
+              if (!hasPendingBooking) SizedBox(height: 6.h),
+              Center(
+                child: V2GhostButton(
+                  label: 'Talk to support',
+                  onPressed: _onTalkToSupport,
+                  fullWidth: false,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -521,7 +555,10 @@ class _LoadedState extends StatelessWidget {
             // Completed empty state takes over up the tree) — extra
             // guard kept here so future refactors can drop the
             // banner anywhere without re-adding the check.
-            if (!ctrl.isPlanEnded)
+            // The top hero already shows "Day X of Y" and days left, so
+            // the big "Your plan" card only appears when it has something
+            // new to say: the plan is ending soon (with its follow-up CTA).
+            if (!ctrl.isPlanEnded && ctrl.isPlanEndingSoon)
               V2PlanTimelineBanner(
                 plan: plan,
                 todaysDayNumber: ctrl.todaysDayNumber,
@@ -560,16 +597,17 @@ class _LoadedState extends StatelessWidget {
                     day: renderDay,
                     viewState: viewState,
                     date: ctrl.dateForDay(renderDay.dayNumber),
+                    meals: meals,
                   ),
-                  SizedBox(height: 12.h),
-                  for (final m in meals) ...[
+                  SizedBox(height: 14.h),
+                  for (var i = 0; i < meals.length; i++)
                     _MealCard(
-                      meal: m,
+                      meal: meals[i],
                       dayNumber: renderDay.dayNumber,
                       viewState: viewState,
+                      isFirst: i == 0,
+                      isLast: i == meals.length - 1,
                     ),
-                    SizedBox(height: 10.h),
-                  ],
                 ],
               ),
             ),
@@ -630,104 +668,258 @@ class _TodayJumpChip extends StatelessWidget {
   }
 }
 
+// ─── Day summary (redesigned) ─────────────────────────────────────────
+// A calorie ring for the day plus "meals done" at a glance, instead of a
+// single uppercase label line. Same data as before, nothing new fetched.
 class _DayHeader extends StatelessWidget {
   final DietPlanV2 plan;
   final DietPlanDayV2 day;
   final _ViewState viewState;
   final DateTime? date;
+  final List<DietPlanMealV2> meals;
 
   const _DayHeader({
     required this.plan,
     required this.day,
     required this.viewState,
     required this.date,
+    required this.meals,
   });
 
-  static const _weekdayShort = [
-    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+  static const _weekday = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
   ];
   static const _monthShort = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  String _formatDate() {
-    if (date == null) return '';
-    final wd = _weekdayShort[(date!.weekday - 1).clamp(0, 6)];
+  String _dateLine() {
+    if (date == null) return 'Day ${day.dayNumber} of ${plan.planDays}';
+    final wd = _weekday[(date!.weekday - 1).clamp(0, 6)];
     final mo = _monthShort[(date!.month - 1).clamp(0, 11)];
-    return '$wd, $mo ${date!.day}';
+    return '$wd, ${date!.day} $mo';
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = _formatDate();
-    final String label;
-    final Color labelColor;
-    switch (viewState) {
-      case _ViewState.today:
-        label = "TODAY'S MEALS · DAY ${day.dayNumber} OF ${plan.planDays}";
-        labelColor = _kAccent;
-        break;
-      case _ViewState.past:
-        label = dateStr.isEmpty
-            ? 'DAY ${day.dayNumber} · OF ${plan.planDays}'
-            : 'DAY ${day.dayNumber} · ${dateStr.toUpperCase()}';
-        labelColor = _kBodyMuted;
-        break;
-      case _ViewState.future:
-        label = dateStr.isEmpty
-            ? 'UPCOMING · DAY ${day.dayNumber}'
-            : 'UPCOMING · DAY ${day.dayNumber} · ${dateStr.toUpperCase()}';
-        labelColor = _kSage;
-        break;
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w800,
-              color: labelColor,
-              letterSpacing: 0.84,
-            ),
+    final ctrl = Get.find<DietPlanUserController>();
+    return Obx(() {
+      var done = 0;
+      var eaten = 0;
+      for (final m in meals) {
+        final s = ctrl.getLogForMeal(day.dayNumber, m.mealType.wire)?.status;
+        if (s == MealLogStatusV2.followed || s == MealLogStatusV2.alternative) {
+          done++;
+          eaten += m.calories;
+        } else if (s == MealLogStatusV2.skipped) {
+          done++;
+        }
+      }
+      final total = day.totalCalories <= 0 ? 1 : day.totalCalories;
+      final progress = viewState == _ViewState.future
+          ? 0.0
+          : (eaten / total).clamp(0.0, 1.0);
+
+      final String tag;
+      final Color tagColor;
+      switch (viewState) {
+        case _ViewState.today:
+          tag = 'TODAY';
+          tagColor = _kAccent;
+          break;
+        case _ViewState.past:
+          tag = 'PAST DAY';
+          tagColor = _kBodyMuted;
+          break;
+        case _ViewState.future:
+          tag = 'COMING UP';
+          tagColor = _kSage;
+          break;
+      }
+
+      return Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kHeroDark, Color(0xFF24502F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(22),
         ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-          decoration: BoxDecoration(
-            color: _kAccent.withOpacity(0.16),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-                color: _kAccent.withOpacity(0.32), width: 1),
-          ),
-          child: Text(
-            '${day.totalCalories} kcal',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w800,
-              color: _kHeroDark,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 74.w,
+              height: 74.w,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 74.w,
+                    height: 74.w,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 7,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: Colors.white.withOpacity(0.12),
+                      valueColor: const AlwaysStoppedAnimation<Color>(_kAccent),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$done/${meals.length}',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 17.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'meals',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 10.sp,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                        decoration: BoxDecoration(
+                          color: tagColor.withOpacity(0.22),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          tag,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 9.5.sp,
+                            fontWeight: FontWeight.w800,
+                            color: viewState == _ViewState.today
+                                ? _kAccent
+                                : Colors.white.withOpacity(0.8),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Day ${day.dayNumber} of ${plan.planDays}',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(
+                    _dateLine(),
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: viewState == _ViewState.future ? '' : '$eaten ',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: _kAccent,
+                          ),
+                        ),
+                        TextSpan(
+                          text: viewState == _ViewState.future
+                              ? '${day.totalCalories} kcal planned'
+                              : 'of ${day.totalCalories} kcal',
+                        ),
+                      ],
+                    ),
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.5.sp,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
-    );
+      );
+    });
   }
+}
+
+// ─── Meal row (redesigned) ────────────────────────────────────────────
+// Timeline layout: time on the left joined by a line, a card on the
+// right with a meal emoji, food, the AI's tip and a clear status/action.
+// Tap behaviour is unchanged (today: log sheet, past: read-only, future:
+// preview).
+String _mealEmoji(MealTypeV2 t) {
+  switch (t) {
+    case MealTypeV2.breakfast:
+      return '🍳';
+    case MealTypeV2.midMorning:
+      return '🍎';
+    case MealTypeV2.lunch:
+      return '🍛';
+    case MealTypeV2.afternoonSnack:
+      return '🥜';
+    case MealTypeV2.eveningSnack:
+      return '🫖';
+    case MealTypeV2.dinner:
+      return '🍲';
+  }
+}
+
+String _prettyTime(String hhmm) {
+  final parts = hhmm.split(':');
+  if (parts.length < 2) return hhmm;
+  final h = int.tryParse(parts[0]);
+  final m = parts[1].padLeft(2, '0').substring(0, 2);
+  if (h == null) return hhmm;
+  final suffix = h >= 12 ? 'PM' : 'AM';
+  final h12 = h % 12 == 0 ? 12 : h % 12;
+  return '$h12:$m $suffix';
 }
 
 class _MealCard extends StatelessWidget {
   final DietPlanMealV2 meal;
   final int dayNumber;
   final _ViewState viewState;
+  final bool isFirst;
+  final bool isLast;
 
   const _MealCard({
     required this.meal,
     required this.dayNumber,
     required this.viewState,
+    this.isFirst = false,
+    this.isLast = false,
   });
 
   void _openSheet(DietPlanUserController ctrl) {
@@ -761,166 +953,228 @@ class _MealCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<DietPlanUserController>();
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _openSheet(ctrl),
-        borderRadius: BorderRadius.circular(20),
-        child: _Card(
-          padding: EdgeInsets.all(14.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Obx(() {
+      final status = viewState == _ViewState.future
+          ? MealLogStatusV2.pending
+          : (ctrl.getLogForMeal(dayNumber, meal.mealType.wire)?.status ??
+              MealLogStatusV2.pending);
+      final dotColor = _statusColor(status);
+      final tip = (meal.notes ?? '').trim();
+
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Time + timeline rail
+            SizedBox(
+              width: 58.w,
+              child: Column(
                 children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 10.w, vertical: 4.h),
-                    decoration: BoxDecoration(
-                      color: _kSage,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      meal.time,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Text(
-                      meal.mealType.label.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _kSage,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                meal.foodName,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _kHeroDark,
-                  height: 1.35,
-                ),
-              ),
-              if ((meal.notes ?? '').trim().isNotEmpty) ...[
-                SizedBox(height: 6.h),
-                Text(
-                  '↳ ${meal.notes!.trim()}',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 11.sp,
-                    fontStyle: FontStyle.italic,
-                    color: _kSage,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-              SizedBox(height: 10.h),
-              Row(
-                children: [
+                  SizedBox(height: 16.h),
                   Text(
-                    '${meal.calories} kcal',
+                    _prettyTime(meal.time),
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 10.5.sp,
+                      fontWeight: FontWeight.w700,
                       color: _kBodyMuted,
                     ),
                   ),
-                  const Spacer(),
-                  // Phase G.1 — indicator depends on whether the day
-                  // is today (live status), past (logged status), or
-                  // future (locked).
-                  if (viewState == _ViewState.future)
-                    const _LockIndicator()
-                  else
-                    Obx(() {
-                      final log = ctrl.getLogForMeal(
-                          dayNumber, meal.mealType.wire);
-                      return _StatusIndicator(
-                        status: log?.status ?? MealLogStatusV2.pending,
-                      );
-                    }),
+                  SizedBox(height: 6.h),
+                  Container(
+                    width: 14.w,
+                    height: 14.w,
+                    decoration: BoxDecoration(
+                      color: status == MealLogStatusV2.pending
+                          ? Colors.white
+                          : dotColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: status == MealLogStatusV2.pending
+                            ? _kSage
+                            : dotColor,
+                        width: 2.5,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: isLast ? Colors.transparent : _kCardBorder,
+                    ),
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            // Meal card
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _openSheet(ctrl),
+                    borderRadius: BorderRadius.circular(20),
+                    child: _Card(
+                      padding: EdgeInsets.all(14.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 40.w,
+                                height: 40.w,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: _kCream,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(_mealEmoji(meal.mealType),
+                                    style: TextStyle(fontSize: 20.sp)),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  meal.mealType.label,
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: _kBodyMuted,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 9.w, vertical: 4.h),
+                                decoration: BoxDecoration(
+                                  color: _kCream,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '🔥 ${meal.calories} kcal',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: _kHeroDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 10.h),
+                          Text(
+                            meal.foodName,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: status == MealLogStatusV2.skipped
+                                  ? _kSage
+                                  : _kHeroDark,
+                              decoration: status == MealLogStatusV2.skipped
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              height: 1.35,
+                            ),
+                          ),
+                          if (tip.isNotEmpty) ...[
+                            SizedBox(height: 8.h),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF4FAF1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '💡 $tip',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 11.5.sp,
+                                  color: _kBodyMuted,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: 10.h),
+                          _actionRow(status),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-    );
+      );
+    });
   }
-}
 
-class _StatusIndicator extends StatelessWidget {
-  final MealLogStatusV2 status;
-  const _StatusIndicator({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final size = 28.w;
-    switch (status) {
-      case MealLogStatusV2.pending:
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: _kSage, width: 1.4),
-          ),
-        );
+  Color _statusColor(MealLogStatusV2 s) {
+    switch (s) {
       case MealLogStatusV2.followed:
-        return _filled(_kAccent, Icons.check_rounded, label: 'Logged');
+        return _kAccent;
       case MealLogStatusV2.alternative:
-        return _filled(_kAlternative, Icons.swap_horiz_rounded,
-            label: 'Swapped');
+        return _kAlternative;
       case MealLogStatusV2.skipped:
-        return _filled(_kDanger, Icons.close_rounded, label: 'Skipped');
+        return _kDanger;
+      case MealLogStatusV2.pending:
+        return _kSage;
     }
   }
 
-  Widget _filled(Color bg, IconData icon, {required String label}) {
-    final size = 28.w;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
+  Widget _actionRow(MealLogStatusV2 status) {
+    if (viewState == _ViewState.future) {
+      return _pill(Icons.lock_outline_rounded, 'Unlocks on its day', _kSage,
+          filled: false);
+    }
+    switch (status) {
+      case MealLogStatusV2.followed:
+        return _pill(Icons.check_rounded, 'Ate as planned', _kAccent);
+      case MealLogStatusV2.alternative:
+        return _pill(Icons.swap_horiz_rounded, 'Had something else',
+            const Color(0xFFC98A2C));
+      case MealLogStatusV2.skipped:
+        return _pill(Icons.close_rounded, 'Skipped', _kDanger);
+      case MealLogStatusV2.pending:
+        return viewState == _ViewState.today
+            ? _pill(Icons.add_rounded, 'Log this meal', _kAccent,
+                filled: false)
+            : _pill(Icons.remove_rounded, 'Not logged', _kSage, filled: false);
+    }
+  }
+
+  Widget _pill(IconData icon, String text, Color color, {bool filled = true}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: filled ? color.withOpacity(0.14) : Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(filled ? 0.0 : 0.6)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14.w, color: color),
+          SizedBox(width: 5.w),
+          Text(
+            text,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11.5.sp,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
-          child: Icon(icon, color: Colors.white, size: 16.w),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.sp,
-            fontWeight: FontWeight.w600,
-            color: bg,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1335,25 +1589,6 @@ class _LogChoiceButton extends StatelessWidget {
 /// glance, paralleling the pending/followed/etc. status indicators
 /// without sneaking into MealLogStatusV2 (which is a backend-mirrored
 /// enum we don't want to grow).
-class _LockIndicator extends StatelessWidget {
-  const _LockIndicator();
-  @override
-  Widget build(BuildContext context) {
-    final size = 28.w;
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: _kSage, width: 1.4),
-      ),
-      child: Icon(Icons.lock_outline_rounded,
-          size: 14.w, color: _kSage),
-    );
-  }
-}
-
 /// Read-only meal sheet for past days. Shows the logged status (or a
 /// pending pill if the user never logged it) plus a clear hint that
 /// the row can't be edited.

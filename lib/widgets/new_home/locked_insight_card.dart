@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../data/controllers/auth_controller/auth_controller.dart';
+import 'trial_cta_card.dart' show showLockedFeatureDialog;
 
 /// FitHer AI insight teaser on the unpaid home.
 /// • Pre-activation: padlocked label, blurred preview, "Unlock insight →".
@@ -20,7 +21,14 @@ class LockedInsightCard extends StatelessWidget {
     return Obx(() {
       final activated =
           Get.find<AuthController>().trialActivated.value;
-      return Container(
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // Only the locked (pre-activation) state pops the trial teaser --
+        // once unlocked this is just a normal insight card, no popup.
+        onTap: activated
+            ? null
+            : () => showLockedFeatureDialog('FitHer AI Insight'),
+        child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
         decoration: BoxDecoration(
@@ -71,6 +79,7 @@ class LockedInsightCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
         ),
       );
     });

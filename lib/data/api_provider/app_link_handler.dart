@@ -1,12 +1,17 @@
+import 'dart:io' show Platform;
+
 import 'package:app_links/app_links.dart';
+import 'package:play_install_referrer/play_install_referrer.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.dart';
 import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
+import 'package:fitness_zone_2/widgets/new_home/trial_cta_card.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../UI/auth_module/walt_through/walk_through_screenn.dart';
+import '../../UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import '../../values/constants.dart';
 
 class AppLinkHandler {
@@ -25,6 +30,11 @@ class AppLinkHandler {
       return;
     }
     _initialized = true;
+
+    // First launch after installing from a rep's invite link: the Play
+    // Store hands us the invite as the install referrer. Save it like a
+    // tapped link, so signup continues straight into the trial.
+    await _checkInstallReferrer();
 
     try {
       _initialLinkData = await _appLinks.getInitialLink();
@@ -46,6 +56,32 @@ class AppLinkHandler {
     });
   }
 
+  static const String _kReferrerCheckedKey = 'installReferrerChecked';
+
+  Future<void> _checkInstallReferrer() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final auth = Get.find<AuthController>();
+      final prefs = auth.sharedPreferences;
+      if (prefs.getBool(_kReferrerCheckedKey) == true) return;
+      prefs.setBool(_kReferrerCheckedKey, true);
+
+      final details = await PlayInstallReferrer.installReferrer;
+      final raw = details.installReferrer ?? '';
+      if (raw.isEmpty) return;
+      final token = Uri.splitQueryString(raw)['trial_token'] ?? '';
+      if (token.isEmpty) return;
+      if ((prefs.getString(Constants.trialToken) ?? '').isNotEmpty) return;
+
+      // Saves the token on success. Stays quiet otherwise: a used or
+      // expired invite just means she starts the trial from the app.
+      await Get.find<HomeController>()
+          .validateTrialToken(token, showToastOnSuccess: false, quiet: true);
+    } catch (e) {
+      debugPrint('Install referrer check skipped: $e');
+    }
+  }
+
   Future<void> _handleIncomingUri(BuildContext context, Uri uri) async {
     final token = uri.queryParameters["token"];
     if (uri.toString().contains("trial") && token != null && token.isNotEmpty) {
@@ -64,11 +100,20 @@ class AppLinkHandler {
           authController.sharedPreferences.getString(Constants.accessToken) ?? "";
 
       if (accessToken.isNotEmpty) {
-        // User is already logged in — start the trial immediately.
+        // Already logged in. If her trial is already running, just go
+        // home. Otherwise go to trial onboarding: the trial (and its
+        // clock) only starts when she finishes it.
+        if (homeController.trialLive.value) {
+          Get.offAll(() => BottomBarScreen(index: 0));
+          return;
+        }
         final started = await homeController.startTrialFromSavedToken();
         if (started) {
-          await homeController.getMyTrialJourney();
-          Get.offAll(() => const TrialJourneyScreen());
+          // Consolidated: freshly-started trial -> diet quick-intake ->
+          // AI plan -> workout onboarding, same as every other entry
+          // point. Clears the nav stack so the deep link doesn't leave a
+          // dangling back-history.
+          enterTrialOnboarding(TrialNav.replaceAll);
           return;
         }
         // startTrialFromSavedToken failed (e.g. user already has an active trial).

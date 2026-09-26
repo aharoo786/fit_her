@@ -90,6 +90,7 @@ class Constants {
   // PaidHomeScreenV2 — Phase B2.7. Weekly weight upsert + target weight set.
   static const String weightLog = "/users/weekly_checkin/weight";
   static const String targetWeight = "/users/profile/target_weight";
+  static const String mainGoal = "/users/profile/main_goal";
   static String login = "login";
   static String weeklyReports = "weeklyReports";
 
@@ -254,6 +255,8 @@ class Constants {
   static String trialValidateToken = "/trial/validate-token";
   static String trialStart = "/trial/start";
   static String trialMe = "/trial/me";
+  static String trialClasses = "/trial/classes";
+  static String trialSummary = "/trial/summary";
   static String trialBookDay = "/trial/book-day";
   static String trialAttendance = "/trial/attendance";
   static String trialConvert = "/trial/convert";

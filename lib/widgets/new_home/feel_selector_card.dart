@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'trial_cta_card.dart' show showLockedFeatureDialog;
+
 class FeelSelectorCard extends StatelessWidget {
   const FeelSelectorCard({Key? key}) : super(key: key);
 
@@ -56,6 +58,12 @@ class FeelSelectorCard extends StatelessWidget {
                     child: _MoodCell(
                       mood: _moods[i],
                       selected: i == _selectedIndex,
+                      // This whole card is a locked teaser (it only ever
+                      // shows pre-trial, see LockedInsightCard/StatsGrid
+                      // siblings) -- every mood, including the
+                      // already-"selected" sample one, prompts the same
+                      // start-trial popup rather than silently no-op'ing.
+                      onTap: () => showLockedFeatureDialog('Mood tracking'),
                     ),
                   ),
                   if (i < _moods.length - 1) const SizedBox(width: 2),
@@ -78,11 +86,15 @@ class _Mood {
 class _MoodCell extends StatelessWidget {
   final _Mood mood;
   final bool selected;
-  const _MoodCell({required this.mood, required this.selected});
+  final VoidCallback? onTap;
+  const _MoodCell({required this.mood, required this.selected, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
       decoration: selected
           ? BoxDecoration(
@@ -118,6 +130,7 @@ class _MoodCell extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

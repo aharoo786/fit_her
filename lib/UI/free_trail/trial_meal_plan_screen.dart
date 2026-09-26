@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
+import '../../data/controllers/home_controller/home_controller.dart';
+import '../../data/models/diet_plan_v2/diet_plan_v2_models.dart';
 import '../../widgets/v2/v2_today_meals_section.dart';
+import '../dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'trial_journey_screen.dart';
 
-// Trial-to-Plan funnel — Step 6 ("Land on meal log"). Hosts the exact
-// same V2TodayMealsSection paid users see (it self-loads from
-// GET /users/diet-plan/me/active via DietPlanUserController, which has
-// no payment-tier gating — see docs/diet_system_full_audit.md), so once
-// the trial's starter DietPlan is generated + auto-activated it "just
-// works" here with no changes to that widget at all.
-//
-// A standalone screen rather than folding this into the existing
-// paid/unpaid home routing on purpose — trial users shouldn't suddenly
-// see paid-only surfaces (renewal prompts, follow-up booking, etc.) just
-// because they now have an active DietPlan; popupEligibility.js's
-// isTrial guardrail keeps those out of the popup feed too.
+/// First screen after the trial onboarding: "your plan is ready".
+///
+///   * Celebration hero with her name and the plan at a glance
+///     (daily calories, meals a day, days).
+///   * "Your 3-day trial" checklist so the next step is obvious:
+///     plan ready (done) -> book first live class -> log first meal.
+///   * Today's meals, using the same V2TodayMealsSection as paid users.
+///   * "Go to my home", which is now the paid home with the trial banner.
 class TrialMealPlanScreen extends StatefulWidget {
   const TrialMealPlanScreen({Key? key}) : super(key: key);
 
@@ -24,86 +24,354 @@ class TrialMealPlanScreen extends StatefulWidget {
   State<TrialMealPlanScreen> createState() => _TrialMealPlanScreenState();
 }
 
+const _kBg = Color(0xFFE8F4E0);
+const _kInk = Color(0xFF163220);
+const _kInkSoft = Color(0xFF6F8B7A);
+const _kAccent = Color(0xFF6DC55A);
+const _kAccentBg = Color(0xFFEAF7E4);
+const _kBorder = Color(0xFFD8EDD4);
+const _kHero2 = Color(0xFF24502F);
+
 class _TrialMealPlanScreenState extends State<TrialMealPlanScreen> {
-  static const Color _kBg = Color(0xFFE8F4E0);
-  static const Color _kInk = Color(0xFF163220);
-  static const Color _kInkSoft = Color(0xFF6F8B7A);
+  late final DietPlanUserController _plans;
 
   @override
   void initState() {
     super.initState();
-    // Force a refresh rather than trusting whatever DietPlanUserController
-    // last cached — if it was instantiated earlier in this session (e.g.
-    // the user briefly touched a paid-only surface before), its
-    // activePlan could still be null from before the plan we just
-    // generated existed.
+    _plans = Get.find<DietPlanUserController>();
+    // Force a refresh: the controller may have cached "no plan" from
+    // before this plan was generated a moment ago.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.find<DietPlanUserController>().loadActivePlan(refresh: true);
+      _plans.loadActivePlan(refresh: true);
+      Get.find<HomeController>().loadTrialClasses();
     });
   }
 
+  void _goHome() => Get.offAll<void>(() => BottomBarScreen(index: 0));
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _kBg,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Your simple plan',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: _kInk,
-                          ),
+    final name =
+        (Get.find<AuthController>().logInUser?.firstName ?? '').trim();
+    return WillPopScope(
+      onWillPop: () async {
+        _goHome();
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: _kBg,
+        body: Obx(() {
+          final plan = _plans.activePlan.value;
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: _hero(name, plan)),
+              SliverToBoxAdapter(child: _nextSteps()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+                  child: Row(
+                    children: const [
+                      Text('🍽️', style: TextStyle(fontSize: 18)),
+                      SizedBox(width: 8),
+                      Text(
+                        "Today's meals",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: _kInk,
                         ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Log each meal below as you go.',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            color: _kInkSoft,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () =>
-                        Get.to<void>(() => const TrialJourneyScreen()),
-                    child: const Text(
-                      'Live classes →',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: _kInk,
+                ),
+              ),
+              const SliverToBoxAdapter(child: V2TodayMealsSection()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                  child: SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _goHome,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kInk,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Go to my home',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                ],
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  // ── Hero ───────────────────────────────────────────────────────────
+  Widget _hero(String name, DietPlanV2? plan) {
+    final kcal = (plan != null && plan.days.isNotEmpty)
+        ? plan.days.first.totalCalories
+        : null;
+    final summary = (plan?.summary ?? '').trim();
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          22, MediaQuery.of(context).padding.top + 18, 22, 26),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_kInk, _kHero2],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _kAccent.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _kAccent.withOpacity(0.5)),
+            ),
+            child: const Text(
+              '✨  YOUR PLAN IS READY',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: _kAccent,
+                letterSpacing: 1,
               ),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: const V2TodayMealsSection(),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            name.isEmpty ? 'Made just for you' : 'Made just for you,\n$name',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 26,
+              height: 1.2,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -0.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            summary.isNotEmpty
+                ? summary
+                : 'Built from your goal, cycle, health and food choices.',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              height: 1.5,
+              color: Colors.white.withOpacity(0.78),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _stat('🔥', kcal == null ? '...' : '$kcal', 'kcal a day'),
+              const SizedBox(width: 10),
+              _stat('🥗', plan == null ? '...' : '${plan.mealsPerDay}', 'meals a day'),
+              const SizedBox(width: 10),
+              _stat('📅', plan == null ? '...' : '${plan.planDays}', 'day plan'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stat(String emoji, String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: Colors.white.withOpacity(0.7),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Next steps ─────────────────────────────────────────────────────
+  Widget _nextSteps() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _kBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'YOUR 3-DAY TRIAL',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: _kInkSoft,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _stepRow(
+            done: true,
+            emoji: '🥗',
+            title: 'Your meal plan is ready',
+            sub: 'Personalised by AI from your answers',
+          ),
+          Obx(() {
+            final home = Get.find<HomeController>();
+            home.trialClassData.value; // rebuild when classes load
+            final next = home.nextTrialClass(pickedOnly: true);
+            final trainer = next != null && next.data['trainer'] is Map
+                ? '${(next.data['trainer'] as Map)['name'] ?? ''}'.trim()
+                : '';
+            return _stepRow(
+              emoji: '🏋️‍♀️',
+              title: next == null
+                  ? 'Join your first live class'
+                  : 'Your first class: ${next.label}',
+              sub: next == null
+                  ? "Train live with a woman trainer, from home"
+                  : "${next.data['type'] ?? 'Live class'}"
+                      "${trainer.isEmpty ? '' : ' with $trainer'} · we'll remind you",
+              cta: 'Details',
+              onTap: () => Get.to<void>(() => const TrialJourneyScreen()),
+            );
+          }),
+          _stepRow(
+            emoji: '✅',
+            title: 'Log your first meal',
+            sub: 'Tap a meal below once you have eaten it',
+            last: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepRow({
+    required String emoji,
+    required String title,
+    required String sub,
+    bool done = false,
+    bool last = false,
+    String? cta,
+    VoidCallback? onTap,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 8 : 12),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: done ? _kAccent : _kAccentBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: done
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
+                : Text(emoji, style: const TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: done ? _kInkSoft : _kInk,
+                    decoration: done ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                Text(
+                  sub,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: _kInkSoft,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (cta != null && onTap != null)
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                decoration: BoxDecoration(
+                  color: _kAccent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  cta,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

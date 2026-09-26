@@ -35,9 +35,11 @@ class DietPlanUserController extends GetxController {
   final Rxn<BookingContextV2> bookingContext = Rxn<BookingContextV2>();
   final RxBool isBookingContextLoading = false.obs;
 
-  /// Idempotent — returns immediately if already loaded or in flight.
-  Future<void> loadBookingContext() async {
-    if (bookingContext.value != null) return;
+  /// Idempotent — returns immediately if already loaded or in flight,
+  /// unless [refresh] is true (the "plan is being prepared" card passes
+  /// that so its countdown and delayed state stay current).
+  Future<void> loadBookingContext({bool refresh = false}) async {
+    if (bookingContext.value != null && !refresh) return;
     if (isBookingContextLoading.value) return;
     isBookingContextLoading.value = true;
     try {

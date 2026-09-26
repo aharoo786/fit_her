@@ -54,6 +54,10 @@ class _LoginState extends State<Login> {
   static const Color _teamDividerText = Color(0xFFBCC7BC);
   static const Color _footerText = Color(0xFF9AB09A);
 
+  // Show/hide toggle for the password field's eye icon (matches the
+  // pattern already used on the sign-up screen — was missing here).
+  bool _obscurePassword = true;
+
   @override
   void initState() {
     super.initState();
@@ -340,7 +344,17 @@ class _LoginState extends State<Login> {
         _inputField(
           controller: authController.loginUserPassword,
           keyboardType: TextInputType.text,
-          obscure: true,
+          obscure: _obscurePassword,
+          suffixIcon: GestureDetector(
+            onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+            child: Icon(
+              _obscurePassword
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              color: _label,
+              size: 20,
+            ),
+          ),
         ),
       ],
     );
@@ -363,6 +377,7 @@ class _LoginState extends State<Login> {
     required TextEditingController controller,
     required TextInputType keyboardType,
     required bool obscure,
+    Widget? suffixIcon,
   }) {
     return TextField(
       controller: controller,
@@ -380,6 +395,13 @@ class _LoginState extends State<Login> {
         contentPadding:
             EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
         hintStyle: const TextStyle(color: _placeholder),
+        suffixIcon: suffixIcon == null
+            ? null
+            : Padding(
+                padding: EdgeInsets.only(right: 14.w),
+                child: suffixIcon,
+              ),
+        suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
           borderSide: const BorderSide(color: _sheetBorder, width: 1.5),
