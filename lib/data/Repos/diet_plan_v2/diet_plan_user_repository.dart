@@ -174,6 +174,10 @@ class DietPlanUserRepository extends GetxService {
       userPlanId: _toInt(data['userPlanId']),
       dietitianId: _toInt(data['dietitianId']),
       hasActivePlan: data['hasActivePlan'] == true,
+      planPreparing: data['planPreparing'] is Map
+          ? PlanPreparingV2.fromJson(
+              Map<String, dynamic>.from(data['planPreparing'] as Map))
+          : null,
     );
   }
 
@@ -221,17 +225,53 @@ class BookingContextV2 {
   final int? dietitianId;
   final bool hasActivePlan;
 
+  /// Set only between "consultation completed" and "plan delivered".
+  /// Drives the "your plan is being prepared" card.
+  final PlanPreparingV2? planPreparing;
+
   const BookingContextV2({
     this.userId,
     this.userPlanId,
     this.dietitianId,
     this.hasActivePlan = false,
+    this.planPreparing,
   });
 
   /// True when we have everything `BookConsultationSheet.show(...)`
   /// requires. False → caller routes to OurPlansScreen instead.
   bool get canBook =>
       userId != null && userPlanId != null && dietitianId != null;
+}
+
+/// The client has had her consultation and her plan is being built.
+/// The plan is due 48 hours after the consultation ends; `delayed`
+/// flips true once that has passed without delivery.
+class PlanPreparingV2 {
+  final DateTime? consultationDoneAt;
+  final DateTime? dueAt;
+  final bool delayed;
+  final int? dietitianId;
+  final String? dietitianName;
+
+  const PlanPreparingV2({
+    this.consultationDoneAt,
+    this.dueAt,
+    this.delayed = false,
+    this.dietitianId,
+    this.dietitianName,
+  });
+
+  factory PlanPreparingV2.fromJson(Map<String, dynamic> j) => PlanPreparingV2(
+        consultationDoneAt: j['consultationDoneAt'] == null
+            ? null
+            : DateTime.tryParse(j['consultationDoneAt'].toString())?.toLocal(),
+        dueAt: j['dueAt'] == null
+            ? null
+            : DateTime.tryParse(j['dueAt'].toString())?.toLocal(),
+        delayed: j['delayed'] == true,
+        dietitianId: _toInt(j['dietitianId']),
+        dietitianName: j['dietitianName']?.toString(),
+      );
 }
 
 int? _toInt(dynamic v) {

@@ -602,10 +602,18 @@ class HelpingWidgets {
           slot: slot,
           anchorDate: anchorDate ?? AppClock.now(),
         )) {
-          showError(
-            'Free trial classes can only be joined within 10 minutes of start time.',
+          // Late: a kind message with her next class, never a dead end.
+          await _showTrialLateSheet(
+            homeController: homeController,
+            slot: slot,
+            anchorDate: anchorDate ?? AppClock.now(),
           );
           return;
+        }
+        // First trial class only: "Ready for your first class?".
+        if (_isFreeTrialUser(homeController)) {
+          final go = await _showFirstTrialClassSheet(homeController, slot);
+          if (!go) return;
         }
         final link = slot.trainerLink ?? '';
         if (link.isEmpty) return;
@@ -629,6 +637,84 @@ class HelpingWidgets {
     }
   }
 
+  static const String _kFirstClassSheetKey = 'trialFirstClassSheetShown';
+
+  /// One-time sheet before a trial user's first class. Returns true to
+  /// continue joining.
+  static Future<bool> _showFirstTrialClassSheet(
+    HomeController homeController,
+    Slot slot,
+  ) async {
+    final prefs = homeController.sharedPreferences;
+    if (prefs.getBool(_kFirstClassSheetKey) == true) return true;
+    prefs.setBool(_kFirstClassSheetKey, true);
+    final trainer = (slot.trainer?.firstName ?? '').trim();
+    final result = await Get.bottomSheet<bool>(
+      _TrialSheet(
+        emoji: '🎉',
+        title: 'Ready for your first class?',
+        lines: [
+          "✅  You're joining on time, great!",
+          '📷  Camera on or off, it\'s up to you',
+          '👩  ${trainer.isEmpty ? 'Your trainer is a woman' : 'Your trainer is $trainer'}, women only',
+          '📵  This class is not recorded',
+        ],
+        primaryLabel: 'Join class',
+        onPrimary: () => Get.back(result: true),
+      ),
+      isScrollControlled: true,
+    );
+    return result == true;
+  }
+
+  /// Joining too late as a trial user: say why kindly and offer her next
+  /// class (with a one-tap reminder) instead of an error.
+  static Future<void> _showTrialLateSheet({
+    required HomeController homeController,
+    required Slot slot,
+    required DateTime anchorDate,
+  }) async {
+    final start = parseSlotWallClock(slot.start, anchorDate);
+    final minsLate =
+        start == null ? null : AppClock.now().difference(start).inMinutes;
+    if (homeController.trialClassData.value == null) {
+      await homeController.loadTrialClasses();
+    }
+    final next = homeController.nextTrialClass();
+    final window = homeController.joinWindowMinutes.value;
+    final nextId = next?.data['slotId'];
+    final nextTrainer = next?.data['trainer'] is Map
+        ? '${(next!.data['trainer'] as Map)['name'] ?? ''}'.trim()
+        : '';
+    await Get.bottomSheet<void>(
+      _TrialSheet(
+        emoji: '⏰',
+        title: minsLate == null
+            ? 'This class has already started'
+            : 'This class started $minsLate minutes ago',
+        lines: [
+          'To keep you safe, trial classes are joined within the first $window minutes.',
+          if (next != null)
+            'Next class: ${next.label} · ${next.data['type'] ?? 'Live class'}'
+                '${nextTrainer.isEmpty ? '' : ' with $nextTrainer'}',
+        ],
+        primaryLabel: next != null && next.data['picked'] != true ? 'Remind me' : 'See all classes',
+        onPrimary: () async {
+          if (next != null && next.data['picked'] != true && nextId is int) {
+            final ok = await homeController.addTrialReminderSlot(nextId);
+            Get.back();
+            if (ok) CustomToast.successToast(msg: "We'll remind you before it starts 🔔");
+          } else {
+            Get.back();
+          }
+        },
+        secondaryLabel: next != null && next.data['picked'] != true ? 'See all classes' : null,
+        onSecondary: () => Get.back(),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
   static bool _canFreeTrialUserJoin({
     required HomeController homeController,
     required Slot slot,
@@ -639,7 +725,8 @@ class HelpingWidgets {
     final start = parseSlotWallClock(slot.start, anchorDate);
     if (start == null) return false;
 
-    final cutoff = start.add(const Duration(minutes: 10));
+    final cutoff =
+        start.add(Duration(minutes: homeController.joinWindowMinutes.value));
     return !AppClock.now().isAfter(cutoff);
   }
 
@@ -659,7 +746,7 @@ class HelpingWidgets {
     final startedAt = DateTime.tryParse(journey["startedAt"]?.toString() ?? "");
     if (startedAt == null) return false;
 
-    return AppClock.now().isBefore(startedAt.add(const Duration(days: 3)));
+    return AppClock.now().isBefore(startedAt.add(homeController.kTrialLength));
   }
 
   static startMeeting(
@@ -784,5 +871,119 @@ class HelpingWidgets {
 
   static showError(String message) {
     CustomToast.failToast(msg: message);
+  }
+}
+
+/// Simple bottom sheet used for the trial first-class and late-join
+/// messages. Same V2 look as the rest of the trial flow.
+class _TrialSheet extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final List<String> lines;
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+
+  const _TrialSheet({
+    required this.emoji,
+    required this.title,
+    required this.lines,
+    required this.primaryLabel,
+    required this.onPrimary,
+    this.secondaryLabel,
+    this.onSecondary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE8F4E0),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(emoji, textAlign: TextAlign.center, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF163220),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFD8EDD4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: lines
+                    .map((l) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            l,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13.5,
+                              height: 1.45,
+                              color: Color(0xFF163220),
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 52,
+              child: ElevatedButton(
+                onPressed: onPrimary,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6DC55A),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(
+                  primaryLabel,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            if (secondaryLabel != null && onSecondary != null)
+              TextButton(
+                onPressed: onSecondary,
+                child: Text(
+                  secondaryLabel!,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6F8B7A),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

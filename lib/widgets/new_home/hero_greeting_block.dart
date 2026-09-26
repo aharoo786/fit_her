@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../data/services/cycle_engine.dart';
 
 class HeroGreetingBlock extends StatelessWidget {
@@ -40,6 +42,15 @@ class HeroGreetingBlock extends StatelessWidget {
       default:
         return null;
     }
+  }
+
+  /// Her own stated goal from onboarding ("Lose weight", "Build strength
+  /// & tone", …) — already stored display-ready, no value mapping needed.
+  /// Falls back to the old "Start trial" copy on the rare chance goal is
+  /// somehow blank, so this chip is never left showing nothing.
+  String get _goalLabel {
+    final goal = Get.find<AuthController>().mainGoal.value.trim();
+    return goal.isEmpty ? 'Start trial' : goal;
   }
 
   @override
@@ -143,20 +154,50 @@ class HeroGreetingBlock extends StatelessWidget {
               ],
             )
           else
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _chip(dayText, 12, FontWeight.w700, const Color(0xFFA8F0C0).withOpacity(0.55)),
-                _sep(),
-                _chip('Preview mode', 11, null, Colors.white.withOpacity(0.65)),
-                _sep(),
-                _chip('—', 11, FontWeight.w600, Colors.white.withOpacity(0.2)),
-                _sep(),
-                _chip('Start trial', 12, FontWeight.w700, const Color(0xFF6DC55A).withOpacity(0.7)),
-              ],
-            ),
+            // "Preview mode" / "Start trial" here were hardcoded — shown
+            // to EVERY user regardless of whether they'd actually started
+            // a trial or paid, because nothing in this row ever checked
+            // real state.
+            //
+            // First fix used `phase == null` (real cycle data vs. no data
+            // yet) as the "hasn't started" signal, since that's what the
+            // phase text just above already branches on. Wrong signal
+            // though — a user can log real cycle data (phase != null,
+            // heading shows her actual phase) well before ever starting a
+            // trial or paying, exactly Fatima's case: real "Menstrual
+            // Phase" up top, but the "Try free →" button right below in
+            // HeroLiveSection still shows because she genuinely hasn't
+            // started a trial. Tying this row to `phase` made it
+            // disappear the moment she logged her cycle, even though
+            // she's still just as much in preview as before.
+            //
+            // The actual "has she started" signal is
+            // AuthController.trialActivated — the exact same RxBool
+            // HeroLiveSection already uses right below this to decide
+            // between "Try free →" and "Explore more plans". Wrapped in
+            // Obx so this updates immediately if she activates the trial
+            // while this screen is still on-screen, not just on next
+            // reload.
+            Obx(() {
+              final started =
+                  Get.find<AuthController>().trialActivated.value;
+              return Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _chip(dayText, 12, FontWeight.w700, const Color(0xFFA8F0C0).withOpacity(0.55)),
+                  if (!started) ...[
+                    _sep(),
+                    _chip('Preview mode', 11, null, Colors.white.withOpacity(0.65)),
+                    _sep(),
+                    _chip('—', 11, FontWeight.w600, Colors.white.withOpacity(0.2)),
+                    _sep(),
+                    _chip(_goalLabel, 12, FontWeight.w700, const Color(0xFF6DC55A).withOpacity(0.7)),
+                  ],
+                ],
+              );
+            }),
         ],
       ),
     );

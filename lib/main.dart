@@ -29,7 +29,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
-
+// import 'firebase_options.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 // Lets any screen detect "I've become visible again because a screen
@@ -83,9 +83,9 @@ Future<void> main() async {
   // tz.getLocation(...). Synchronous + cheap; bundled with the package.
   tz_data.initializeTimeZones();
 
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp();
-  }
+
+    await Firebase.initializeApp(options:DefaultFirebaseOptions.currentPlatform);
+
 
   await di.init();
 

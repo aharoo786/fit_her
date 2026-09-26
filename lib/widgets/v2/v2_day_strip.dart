@@ -12,8 +12,9 @@ const Color _kCardBorder = Color(0xFFD8EDD4);
 // Chip geometry — shared between the state class (for scroll math) and
 // _DayChip (for layout). Top-level so neither needs to peek into the
 // other's private statics.
-const double _kChipWidth = 64;
-const double _kChipMargin = 8;
+const double _kChipWidth = 50;
+const double _kChipMargin = 4;
+const Color _kInk = Color(0xFF163220);
 
 /// Phase G.1 — horizontal day strip on the user's Diet tab. One chip
 /// per day (1..plan.planDays), tap to switch the section to that day.
@@ -96,11 +97,33 @@ class _V2DayStripState extends State<V2DayStrip> {
 
   @override
   Widget build(BuildContext context) {
+    // Short plans (a 3-day trial, a week) fit on one line: spread the
+    // days evenly across the width instead of a scrolling strip.
+    if (widget.plan.planDays <= 7) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(12.w, 4.h, 12.w, 4.h),
+        child: Row(
+          children: List.generate(widget.plan.planDays, (i) {
+            final dayNumber = i + 1;
+            return Expanded(
+              child: _DayChip(
+                dayNumber: dayNumber,
+                date: widget.controller?.dateForDay(dayNumber),
+                todayDayNumber: widget.todayDayNumber,
+                isSelected: dayNumber == widget.selectedDayNumber,
+                onTap: () => widget.onDaySelected(dayNumber),
+                flexible: true,
+              ),
+            );
+          }),
+        ),
+      );
+    }
     return SizedBox(
       // Chip natural height = 16 margin + 20.h padding + ~15 weekday text +
       // 2.h + 18.sp number + 6.h + 6 dot. Mixed scaled/unscaled metrics edge
       // past 80.h on most phones (RenderFlex overflow of ~4 px).
-      height: 92.h,
+      height: 72.h,
       child: ListView.builder(
         controller: _scroll,
         scrollDirection: Axis.horizontal,
@@ -127,6 +150,7 @@ class _DayChip extends StatelessWidget {
   final int? todayDayNumber;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool flexible;
 
   const _DayChip({
     required this.dayNumber,
@@ -134,6 +158,7 @@ class _DayChip extends StatelessWidget {
     required this.todayDayNumber,
     required this.isSelected,
     required this.onTap,
+    this.flexible = false,
   });
 
   static const List<String> _weekdayShort = [
@@ -158,18 +183,27 @@ class _DayChip extends StatelessWidget {
     final Color dotColor;
     final List<BoxShadow>? shadow;
 
-    if (_isToday) {
-      bg = _kAccent;
+    // Selected day: solid dark ink, calmer than the old bright green
+    // block. Today keeps a green dot and green weekday so it's easy to
+    // spot when another day is selected.
+    if (isSelected) {
+      bg = _kInk;
       numberColor = Colors.white;
-      labelColor = Colors.white.withOpacity(0.85);
-      dotColor = Colors.white;
+      labelColor = Colors.white.withOpacity(0.7);
+      dotColor = _isToday ? _kAccent : Colors.transparent;
       shadow = [
         BoxShadow(
-          color: _kAccent.withOpacity(0.32),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
+          color: _kInk.withOpacity(0.22),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
         ),
       ];
+    } else if (_isToday) {
+      bg = Colors.white;
+      numberColor = _kInk;
+      labelColor = _kAccent;
+      dotColor = _kAccent;
+      shadow = null;
     } else if (_isFuture) {
       bg = Colors.white;
       numberColor = _kBodyMuted.withOpacity(0.7);
@@ -186,10 +220,10 @@ class _DayChip extends StatelessWidget {
     }
 
     final borderColor = isSelected
-        ? _kAccent
+        ? _kInk
         : (_isToday ? _kAccent : _kCardBorder);
-    final borderWidth = isSelected ? 2.0 : 1.0;
-    final scale = isSelected ? 1.05 : 1.0;
+    final borderWidth = (!isSelected && _isToday) ? 1.5 : 1.0;
+    const scale = 1.0;
 
     final weekday = (date == null)
         ? '·'
@@ -203,15 +237,15 @@ class _DayChip extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOutCubic,
         child: Container(
-          width: _kChipWidth,
+          width: flexible ? null : _kChipWidth,
           margin: const EdgeInsets.symmetric(
             horizontal: _kChipMargin,
-            vertical: 8,
+            vertical: 6,
           ),
-          padding: EdgeInsets.symmetric(vertical: 10.h),
+          padding: EdgeInsets.symmetric(vertical: 8.h),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: borderColor, width: borderWidth),
             boxShadow: shadow,
           ),
@@ -233,7 +267,7 @@ class _DayChip extends StatelessWidget {
                 '$dayNumber',
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 18.sp,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w800,
                   color: numberColor,
                   height: 1.0,

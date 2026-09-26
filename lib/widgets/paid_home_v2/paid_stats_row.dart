@@ -11,12 +11,16 @@ import 'log_weight_modal.dart';
 import 'paid_meal_log_card.dart';
 import 'set_target_weight_modal.dart';
 
-// TODO: Replace static values with real data
-// - Workouts: connect to dashboard.stats.workoutsThisWeek (was wired
-//   pre-demo, reverted to static "4" for HBL visual completeness)
-// - Weight: connect to weight tracking — modal still wired but value
-//   display is static
-// - Calories: connect to calorie counter when re-enabled
+// Workouts + Weight + Calories all read real data from dashboard.stats
+// (backend: DashboardController.buildStats()) — see each card below for
+// the exact fields and null-handling.
+//
+// Calories shows a personalized daily TARGET (Mifflin-St Jeor BMR ×
+// activity level, goal-adjusted — services/ai/utils/calorieTarget.js,
+// the same calculator that drives AI diet-plan generation), not a live
+// "remaining today" count — there's no calorie *consumption* tracking
+// anywhere yet (meal logging only records followed/alternative/skipped,
+// never food or kcal), so there's nothing to subtract from the budget.
 //
 // NOTE: PaidCycleCard now lives in paid_home_screen_v2.dart (paired
 // with Meals/Nutrition there). Do not re-add it here — that would
@@ -66,12 +70,15 @@ class _WorkoutsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // STATIC for HBL demo — was previously dashboard.stats?.workoutsThisWeek.
-    // See tech-debt note at top of file.
-    return const _CardShell(
+    // Real count from DashboardController.buildStats() — distinct
+    // class-attendance days since Monday (Mon-based ISO week). Backend
+    // always returns an int (defaults to 0 on no attendance / on error),
+    // never null, so no separate empty state is needed here.
+    final count = dashboard.stats?.workoutsThisWeek ?? 0;
+    return _CardShell(
       child: _StatColumn(
         label: '🏋️ Workouts',
-        value: '4',
+        value: '$count',
         sub: 'this week',
       ),
     );
@@ -80,11 +87,10 @@ class _WorkoutsCard extends StatelessWidget {
 
 // ─── Row 1, Card 2 ───────────────────────────────────────────────────────
 
-/// Replaces the previous `_ProgressCard`. Visual value is static for the
-/// HBL demo, BUT the tap-to-log-weight flow is preserved exactly: hands
-/// off to `SetTargetWeightModal` when no goal exists, otherwise to
-/// `LogWeightModal` seeded with the current weight. Real user weight-
-/// logging behaviour is unchanged.
+/// Replaces the previous `_ProgressCard`. Displays the real week-over-week
+/// weight trend from `dashboard.stats.weightDeltaKgThisWeek`. Tap-to-log
+/// flow is unchanged: hands off to `SetTargetWeightModal` when no goal
+/// exists, otherwise to `LogWeightModal` seeded with the current weight.
 class _WeightCard extends StatelessWidget {
   final HomeDashboardModel dashboard;
   const _WeightCard({required this.dashboard});
@@ -103,15 +109,56 @@ class _WeightCard extends StatelessWidget {
     }
   }
 
+  // 'lose' | 'gain' | null. mainGoal === 'Lose weight' already answers
+  // this on its own — SetTargetWeightModal doesn't even show a picker
+  // in that case — so it takes priority over the stored column, which
+  // only exists for users whose signup goal didn't say. Null means truly
+  // unknown (never asked yet, e.g. no target weight set at all).
+  String? _direction() {
+    if (dashboard.user?.mainGoal == 'Lose weight') return 'lose';
+    return dashboard.goal?.weightGoalDirection;
+  }
+
+  // Green when the change moves toward the user's stated direction,
+  // amber (not alarm-red — a wellness app shouldn't punish a bad week)
+  // when it moves away from it. Falls back to the card's normal green
+  // when direction is unknown or the change is exactly 0 — there's
+  // nothing to judge either way.
+  Color _valueColor(double? delta) {
+    const onTrack = Color(0xFF6DC55A);
+    const offTrack = Color(0xFFD9A441);
+    final direction = _direction();
+    if (delta == null || delta == 0 || direction == null) return onTrack;
+    final movingTowardGoal = direction == 'lose' ? delta < 0 : delta > 0;
+    return movingTowardGoal ? onTrack : offTrack;
+  }
+
   @override
   Widget build(BuildContext context) {
+    // DashboardController.buildStats() only fills this in once there are
+    // 2+ WeeklyCheckin rows within the last 14 days — it returns null
+    // (not 0.0) when there isn't enough history yet, so a fresh user
+    // isn't shown a false "no change". Sign is added explicitly since
+    // Dart's toStringAsFixed doesn't prefix positive numbers.
+    //
+    // IMPORTANT: save_weight_log upserts ONE row per ISO week (keyed by
+    // that week's Monday — userController.js's currentWeekMonday()), so
+    // logging twice on the same day/week overwrites the same row rather
+    // than creating a second one. A trend only appears once the user has
+    // a weigh-in from two DIFFERENT weeks — the old copy here ("log 2x
+    // to see trend") wrongly implied logging twice today would do it.
+    final delta = dashboard.stats?.weightDeltaKgThisWeek;
+    final hasDelta = delta != null;
+    final value = hasDelta
+        ? '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}'
+        : '--';
     return _CardShell(
       onTap: () => _onTap(context),
-      child: const _StatColumn(
+      child: _StatColumn(
         label: '⚖️ Weight',
-        // STATIC display — modal flow on tap is live.
-        value: '-0.4',
-        sub: 'kg/week',
+        value: value,
+        sub: hasDelta ? 'kg/week' : 'log again next week',
+        valueColor: _valueColor(delta),
       ),
     );
   }
@@ -125,13 +172,18 @@ class _CaloriesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // STATIC for HBL demo — backend doesn't track daily kcal yet
-    // (DashboardController emits caloriesRemaining/dailyKcalBudget=null).
-    return const _CardShell(
+    // Real personalized daily target from DashboardController.buildStats()
+    // — null only when the backend couldn't compute one (missing age,
+    // weight, or height on the profile), shown honestly as "--" rather
+    // than a fake number. "target", not "left" — see file-level note:
+    // there's no food/kcal consumption tracking to subtract from this.
+    final budget = dashboard.stats?.dailyKcalBudget;
+    final value = budget != null ? '$budget' : '--';
+    return _CardShell(
       child: _StatColumn(
         label: '🍎 Calories',
-        value: '322',
-        sub: 'kcal left',
+        value: value,
+        sub: budget != null ? 'kcal target' : 'complete profile',
       ),
     );
   }
@@ -402,6 +454,7 @@ class _StatColumn extends StatelessWidget {
   final String sub;
   final double valueFontSize;
   final double subFontSize;
+  final Color? valueColor;
 
   const _StatColumn({
     required this.label,
@@ -409,6 +462,7 @@ class _StatColumn extends StatelessWidget {
     required this.sub,
     this.valueFontSize = 21,
     this.subFontSize = 9,
+    this.valueColor,
   });
 
   @override
@@ -432,7 +486,7 @@ class _StatColumn extends StatelessWidget {
           style: TextStyle(
             fontSize: valueFontSize,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF6DC55A),
+            color: valueColor ?? const Color(0xFF6DC55A),
             height: 1.0,
           ),
         ),

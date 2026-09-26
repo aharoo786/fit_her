@@ -43,6 +43,11 @@ class Cliet {
   bool hasConsultationToday;
   DateTime? consultationTodayAt;
 
+  /// Where this client is in the plan delivery pipeline. Null when no
+  /// plan is owed right now (no completed consultation, or already
+  /// delivered) or when talking to an older backend.
+  PlanPipeline? planPipeline;
+
   Cliet({
     required this.id,
     required this.buyingDate,
@@ -52,6 +57,7 @@ class Cliet {
     this.statusDetail,
     this.hasConsultationToday = false,
     this.consultationTodayAt,
+    this.planPipeline,
   });
 
   factory Cliet.fromJson(Map<String, dynamic> json) => Cliet(
@@ -65,6 +71,9 @@ class Cliet {
         consultationTodayAt: json["consultationTodayAt"] == null
             ? null
             : DateTime.tryParse(json["consultationTodayAt"].toString()),
+        planPipeline: json["planPipeline"] is Map<String, dynamic>
+            ? PlanPipeline.fromJson(json["planPipeline"])
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -77,6 +86,48 @@ class Cliet {
         "hasConsultationToday": hasConsultationToday,
         "consultationTodayAt": consultationTodayAt?.toIso8601String(),
       };
+}
+
+/// Server-computed plan delivery state (see dietController.getAllClients).
+/// The plan is due 48 hours after the consultation ends.
+class PlanPipeline {
+  final bool owed;
+  final int? appointmentId;
+  final DateTime? consultationEndedAt;
+  final DateTime? dueAt;
+  final int hoursLeft;
+  final bool overdue;
+  final bool hasForm;
+  final bool formReviewed;
+  final int? draftPlanId;
+
+  PlanPipeline({
+    required this.owed,
+    this.appointmentId,
+    this.consultationEndedAt,
+    this.dueAt,
+    required this.hoursLeft,
+    required this.overdue,
+    required this.hasForm,
+    required this.formReviewed,
+    this.draftPlanId,
+  });
+
+  factory PlanPipeline.fromJson(Map<String, dynamic> json) => PlanPipeline(
+        owed: json["owed"] == true,
+        appointmentId: json["appointmentId"] as int?,
+        consultationEndedAt: json["consultationEndedAt"] == null
+            ? null
+            : DateTime.tryParse(json["consultationEndedAt"].toString()),
+        dueAt: json["dueAt"] == null
+            ? null
+            : DateTime.tryParse(json["dueAt"].toString()),
+        hoursLeft: (json["hoursLeft"] as num?)?.toInt() ?? 0,
+        overdue: json["overdue"] == true,
+        hasForm: json["hasForm"] == true,
+        formReviewed: json["formReviewed"] == true,
+        draftPlanId: json["draftPlanId"] as int?,
+      );
 }
 
 class ClientUser {

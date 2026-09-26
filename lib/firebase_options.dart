@@ -47,13 +47,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-      apiKey: "AIzaSyCbZHjGvtJwFl-IrTCdimslfTCGe4GPAG4",
-      authDomain: "fither-e7a36.firebaseapp.com",
-      projectId: "fither-e7a36",
-      storageBucket: "fither-e7a36.firebasestorage.app",
-      messagingSenderId: "591042819842",
-      appId: "1:591042819842:web:5bb1f96304b2b82f77f41b",
-      measurementId: "G-HR4HD798HX"
+    apiKey: 'AIzaSyCbZHjGvtJwFl-IrTCdimslfTCGe4GPAG4',
+    appId: '1:591042819842:web:5bb1f96304b2b82f77f41b',
+    messagingSenderId: '591042819842',
+    projectId: 'fither-e7a36',
+    authDomain: 'fither-e7a36.firebaseapp.com',
+    storageBucket: 'fither-e7a36.firebasestorage.app',
+    measurementId: 'G-HR4HD798HX',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -61,16 +61,16 @@ class DefaultFirebaseOptions {
     appId: '1:591042819842:android:b48deab996674d0e77f41b',
     messagingSenderId: '591042819842',
     projectId: 'fither-e7a36',
-    storageBucket: 'fither-e7a36.appspot.com',
+    storageBucket: 'fither-e7a36.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDtpuo9tWgtl9ad88VkuSwPNAXTMwjF9PE',
     appId: '1:591042819842:ios:88c99b8e4bb6314877f41b',
     messagingSenderId: '591042819842',
     projectId: 'fither-e7a36',
-    storageBucket: 'fither-e7a36.appspot.com',
+    storageBucket: 'fither-e7a36.firebasestorage.app',
+    androidClientId: '591042819842-4s4lvk5h0m4upltrqq0hbjd74oammh2o.apps.googleusercontent.com',
+    iosClientId: '591042819842-fadgf08sam81avc9up03bqvss3ndlu86.apps.googleusercontent.com',
     iosBundleId: 'com.abtechnologies.fitHer',
   );
-
 }

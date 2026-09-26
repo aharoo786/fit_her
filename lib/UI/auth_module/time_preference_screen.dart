@@ -119,7 +119,21 @@ class _TimePreferenceScreenState extends State<TimePreferenceScreen> {
       questionLine1: 'When do you like',
       questionLine2: 'to work out?',
       subtitle: "We'll only notify you about classes\nduring your preferred time",
-      onBack: () => _save('all'), // skip = all if they go back
+      // Was wired to _save('all') — tapping the visible back arrow silently
+      // skipped this step AND finished the whole signup (onCompleted fires
+      // from inside _save), instead of just stepping back to Health
+      // Conditions like every other step in this flow does. That's what
+      // she hit: tapping back to go re-check what she'd picked on the
+      // disease screen instead completed onboarding out from under her.
+      // The PopScope above still treats the ANDROID SYSTEM back gesture as
+      // skip (deliberate — see its comment, needed for the standalone
+      // "existing user" case where there's no previous screen to pop to),
+      // but the in-screen arrow is a plain "previous step" control, so it
+      // should behave like every other screen's does: omit onBack entirely
+      // and let OnboardingScaffold's own default (Get.back()) pop back to
+      // whatever screen pushed this one — Health Conditions, in the
+      // onboarding chain, with her selections still intact since that
+      // screen's State was never disposed, just covered.
       buttonText: "Let's go →",
       onNext: () => _save(_blocks[_selectedIndex].value),
       onSkip: () => _save('all'),

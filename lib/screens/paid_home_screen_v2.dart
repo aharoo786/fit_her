@@ -9,9 +9,10 @@ import 'package:get/get.dart';
 import '../UI/consultation_module/popup_orchestrator.dart';
 import '../UI/consultation_module/popups/medical_concern_sheet.dart';
 import '../UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
-import '../data/controllers/diet_plan_user_controller/diet_plan_user_controller.dart';
 import '../data/controllers/paid_home_controller/paid_home_controller.dart';
+import '../data/models/home_dashboard/home_dashboard_model.dart';
 import '../utils/app_clock.dart';
+import '../widgets/paid_home_v2/next_up_glow.dart';
 import '../widgets/paid_home_v2/paid_cycle_card.dart';
 import '../widgets/paid_home_v2/paid_feel_selector.dart';
 import '../widgets/paid_home_v2/paid_footer.dart';
@@ -19,13 +20,40 @@ import '../widgets/paid_home_v2/paid_hero.dart';
 import '../widgets/paid_home_v2/paid_insight_card.dart';
 import '../widgets/paid_home_v2/paid_sleep_card.dart';
 import '../widgets/paid_home_v2/paid_stats_row.dart'
-    show PaidStatsRow, PaidNutritionCard, PaidMealSummaryCard;
+    show PaidStatsRow, PaidMealSummaryCard;
 import '../widgets/paid_home_v2/paid_water_card.dart';
 import '../widgets/v2/medical_concern_fab.dart';
 import '../widgets/v2/plan_expiry_banner.dart';
 import '../widgets/v2/plan_frozen_banner.dart';
+import '../widgets/v2/v2_plan_preparing_card.dart';
+import '../widgets/v2/v2_trial_banner.dart';
+import '../data/controllers/auth_controller/auth_controller.dart';
 import '../main.dart' show routeObserver;
 import '../widgets/v2/v2_today_meals_section.dart' show V2Day7TriggerBanner;
+
+/// The three genuinely daily inputs on this screen, in the order they
+/// appear top-to-bottom (Mood, then Water/Sleep side by side — Water
+/// wins ties over Sleep simply because it's the left/first card of that
+/// row). Workouts and Calories are deliberately excluded: Workouts is
+/// derived from class attendance (nothing to manually log) and Calories
+/// is a computed target, not a daily entry.
+enum _DailyItem { mood, water, sleep, none }
+
+/// Which of the three daily items still needs logging today, derived
+/// purely from the current dashboard — no separate "just logged"
+/// tracking needed. Because every log action already triggers a
+/// dashboard refresh on success, this naturally advances mood -> water
+/// -> sleep the instant each one is saved, and clears once all three
+/// are done.
+_DailyItem _nextDailyItem(HomeDashboardModel dashboard) {
+  final moodDone = dashboard.todayCheckin?.moodLevel != null;
+  if (!moodDone) return _DailyItem.mood;
+  final waterDone = (dashboard.hydration?.consumedMl ?? 0) > 0;
+  if (!waterDone) return _DailyItem.water;
+  final sleepDone = dashboard.sleep?.hoursToday != null;
+  if (!sleepDone) return _DailyItem.sleep;
+  return _DailyItem.none;
+}
 
 /// PaidHomeScreenV2 — phase-themed dashboard for paid users behind the
 /// `useNewPaidHome` feature flag. Phase B2.3 ships only the hero section
@@ -197,31 +225,44 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
             // schedule. WorkPlansOfUser → tap into the plan → today's class.
             onOpenWorkoutSchedule: () =>
                 Get.offAll<dynamic>(() => BottomBarScreen(index: 1)),
-            child: MedicalConcernFAB(
-              onTap: () => MedicalConcernSheet.show(),
-              child: Stack(
-                children: [
-                  _buildBody(),
-                  // Reconnecting banner — overlay so it stays pinned at
-                  // the top of the screen instead of scrolling away with
-                  // the hero. SafeArea so it clears the status bar.
-                  if (_isStale)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: SafeArea(
-                        bottom: false,
-                        child: _buildReconnectingBanner(),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            // Free trial users see this home too. The medical concern
+            // button escalates to a dietitian, which is a paid service,
+            // so it's left out for them.
+            child: _isTrialUser
+                ? _bodyStack()
+                : MedicalConcernFAB(
+                    onTap: () => MedicalConcernSheet.show(),
+                    child: _bodyStack(),
+                  ),
           ),
         ),
       );
     });
+  }
+
+  /// Not paid but on the paid home: she's in her free trial.
+  bool get _isTrialUser =>
+      !(Get.find<AuthController>().logInUser?.status ?? false);
+
+  Widget _bodyStack() {
+    return Stack(
+      children: [
+        _buildBody(),
+        // Reconnecting banner — overlay so it stays pinned at
+        // the top of the screen instead of scrolling away with
+        // the hero. SafeArea so it clears the status bar.
+        if (_isStale)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: _buildReconnectingBanner(),
+            ),
+          ),
+      ],
+    );
   }
 
   // Slim amber pill shown when no successful heartbeat in [_kStaleAfter].
@@ -275,6 +316,8 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
           ),
         );
       }
+      final hasCycle = dashboard.cycle?.cycleDay != null;
+      final nextUp = _nextDailyItem(dashboard);
       return RefreshIndicator(
           onRefresh: _controller.refreshDashboard,
           child: SingleChildScrollView(
@@ -290,7 +333,12 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                 // pattern as V2Day7TriggerBanner right below. Sits above it
                 // so a lapsing/expired plan is the first thing a user sees
                 // under the hero, ahead of the day-7 check-in nudge.
+                // Free trial: "Day 2 of 3" + Upgrade. Self-hides for paid.
+                const V2TrialBanner(),
                 PlanExpiryBanner(key: ValueKey('expiry_$_refreshGen')),
+                // "Your plan is being prepared, expected by ..." between
+                // consultation and delivery. Self-hides otherwise.
+                V2PlanPreparingBanner(key: ValueKey('preparing_$_refreshGen')),
                 // Frozen-plan heads-up -- item #1 of the frozen-plan
                 // architecture pass. Sits right below the renewal banner;
                 // in practice the two never show at once (a frozen plan's
@@ -324,7 +372,18 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                     children: [
                       PaidInsightCard(dashboard: dashboard),
                       const SizedBox(height: 8),
-                      PaidFeelSelector(dashboard: dashboard),
+                      // Daily check-in chain: Mood -> Water -> Sleep. A
+                      // soft glow points at whichever of the three is
+                      // still unfilled today, and moves on to the next
+                      // one automatically the moment the current one is
+                      // logged (nextUp is recomputed from the dashboard
+                      // on every rebuild here). No glow on any of them
+                      // once all three are done for the day.
+                      NextUpGlow(
+                        active: nextUp == _DailyItem.mood,
+                        color: const Color(0xFF6DC55A),
+                        child: PaidFeelSelector(dashboard: dashboard),
+                      ),
                       const SizedBox(height: 8),
                       // Water + Sleep row. IntrinsicHeight keeps the two
                       // cards the same height even though the water card
@@ -334,84 +393,49 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Expanded(
-                                child: PaidWaterCard(dashboard: dashboard)),
+                              child: NextUpGlow(
+                                active: nextUp == _DailyItem.water,
+                                color: const Color(0xFF5B9BD5),
+                                child: PaidWaterCard(dashboard: dashboard),
+                              ),
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
-                                child: PaidSleepCard(dashboard: dashboard)),
+                              child: NextUpGlow(
+                                active: nextUp == _DailyItem.sleep,
+                                color: const Color(0xFF6D6DC5),
+                                child: PaidSleepCard(dashboard: dashboard),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 8),
                       PaidStatsRow(dashboard: dashboard),
                       const SizedBox(height: 8),
-                      // Cycle + Nutrition + Meals, laid out as rows of
-                      // two so no card is ever left alone full-width
-                      // (which looked broken — a lonely card stacked
-                      // above another lonely card).
-                      //
-                      // Nutrition's "% diet plan" figure only means
-                      // anything once a dietitian has assigned a
-                      // structured plan, so it's held back until then.
-                      // While it's hidden, Cycle pairs with Meals
-                      // instead of sitting alone; once a plan exists,
-                      // Cycle gets its own row above and Nutrition
-                      // pairs with Meals (matching the two-card rhythm
-                      // used everywhere else on this screen).
-                      Obx(() {
-                        final dietCtrl = Get.find<DietPlanUserController>();
-                        final hasPlan = dietCtrl.activePlan.value != null;
-                        final stillChecking = dietCtrl.isLoading.value &&
-                            dietCtrl.activePlan.value == null;
-                        final showNutrition = hasPlan && !stillChecking;
-                        final hasCycle =
-                            dashboard.cycle?.cycleDay != null;
-
-                        Widget pairRow(Widget left, Widget right) {
-                          return IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(child: left),
-                                const SizedBox(width: 8),
-                                Expanded(child: right),
-                              ],
-                            ),
-                          );
-                        }
-
-                        if (showNutrition) {
-                          return Column(
+                      // Cycle + Meals, side by side — one row, matching
+                      // the two-card rhythm used everywhere else on this
+                      // screen. The separate Nutrition ("% diet plan")
+                      // card was dropped per Shaista's request: Meals
+                      // already surfaces today's logging, so a second
+                      // card duplicating diet-plan info was redundant.
+                      // Falls back to Meals alone if there's no cycle
+                      // data yet.
+                      if (hasCycle)
+                        IntrinsicHeight(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              if (hasCycle) ...[
-                                PaidCycleCard(dashboard: dashboard),
-                                const SizedBox(height: 8),
-                              ],
-                              pairRow(
-                                PaidNutritionCard(dashboard: dashboard),
-                                const PaidMealSummaryCard(),
-                              ),
+                              Expanded(
+                                  child: PaidCycleCard(dashboard: dashboard)),
+                              const SizedBox(width: 8),
+                              const Expanded(child: PaidMealSummaryCard()),
                             ],
-                          );
-                        }
-                        // No plan yet (or we haven't confirmed either
-                        // way) — pair Cycle with the generic Meals card
-                        // instead of stacking two lonely full-width
-                        // cards. If there's no cycle data either,
-                        // Meals is the only thing left to show.
-                        if (hasCycle) {
-                          return pairRow(
-                            PaidCycleCard(dashboard: dashboard),
-                            const PaidMealSummaryCard(),
-                          );
-                        }
-                        return const PaidMealSummaryCard();
-                      }),
+                          ),
+                        )
+                      else
+                        const PaidMealSummaryCard(),
                       const SizedBox(height: 8),
-                      // PaidCycleCard removed from this position —
-                      // PaidStatsRow now embeds it in Row 2 alongside
-                      // Nutrition. Re-adding it here would render
-                      // cycle data twice.
                       PaidFooter(dashboard: dashboard),
                     ],
                   ),

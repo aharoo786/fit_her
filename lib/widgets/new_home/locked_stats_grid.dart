@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../data/controllers/auth_controller/auth_controller.dart';
+import 'trial_cta_card.dart' show showLockedFeatureDialog;
 
 /// Water + Sleep two-tile row beneath the locked insight card.
 /// • Pre-activation: dimmed to 0.45 opacity, padlock value, no real numbers.
@@ -27,6 +28,9 @@ class LockedStatsGrid extends StatelessWidget {
                   label: '💧 Water',
                   value: activated ? '0 mL' : '🔒',
                   unlocked: activated,
+                  onTap: activated
+                      ? null
+                      : () => showLockedFeatureDialog('Water tracking'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -35,6 +39,9 @@ class LockedStatsGrid extends StatelessWidget {
                   label: '🌙 Sleep',
                   value: activated ? '0h' : '🔒',
                   unlocked: activated,
+                  onTap: activated
+                      ? null
+                      : () => showLockedFeatureDialog('Sleep tracking'),
                 ),
               ),
             ],
@@ -49,15 +56,20 @@ class _StatTile extends StatelessWidget {
   final String label;
   final String value;
   final bool unlocked;
+  final VoidCallback? onTap;
   const _StatTile({
     required this.label,
     required this.value,
     required this.unlocked,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -98,6 +110,7 @@ class _StatTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

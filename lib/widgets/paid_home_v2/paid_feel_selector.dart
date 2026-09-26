@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
-import '../new_home/phase_theme.dart';
 
 /// "How I feel today" mood row.
 /// 5 mood cells, one selected at a time. Optimistic UI: tap reflects
@@ -24,12 +23,18 @@ class PaidFeelSelector extends StatefulWidget {
 }
 
 class _PaidFeelSelectorState extends State<PaidFeelSelector> {
+  // Each mood gets its own soft accent instead of one uniform dark pill
+  // for all five — lets the row read as expressive/varied at a glance,
+  // and gives selecting "Great" vs "Stress" a genuinely different feel.
+  // Deliberately muted/pastel (not traffic-light red/green) so a hard
+  // day never reads as "wrong" — a wellness app shouldn't punish Stress
+  // or Sore with an alarming color.
   static const List<_Mood> _moods = [
-    _Mood(emoji: '😊', label: 'Great'),
-    _Mood(emoji: '😴', label: 'Tired'),
-    _Mood(emoji: '😣', label: 'Sore'),
-    _Mood(emoji: '⚡', label: 'Energy'),
-    _Mood(emoji: '😤', label: 'Stress'),
+    _Mood(emoji: '😊', label: 'Great', color: Color(0xFF6DC55A)),
+    _Mood(emoji: '😴', label: 'Tired', color: Color(0xFF8FA6C9)),
+    _Mood(emoji: '😣', label: 'Sore', color: Color(0xFFE39B6B)),
+    _Mood(emoji: '⚡', label: 'Energy', color: Color(0xFFE8B23D)),
+    _Mood(emoji: '😤', label: 'Stress', color: Color(0xFFD97B87)),
   ];
 
   final PaidHomeController _controller = Get.find<PaidHomeController>();
@@ -79,9 +84,6 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final theme =
-        PhaseTheme.forPhaseString(widget.dashboard.cycle?.phase);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -100,18 +102,49 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // "HOW I FEEL TODAY" label (.lbl9 spec).
-          const Text(
-            'HOW I FEEL TODAY',
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF9AB09A),
-              // letter-spacing: 0.07em of 9 px = ~0.63 logical pixels.
-              letterSpacing: 9 * 0.07,
-            ),
+          // "How I feel today" — bumped up from the old 9px .lbl9 spec.
+          // This is the one daily, personal input on the whole screen; it
+          // was visually the quietest thing on the card, which undersold
+          // it every single time someone opened the app.
+          Row(
+            children: [
+              // Neutral green heart before anything's picked today; once
+              // a mood is selected (optimistic tap or the saved dashboard
+              // value), the header itself reflects that mood instead of
+              // staying a generic icon — a small confirmation that reads
+              // at a glance, not just the "Logged ✓" text over on the right.
+              Text(
+                _effectiveIndex() != null
+                    ? _moods[_effectiveIndex()!].emoji
+                    : '💚',
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(width: 5),
+              const Text(
+                'How I feel today',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF163220),
+                ),
+              ),
+              const Spacer(),
+              // Quiet reward for having already logged today — closes the
+              // loop instead of the tap just silently updating something.
+              if (_dashboardIndex() != null && _optimisticIndex == null)
+                Text(
+                  'Logged ✓',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: _moods[_dashboardIndex()!].color,
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 9),
           // Track: cream bg, flex row, 3 px inner padding, 2 px gap.
           Obx(() {
             final saving = _controller.isSavingMood.value;
@@ -132,7 +165,6 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
                           child: _Cell(
                             mood: _moods[i],
                             selected: _effectiveIndex() == i,
-                            accent: theme.accent,
                             onTap: () => _onTap(i),
                           ),
                         ),
@@ -153,19 +185,18 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
 class _Mood {
   final String emoji;
   final String label;
-  const _Mood({required this.emoji, required this.label});
+  final Color color;
+  const _Mood({required this.emoji, required this.label, required this.color});
 }
 
 class _Cell extends StatelessWidget {
   final _Mood mood;
   final bool selected;
-  final Color accent;
   final VoidCallback onTap;
 
   const _Cell({
     required this.mood,
     required this.selected,
-    required this.accent,
     required this.onTap,
   });
 
@@ -174,41 +205,69 @@ class _Cell extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-        decoration: selected
-            ? BoxDecoration(
-                color: const Color(0xFF163220),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF163220).withOpacity(0.20),
-                    offset: const Offset(0, 2),
-                    blurRadius: 10,
-                  ),
-                ],
-              )
-            : null,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              mood.emoji,
-              style: const TextStyle(fontSize: 18, height: 1.0),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              mood.label,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                // Selected: phase accent (follicular=green, ovulatory=teal,
-                // luteal=amber, menstrual=coral).
-                // Unselected: grey-green label color from HTML.
-                color: selected ? accent : const Color(0xFF9AB09A),
+      // Tap feedback: the whole cell pops slightly on selection instead of
+      // flatly swapping — a small nudge that the app noticed the tap.
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey('${mood.label}-$selected'),
+        tween: Tween(begin: selected ? 0.9 : 1.0, end: 1.0),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutBack,
+        builder: (context, scale, child) =>
+            Transform.scale(scale: scale, child: child),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+          decoration: selected
+              ? BoxDecoration(
+                  color: const Color(0xFF163220),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    // Glow tinted by the mood's own color — "Great" and
+                    // "Stress" both use the familiar dark pill (keeps it
+                    // consistent with selected states elsewhere in the
+                    // app) but now visibly glow a different color, so the
+                    // row responds to *which* feeling was picked.
+                    BoxShadow(
+                      color: mood.color.withOpacity(0.45),
+                      offset: const Offset(0, 2),
+                      blurRadius: 12,
+                    ),
+                  ],
+                )
+              : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Emoji sits on its own soft color badge at all times — even
+              // unselected, each mood carries its own identity instead of
+              // all five looking like interchangeable pale chips.
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected
+                      ? Colors.white.withOpacity(0.16)
+                      : mood.color.withOpacity(0.14),
+                ),
+                child: Text(
+                  mood.emoji,
+                  style: const TextStyle(fontSize: 16, height: 1.0),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                mood.label,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 8.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? mood.color : const Color(0xFF9AB09A),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

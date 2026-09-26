@@ -1,19 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../UI/free_trail/trial_quick_intake_screen.dart';
+import '../../UI/free_trail/trial_onboarding_screen.dart';
+import '../../UI/free_trail/trial_summary_screen.dart';
 import '../../UI/plans_module/all_plans.dart';
 import '../../data/controllers/auth_controller/auth_controller.dart';
 import '../../data/controllers/home_controller/home_controller.dart';
 
+/// Navigation mode for [enterTrialOnboarding] -- lets each call site keep
+/// its own back-stack behavior (push vs. replace vs. clear-to-root)
+/// without duplicating the activation + routing logic itself.
+enum TrialNav { push, replace, replaceAll }
+
+/// Canonical "the trial was just started server-side" entry point. Every
+/// trial-start call site in the app (home hero, workout tab, login,
+/// Google sign-in, signup, deep links, slot booking) should call this
+/// right after its own backend call succeeds, instead of hand-rolling its
+/// own "if started: Get.to(TrialJourneyScreen)" -- that duplication is
+/// exactly how those paths drifted out of sync with the main funnel and
+/// ended up skipping the diet quick-intake + AI plan step entirely, while
+/// also never flipping AuthController.trialActivated (so the home screen
+/// kept showing everything as locked even though the trial was live).
+///
+/// Sequence this enforces: mark the trial activated locally (unlocks
+/// every 🔒 on the home screen immediately) -> pre-diet quick-intake form
+/// (TrialQuickIntakeScreen), which generates + auto-activates the AI
+/// starter plan -> from there, the existing workout/live-class
+/// onboarding (TrialMealPlanScreen's "Live classes" hand-off into
+/// TrialJourneyScreen). If the user already has a diet plan (e.g. a
+/// second trial-start trigger fires after the first already ran),
+/// HomeController.submitTrialQuickIntake treats the backend's "already
+/// got a plan" response as success, so this still lands them safely on
+/// the meal plan instead of erroring.
+void enterTrialOnboarding([TrialNav nav = TrialNav.push]) {
+  // The trial is NOT switched on here any more. TrialOnboardingScreen
+  // only starts it (server trial + AI plan + the local trialActivated
+  // flag) once she has filled the form and confirmed her answers. If she
+  // leaves halfway, the home screen keeps offering "Start free trial"
+  // and brings her back here, with her answers saved.
+  switch (nav) {
+    case TrialNav.push:
+      Get.to<void>(() => const TrialOnboardingScreen());
+      break;
+    case TrialNav.replace:
+      Get.off<void>(() => const TrialOnboardingScreen());
+      break;
+    case TrialNav.replaceAll:
+      Get.offAll<void>(() => const TrialOnboardingScreen());
+      break;
+  }
+}
+
 /// Shows the trial-start confirmation dialog.
 /// Shared by [TrialCtaCard] and [HeroLiveSection] so either entry-point
-/// triggers the same flow: confirm → POST /trial/start →
-/// TrialQuickIntakeScreen (Trial-to-Plan funnel Step 3) — its own "Skip
+/// triggers the same flow: confirm → POST /trial/start ->
+/// [enterTrialOnboarding] (Trial-to-Plan funnel Step 3) — its own "Skip
 /// for now" still reaches TrialJourneyScreen for the live-class booking.
 void showTrialStartDialog() {
   const accent = Color(0xFF6DC55A);
-  final auth = Get.find<AuthController>();
   Get.dialog<void>(
     Dialog(
       backgroundColor: Colors.transparent,
@@ -86,15 +130,9 @@ void showTrialStartDialog() {
               behavior: HitTestBehavior.opaque,
               onTap: () async {
                 Get.back<void>();
-                final home = Get.find<HomeController>();
-                final started = await home.startTrial();
-                if (started) {
-                  auth.activateTrial();
-                  // Trial-to-Plan funnel Step 3 — quick intake first;
-                  // its own "Skip for now" still reaches
-                  // TrialJourneyScreen for live-class-only users.
-                  Get.to<void>(() => const TrialQuickIntakeScreen());
-                }
+                // The 3-day clock starts at the end of onboarding, after
+                // she has filled and confirmed her form, not here.
+                enterTrialOnboarding();
               },
               child: Container(
                 height: 46,
@@ -161,6 +199,112 @@ class TrialCtaCard extends StatelessWidget {
       return _ActivatedCard(daysLeft: daysLeft);
     });
   }
+}
+
+/// Shows a compact "this feature is locked" popup, specific to whichever
+/// feature the user tapped (Water tracking, FitHer AI insight, Mood
+/// logging, etc). "Start free trial →" hands off into the same
+/// [showTrialStartDialog] flow used everywhere else, so there's one
+/// consistent trial-start confirmation across the whole app -- this is
+/// just a feature-specific teaser in front of it.
+void showLockedFeatureDialog(String feature) {
+  const accent = Color(0xFF6DC55A);
+  Get.dialog<void>(
+    Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Text('🔒', style: TextStyle(fontSize: 26)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '$feature is locked',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF163220),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Start your 3-day free trial to unlock $feature and everything '
+              'else on your dashboard.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                height: 1.5,
+                color: Color(0xFF6F8B7A),
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Get.back<void>();
+                showTrialStartDialog();
+              },
+              child: Container(
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Start free trial →',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Get.back<void>(),
+                child: const Text(
+                  'Maybe later',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF9AB09A),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    barrierDismissible: true,
+  );
 }
 
 // ─── Idle (pre-activation) — original "Start 3-day free trial" copy. ───
@@ -399,7 +543,10 @@ class _ActivatedCard extends StatelessWidget {
           const SizedBox(height: 10),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Get.to<dynamic>(() => OurPlansScreen()),
+            // Trial ended: her summary + offer (in her country's price).
+            onTap: () => daysLeft == 0
+                ? Get.to<dynamic>(() => const TrialSummaryScreen())
+                : Get.to<dynamic>(() => OurPlansScreen()),
             child: Container(
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -407,8 +554,8 @@ class _ActivatedCard extends StatelessWidget {
                 color: _accent,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Explore more plans →',
+              child: Text(
+                daysLeft == 0 ? 'See my trial summary & offer →' : 'Explore more plans →',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 13,

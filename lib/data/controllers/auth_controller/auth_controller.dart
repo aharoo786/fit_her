@@ -6,7 +6,7 @@ import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/signup_screen_user.
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/UI/auth_module/time_preference_screen.dart';
 import 'package:fitness_zone_2/UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
-import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
+import 'package:fitness_zone_2/widgets/new_home/trial_cta_card.dart';
 import 'package:fitness_zone_2/data/api_provider/api_provider.dart';
 import 'package:fitness_zone_2/data/api_provider/chat_api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
@@ -332,7 +332,7 @@ class AuthController extends GetxController implements GetxService {
                 loginUserPassword.clear();
                 updateUserDetails();
                 if (trialStarted && loginAsA.value == Constants.user) {
-                  Get.to(() => const TrialJourneyScreen());
+                  enterTrialOnboarding(); // consolidated: -> diet quick-intake -> AI plan -> workout onboarding
                 }
               }
             }
@@ -387,7 +387,7 @@ class AuthController extends GetxController implements GetxService {
                 loginUserPassword.clear();
                 updateUserDetails();
                 if (trialStarted && loginAsA.value == Constants.user) {
-                  Get.to(() => const TrialJourneyScreen());
+                  enterTrialOnboarding(); // consolidated: -> diet quick-intake -> AI plan -> workout onboarding
                 }
               } else if (response.body["status"] == "2") {
                 print('AuthController.signInUsingGoogle}');
@@ -648,7 +648,7 @@ class AuthController extends GetxController implements GetxService {
             onCompleted: (_) {
               Get.offAll(() => BottomBarScreen());
               if (trialStarted) {
-                Get.to(() => const TrialJourneyScreen());
+                enterTrialOnboarding(); // consolidated: -> diet quick-intake -> AI plan -> workout onboarding
               }
             },
           ));
@@ -658,7 +658,7 @@ class AuthController extends GetxController implements GetxService {
         // Push TrialJourneyScreen on top of BottomBarScreen so the user can
         // navigate back to home if needed. Small delay for BottomBarScreen mount.
         await Future.delayed(const Duration(milliseconds: 300));
-        Get.to(() => const TrialJourneyScreen());
+        enterTrialOnboarding(); // consolidated: -> diet quick-intake -> AI plan -> workout onboarding
       }
     }
   }

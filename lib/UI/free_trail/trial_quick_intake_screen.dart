@@ -7,6 +7,7 @@ import '../../data/controllers/home_controller/home_controller.dart';
 import '../../widgets/v2/v2_buttons.dart';
 import 'trial_journey_screen.dart';
 import 'trial_meal_plan_screen.dart';
+import '../consultation_module/popups/pre_consultation_form_sheet.dart';
 
 // Trial-to-Plan funnel — Step 3. Shown as a direct screen transition
 // right after /trial/start succeeds (not popup-gated — the popup engine
@@ -37,41 +38,19 @@ class _TrialQuickIntakeScreenState extends State<TrialQuickIntakeScreen> {
   static const Color _kAccentBg = Color(0xFFEAF7E4);
   static const Color _kBorder = Color(0xFFD8EDD4);
 
-  // Mirrors PreConsultationFormSheet's `_goals` list (same value strings
-  // the backend/AI prompt expect) — kept as its own trimmed copy here
-  // since this screen intentionally shows only goal + allergies +
-  // meals/day, not the full multi-step form.
-  static const List<_LabeledValue> _goals = [
-    _LabeledValue('weight_loss', 'Lose weight'),
-    _LabeledValue('weight_gain', 'Gain weight'),
-    _LabeledValue('maintain', 'Maintain'),
-    _LabeledValue('pcos_management', 'Manage PCOS'),
-    _LabeledValue('postpartum', 'Postpartum recovery'),
-    _LabeledValue('pregnancy_prep', 'Pregnancy prep'),
-    _LabeledValue('general_wellness', 'General wellness'),
-  ];
-
-  static const List<int> _mealsPerDayOptions = [3, 4, 5, 6];
-  // "Leaning: 4" per the funnel artifact's Decision 2.
-  static const int _defaultMealsPerDay = 4;
-
   static const List<String> _busyMessages = [
-    'Reading your goal…',
-    'Checking your allergies…',
+    'Reading your answers…',
+    'Checking your allergies and health notes…',
     'Building your first few days…',
     'Almost ready…',
   ];
 
-  String? _goal;
-  int _mealsPerDay = _defaultMealsPerDay;
-  final TextEditingController _allergiesCtrl = TextEditingController();
   Timer? _busyMessageTimer;
   int _busyMessageIndex = 0;
 
   @override
   void dispose() {
     _busyMessageTimer?.cancel();
-    _allergiesCtrl.dispose();
     super.dispose();
   }
 
@@ -86,19 +65,11 @@ class _TrialQuickIntakeScreenState extends State<TrialQuickIntakeScreen> {
     });
   }
 
+  // The form has already saved every answer (goal, health, diet, meals
+  // per day...) to her profile, so the backend reads it from there.
   Future<void> _submit(HomeController home) async {
-    if (_goal == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose your main goal')),
-      );
-      return;
-    }
     _startBusyMessages();
-    final ok = await home.submitTrialQuickIntake(
-      goal: _goal!,
-      allergies: _allergiesCtrl.text.trim(),
-      mealsPerDay: _mealsPerDay,
-    );
+    final ok = await home.submitTrialQuickIntake();
     _busyMessageTimer?.cancel();
     if (ok && mounted) {
       Get.off<void>(() => const TrialMealPlanScreen());
@@ -121,7 +92,7 @@ class _TrialQuickIntakeScreenState extends State<TrialQuickIntakeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'One quick step',
+                      'Tell us about you',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 22,
@@ -131,8 +102,8 @@ class _TrialQuickIntakeScreenState extends State<TrialQuickIntakeScreen> {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      "Tell us a little about you and we'll put together "
-                      'a simple starter plan you can start logging today.',
+                      "A few questions so your starter plan fits you. "
+                      "You'll only do this once, even if you join a package later.",
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,
@@ -140,70 +111,15 @@ class _TrialQuickIntakeScreenState extends State<TrialQuickIntakeScreen> {
                         color: _kInkSoft,
                       ),
                     ),
-                    const SizedBox(height: 26),
-                    const _SectionLabel('YOUR MAIN GOAL'),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _goals
-                          .map((g) => _SelectChip(
-                                label: g.label,
-                                selected: _goal == g.value,
-                                onTap: () => setState(() => _goal = g.value),
-                              ))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 24),
-                    const _SectionLabel('ANY ALLERGIES? (OPTIONAL)'),
-                    const SizedBox(height: 10),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: _kBorder),
-                      ),
-                      child: TextField(
-                        controller: _allergiesCtrl,
-                        maxLines: 2,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 13,
-                          color: _kInk,
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          hintText: 'e.g. peanuts, shellfish — separate with commas',
-                          hintStyle: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            color: _kInkSoft,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const _SectionLabel('MEALS PER DAY'),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: _mealsPerDayOptions
-                          .map((n) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _SelectChip(
-                                  label: '$n',
-                                  selected: _mealsPerDay == n,
-                                  onTap: () => setState(() => _mealsPerDay = n),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 34),
-                    V2PrimaryButton(
-                      label: 'Create my plan',
-                      busy: busy,
-                      onPressed: busy ? null : () => _submit(home),
+                    const SizedBox(height: 22),
+                    // Same form paid clients fill before their
+                    // consultation. Answers are saved to her profile, so
+                    // after she buys a package she only has to confirm
+                    // them, not fill the form again.
+                    PreConsultationFormSheet(
+                      planType: 'diet',
+                      submitLabel: 'Create my plan',
+                      onCompleted: () => _submit(home),
                     ),
                     const SizedBox(height: 8),
                     V2GhostButton(

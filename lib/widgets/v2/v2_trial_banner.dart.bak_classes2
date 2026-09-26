@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+import '../../UI/plans_module/all_plans.dart';
+import '../../data/controllers/home_controller/home_controller.dart';
+
+const Color _kHeroDark = Color(0xFF163220);
+const Color _kHero2 = Color(0xFF24502F);
+const Color _kAccent = Color(0xFF6DC55A);
+const Color _kAmber = Color(0xFFF2B34B);
+
+/// Top-of-home banner for a free trial user who is seeing the paid home.
+/// Shows which day of the 3 she's on, a 3-segment progress bar and an
+/// Upgrade button. On the last day the copy turns into "ends today at …"
+/// so the end never comes as a surprise. Hides itself when no trial is
+/// running. Same self-hiding sibling pattern as PlanExpiryBanner.
+class V2TrialBanner extends StatelessWidget {
+  const V2TrialBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final home = Get.find<HomeController>();
+    return Obx(() {
+      final started = home.trialStartedAt.value;
+      if (!home.trialLive.value || started == null) {
+        return const SizedBox.shrink();
+      }
+      final total = home.trialDays.value;
+      final endsAt = started.add(home.kTrialLength);
+      final now = DateTime.now();
+      final day = (now.difference(started).inHours ~/ 24 + 1).clamp(1, total);
+      final lastDay = endsAt.difference(now).inHours < 24;
+      final endTime = DateFormat('h:mm a').format(endsAt);
+      final daysLeft = (endsAt.difference(now).inHours / 24).ceil();
+
+      final title = 'Day $day of $total · Free trial';
+      final body = lastDay
+          ? 'Your trial ends today at $endTime. Upgrade to keep your meal plan and classes.'
+          : "You're enjoying everything Fit Her has. $daysLeft days left.";
+
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(16.w, 14.h, 14.w, 14.h),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_kHeroDark, _kHero2],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(lastDay ? '⏳' : '🎁', style: TextStyle(fontSize: 16.sp)),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Get.to(() => OurPlansScreen()),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        color: lastDay ? _kAmber : _kAccent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Upgrade',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Row(
+                children: List.generate(total, (i) {
+                  final done = i < day;
+                  return Expanded(
+                    child: Container(
+                      margin: EdgeInsets.only(right: i == total - 1 ? 0 : 5.w),
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: done
+                            ? (lastDay ? _kAmber : _kAccent)
+                            : Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                body,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12.sp,
+                  height: 1.45,
+                  color: Colors.white.withOpacity(0.82),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+}

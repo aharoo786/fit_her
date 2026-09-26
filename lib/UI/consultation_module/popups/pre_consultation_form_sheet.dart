@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../data/controllers/consultation_controller/consultation_controller.dart';
 import '../../../widgets/toasts.dart';
 import '../../../widgets/v2/multi_step_form_scaffold.dart';
+import '../../../widgets/v2/v2_buttons.dart';
 import '../../../widgets/v2/v2_bottom_sheet.dart';
 
 /// `POPUP_PRE_CONSULTATION_FORM` (Section 4.5).
@@ -26,8 +27,22 @@ class PreConsultationFormSheet extends StatefulWidget {
   /// is included in the flow.
   final String planType;
 
-  const PreConsultationFormSheet({Key? key, required this.planType})
-      : super(key: key);
+  /// Set when the form is embedded in the free trial screen instead of
+  /// the paid popup. Called after the last step saves; the host screen
+  /// then generates the starter plan. The popup is not touched.
+  final Future<void> Function()? onCompleted;
+
+  /// Label for the last step's button (defaults to "Submit").
+  final String? submitLabel;
+
+  const PreConsultationFormSheet({
+    Key? key,
+    required this.planType,
+    this.onCompleted,
+    this.submitLabel,
+  }) : super(key: key);
+
+  bool get _isTrialMode => onCompleted != null;
 
   static Future<void> show({required String planType}) {
     return V2BottomSheet.show(
@@ -48,6 +63,18 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
   bool _initLoading = true;
   bool _busy = false;
   int _currentStep = 0;
+
+  // Paid client who already filled this during her free trial: show her
+  // answers to confirm instead of the empty steps.
+  bool _reviewing = false;
+  int _mealsPerDay = 4;
+
+  static const _mealOptions = <_LabeledValue>[
+    _LabeledValue('3', '3 meals'),
+    _LabeledValue('4', '4 meals'),
+    _LabeledValue('5', '5 meals'),
+    _LabeledValue('6', '6 meals'),
+  ];
 
   // ── Step 1: Goals ──
   String? _goal;
@@ -174,11 +201,29 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
         }
       }
 
+      final meals = profile.mealsPerDay;
+      if (meals != null && meals >= 3 && meals <= 6) _mealsPerDay = meals;
+
       // Resume from the first incomplete step (build plan risk #6).
       _currentStep = _firstIncompleteStep();
+
+      // Filled during the free trial and every required answer is there:
+      // just ask her to confirm. If something required is missing (older
+      // 3-question trial form), she goes through the steps from there.
+      _reviewing = !widget._isTrialMode &&
+          profile.isComplete &&
+          profile.isFromTrial &&
+          _requiredDone();
     }
     setState(() => _initLoading = false);
   }
+
+  bool _requiredDone() =>
+      _goal != null &&
+      _allergies.text.trim().isNotEmpty &&
+      _medicalConditions.text.trim().isNotEmpty &&
+      _pregnancyMenstrual != null &&
+      _diet.isNotEmpty;
 
   int _firstIncompleteStep() {
     if (_goal == null) return 0;
@@ -236,6 +281,7 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
           'fastingHabits': _fasting.text.trim().isEmpty
               ? null
               : _fasting.text.trim(),
+          'mealsPerDay': _mealsPerDay,
           'step': 'diet_lifestyle',
         };
       case 3:
@@ -283,11 +329,32 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
     setState(() => _busy = true);
     final body = _patchBodyForStep(_currentStep);
     body['isComplete'] = true;
+    // Paid flow: submitting the form counts as confirming it.
+    if (!widget._isTrialMode) body['confirmed'] = true;
     final ok = await _ctrl.patchProfile(body);
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok) {
       CustomToast.failToast(msg: 'Could not submit. Please try again.');
+      return;
+    }
+    if (widget._isTrialMode) {
+      await widget.onCompleted!();
+      return;
+    }
+    await _ctrl.completePopup(PreConsultationFormSheet.variable);
+    Get.back<dynamic>();
+    CustomToast.successToast(
+        msg: 'Thanks! Your dietitian will review this before your call.');
+  }
+
+  Future<void> _onConfirm() async {
+    setState(() => _busy = true);
+    final ok = await _ctrl.patchProfile({'confirmed': true});
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (!ok) {
+      CustomToast.failToast(msg: 'Could not save. Please try again.');
       return;
     }
     await _ctrl.completePopup(PreConsultationFormSheet.variable);
@@ -313,7 +380,10 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
       );
     }
 
+    if (_reviewing) return _reviewView();
+
     return MultiStepFormScaffold(
+      submitLabel: widget.submitLabel ?? 'Submit',
       title: _stepTitles[_currentStep],
       currentStep: _currentStep,
       totalSteps: _totalSteps,
@@ -336,6 +406,130 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
               });
             }
           : null,
+    );
+  }
+
+  // ── Review and confirm (answers carried over from the free trial) ──
+
+  String _labelFor(List<_LabeledValue> opts, String? value) {
+    if (value == null || value.isEmpty) return '';
+    for (final o in opts) {
+      if (o.value == value) return o.label;
+    }
+    return value.replaceAll('_', ' ');
+  }
+
+  Widget _reviewView() {
+    final rows = <MapEntry<String, String>>[
+      MapEntry('Goal', _labelFor(_goals, _goal)),
+      MapEntry('Allergies', _allergies.text.trim()),
+      MapEntry('Medical conditions', _medicalConditions.text.trim()),
+      MapEntry('Cycle & reproductive health',
+          _labelFor(_pregnancyOptions, _pregnancyMenstrual)),
+      MapEntry('Dietary preferences',
+          _diet.map((d) => _labelFor(_dietOptions, d)).join(', ')),
+      MapEntry('Meals per day', '$_mealsPerDay'),
+      MapEntry('Fasting habits', _fasting.text.trim()),
+      MapEntry('Current medications', _meds.text.trim()),
+      MapEntry('Past surgeries', _surgeries.text.trim()),
+      MapEntry('Family medical history', _familyHistory.text.trim()),
+    ].where((e) => e.value.isNotEmpty).toList();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Is this still right?',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A3A22),
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'You shared this during your free trial. Check it once so your '
+          'dietitian has the right details for your consultation.',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            height: 1.5,
+            color: Color(0xFF7A8C78),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFD8EDD4)),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < rows.length; i++)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: i == rows.length - 1
+                        ? null
+                        : const Border(
+                            bottom: BorderSide(color: Color(0xFFEAF3E7))),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          rows[i].key,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF7A8C78),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          rows[i].value,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A3A22),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
+        V2PrimaryButton(
+          label: 'Yes, all correct',
+          busy: _busy,
+          onPressed: _busy ? null : _onConfirm,
+        ),
+        const SizedBox(height: 8),
+        V2SecondaryButton(
+          label: 'Edit my answers',
+          onPressed: _busy
+              ? null
+              : () => setState(() {
+                    _reviewing = false;
+                    _currentStep = 0;
+                  }),
+        ),
+      ],
     );
   }
 
@@ -403,6 +597,15 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
                   _diet.add(v);
                 }
               }),
+            ),
+            const SizedBox(height: 14),
+            const _SectionLabel('Meals per day'),
+            const SizedBox(height: 6),
+            _ChipWrap(
+              options: _mealOptions,
+              selected: {'$_mealsPerDay'},
+              singleSelect: true,
+              onToggle: (v) => setState(() => _mealsPerDay = int.parse(v)),
             ),
             const SizedBox(height: 14),
             _LabeledTextField(

@@ -6,6 +6,7 @@ import '../../../data/models/consultation/day7_review.dart';
 import '../../../data/models/consultation/pre_consultation_profile.dart';
 import '../../../data/models/consultation/progress_submission.dart';
 import '../../../widgets/toasts.dart';
+import 'edit_client_form_screen.dart';
 
 /// Phase 3 — dietitian-side per-client view. Three tabs:
 ///   1. Profile     → PreConsultationProfile, with private comments
@@ -87,7 +88,10 @@ class _ClientConsultationScreenState extends State<ClientConsultationScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          _ProfileTab(userId: widget.userId, ctrl: _ctrl),
+          _ProfileTab(
+              userId: widget.userId,
+              clientName: widget.clientName,
+              ctrl: _ctrl),
           _ReviewsTab(userId: widget.userId, ctrl: _ctrl),
           _ProgressTab(userId: widget.userId, ctrl: _ctrl),
         ],
@@ -100,8 +104,9 @@ class _ClientConsultationScreenState extends State<ClientConsultationScreen>
 
 class _ProfileTab extends StatefulWidget {
   final int userId;
+  final String? clientName;
   final DietitianDashboardController ctrl;
-  const _ProfileTab({required this.userId, required this.ctrl});
+  const _ProfileTab({required this.userId, required this.ctrl, this.clientName});
 
   @override
   State<_ProfileTab> createState() => _ProfileTabState();
@@ -152,6 +157,17 @@ class _ProfileTabState extends State<_ProfileTab> {
     }
   }
 
+  // Opens the editable form. Saving overwrites the client's answers and
+  // is what the AI uses to build the plan, so reload afterwards.
+  Future<void> _openEdit() async {
+    final saved = await Get.to<bool>(() => EditClientFormScreen(
+          userId: widget.userId,
+          clientName: widget.clientName,
+          initial: _raw,
+        ));
+    if (saved == true && mounted) await _load();
+  }
+
   List<dynamic> get _comments {
     final raw = _raw;
     if (raw == null) return const [];
@@ -171,17 +187,24 @@ class _ProfileTabState extends State<_ProfileTab> {
     }
     final p = _profile;
     if (p == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'No profile yet — the user will fill it before their initial consultation.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: Color(0xFF7A8C78),
-            ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "The client hasn't filled her form yet. You can fill it with her during the consultation.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  color: Color(0xFF7A8C78),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _EditFormButton(label: 'Fill form now', onTap: _openEdit),
+            ],
           ),
         ),
       );
@@ -193,11 +216,20 @@ class _ProfileTabState extends State<_ProfileTab> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _StatusPill(complete: p.isComplete),
+          Row(
+            children: [
+              _StatusPill(complete: p.isComplete),
+              const Spacer(),
+              _EditFormButton(label: 'Edit form', onTap: _openEdit),
+            ],
+          ),
           const SizedBox(height: 14),
           _Section(
               title: 'Goal',
               body: _bodyOrEmpty(_humanise(p.goals))),
+          _Section(
+              title: 'Meals per day',
+              body: _bodyOrEmpty(_raw?['mealsPerDay']?.toString())),
           _Section(title: 'Allergies', body: _bodyOrEmpty(p.allergies)),
           _Section(
               title: 'Medical conditions',
@@ -355,6 +387,42 @@ class _ProfileTabState extends State<_ProfileTab> {
       if (w.isEmpty) return w;
       return w[0].toUpperCase() + w.substring(1);
     }).join(' ');
+  }
+}
+
+class _EditFormButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _EditFormButton({required this.label, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A3A22),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.edit_outlined, size: 15, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

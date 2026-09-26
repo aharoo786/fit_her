@@ -30,6 +30,22 @@
           }
         },
         {
+          "client_id": "591042819842-lcpo31ak2imrcue933all474itj0sb2s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abtechnologies.fitHer",
+            "certificate_hash": "e0f12d9249e2bf3f467b5710dc7c66943e623696"
+          }
+        },
+        {
+          "client_id": "591042819842-liv8btuqilgaltl73j1k85t825jek1fk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abtechnologies.fitHer",
+            "certificate_hash": "c47aab344aeb453f1a9687c4f03847a2c3ebfe23"
+          }
+        },
+        {
           "client_id": "591042819842-fljjf0819htvgp5g2tlglmbns73kvmlq.apps.googleusercontent.com",
           "client_type": 3
         }

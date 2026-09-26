@@ -4,9 +4,11 @@ import 'package:fitness_zone_2/UI/chat/widgets/chat_room.dart';
 import 'package:fitness_zone_2/UI/diet_screen/client_details_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/clients_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/dietitian_v2/drafts_dashboard_screen.dart';
+import 'package:fitness_zone_2/UI/diet_screen/dietitian_v2/plans_to_deliver_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/dietitian_v2/flagged_reviews_screen.dart';
 import 'package:fitness_zone_2/UI/diet_screen/new_appointment_request.dart';
 import 'package:fitness_zone_2/UI/diet_screen/slots_screen.dart';
+import 'package:fitness_zone_2/UI/diet_screen/today_sessions_screen.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/diet_contoller/diet_controller.dart';
 import 'package:fitness_zone_2/data/controllers/dietitian_dashboard_controller/dietitian_dashboard_controller.dart';
@@ -180,11 +182,19 @@ class _DietitianProfileScreenState extends State<DietitianProfileScreen> {
               }).toList();
 
               final clients = dietController.getDietClientsModel?.cliets ?? [];
-              final plansDue = clients
-                  .where((c) => c.status == 'PLAN_OVERDUE' || c.status == 'AWAITING_PLAN')
-                  .toList();
-              final overdueCount =
-                  clients.where((c) => c.status == 'PLAN_OVERDUE').length;
+              // planPipeline is computed separately from the status badge,
+              // so a client owed a plan still counts here even if she also
+              // has a follow-up today or a flagged review. Falls back to the
+              // status badge for an older backend that doesn't send it.
+              final hasPipeline = clients.any((c) => c.planPipeline != null);
+              final plansDue = hasPipeline
+                  ? clients.where((c) => c.planPipeline?.owed == true).toList()
+                  : clients
+                      .where((c) => c.status == 'PLAN_OVERDUE' || c.status == 'AWAITING_PLAN')
+                      .toList();
+              final overdueCount = hasPipeline
+                  ? clients.where((c) => c.planPipeline?.overdue == true).length
+                  : clients.where((c) => c.status == 'PLAN_OVERDUE').length;
 
               final consultSubtitle = todayAppts.isEmpty
                   ? 'Nothing booked today'
@@ -208,6 +218,7 @@ class _DietitianProfileScreenState extends State<DietitianProfileScreen> {
                       count: '${todayAppts.length}',
                       label: 'Consultations today',
                       subtitle: consultSubtitle,
+                      onTap: () => Get.to(() => TodaySessionsScreen()),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -221,7 +232,7 @@ class _DietitianProfileScreenState extends State<DietitianProfileScreen> {
                       count: '${plansDue.length}',
                       label: 'Plans to deliver',
                       subtitle: plansSubtitle,
-                      onTap: () => Get.to(() => ClientsScreen()),
+                      onTap: () => Get.to(() => const PlansToDeliverScreen()),
                     ),
                   ),
                 ],
@@ -345,11 +356,18 @@ class _DietitianProfileScreenState extends State<DietitianProfileScreen> {
                                       planId: null));
                                 }
                               },
-                              name:
-                                  "${appointMent.clientUser?.firstName} ${appointMent.clientUser?.lastName}",
+                              name: [
+                                appointMent.clientUser?.firstName ?? '',
+                                appointMent.clientUser?.lastName ?? '',
+                              ].where((s) => s.trim().isNotEmpty).join(' '),
                               status: appointMent.status,
-                              time:
-                                  '${HelpingWidgets.formatDateWithMonthName(appointMent.date)} ${appointMent.slotDiet?.start} - ${appointMent.slotDiet?.end}');
+                              kind: appointMent.kind,
+                              date: appointMent.date,
+                              timeRange: (appointMent.slotDiet?.start == null &&
+                                      appointMent.slotDiet?.end == null)
+                                  ? null
+                                  : '${appointMent.slotDiet?.start ?? '?'} – ${appointMent.slotDiet?.end ?? '?'}',
+                              message: appointMent.message);
                         },
                         separatorBuilder: (context, index) {
                           return const SizedBox(height: 10);
@@ -799,20 +817,53 @@ class _EmptyAppointments extends StatelessWidget {
   }
 }
 
+// Was a bare ListTile with one mashed "date time – time" string and a
+// status word in the same color it always got by coincidence (In
+// Progress fell through getStatusColorAndIcon's switch to the pending/
+// orange case, so a LIVE session read as "pending"). Rebuilt with the
+// date and time as their own labeled row, the client's booking reason
+// surfaced when she gave one, an Initial/Follow-up tag, and a status
+// pill with its own correct color set (including a real LIVE state) —
+// same visual language as TodaySessionsScreen's card so the two
+// appointment surfaces read as one app.
 class AppointmentCard extends StatelessWidget {
   final String name;
-  final String? time;
+  final DateTime? date;
+  final String? timeRange;
   final String? status;
+  final String? kind;
+  final String? message;
   final Function()? onTap;
 
-  const AppointmentCard({required this.name, this.time, this.onTap, this.status});
+  const AppointmentCard({
+    required this.name,
+    this.date,
+    this.timeRange,
+    this.onTap,
+    this.status,
+    this.kind,
+    this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
-    var st = HelpingWidgets.getStatusColorAndIcon(status ?? "");
-    Color color = st[1];
+    // This widget is also reused by SlotsScreen as a plain "day name"
+    // row with nothing but a name + onTap — status is the signal that
+    // this call site is an actual appointment, so the kind subtitle and
+    // status pill only render then, and that unrelated screen keeps
+    // looking exactly as it did before this card got richer.
+    final isAppointment = status != null;
+    // Backend leaves `kind` null on legacy rows and treats null the
+    // same as 'initial' everywhere it queries by kind — mirrored here.
+    final isFollowUp = kind == 'followup';
+    final trimmedMessage = message?.trim() ?? '';
+    final hasMessage = trimmedMessage.isNotEmpty &&
+        trimmedMessage.toUpperCase() != 'N/A';
+    final hasDateTime = date != null ||
+        (timeRange != null && timeRange!.trim().isNotEmpty);
 
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: _kBorder),
@@ -825,49 +876,157 @@ class AppointmentCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap ?? () {},
-        visualDensity: const VisualDensity(horizontal: -4, vertical: -3),
-        title: Text(
-          name,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: _kInk,
-          ),
-        ),
-        subtitle: time == null
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.trim().isEmpty ? 'Client' : name,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.5,
+                          color: _kInk,
+                        ),
+                      ),
+                      if (isAppointment) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          isFollowUp
+                              ? 'Follow-up consultation'
+                              : 'Initial consultation',
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: _kInkSoft,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (isAppointment) _StatusPill(status: status),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded,
+                    color: Color(0xFF9AB09A)),
+              ],
+            ),
+            if (hasDateTime) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (date != null) ...[
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 13, color: _kInkSoft),
+                    const SizedBox(width: 5),
                     Text(
-                      time!,
+                      HelpingWidgets.formatDateWithMonthName(date!),
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
-                        color: _kInkSoft,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        (status?.capitalizeFirst ?? ""),
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: color,
-                        ),
+                        color: _kInk,
                       ),
                     ),
                   ],
+                  if (timeRange != null && timeRange!.trim().isNotEmpty) ...[
+                    SizedBox(width: date != null ? 12 : 0),
+                    const Icon(Icons.access_time_rounded,
+                        size: 13, color: _kInkSoft),
+                    const SizedBox(width: 5),
+                    Text(
+                      timeRange!,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: _kInk,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+            if (hasMessage) ...[
+              const SizedBox(height: 8),
+              Text(
+                '"$trimmedMessage"',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  fontStyle: FontStyle.italic,
+                  color: _kInkSoft,
                 ),
               ),
-        trailing: const Icon(Icons.chevron_right_rounded,
-            color: Color(0xFF9AB09A)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small colored status pill. Rebuilt as its own thing rather than
+/// reusing HelpingWidgets.getStatusColorAndIcon, which has no case for
+/// "In Progress" and silently falls back to the pending/orange look —
+/// exactly the state a dietitian most needs to see called out clearly.
+class _StatusPill extends StatelessWidget {
+  final String? status;
+  const _StatusPill({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = status ?? '';
+    final isLive = s == 'In Progress';
+    final isConfirmed = s == 'confirmed';
+    final isCompleted = s == 'completed';
+    final isCanceled = s == 'canceled' || s == 'canceledByUser';
+
+    final Color fg = isLive
+        ? const Color(0xFF2F8A3A)
+        : isConfirmed
+            ? _kAccent
+            : isCompleted
+                ? _kInkSoft
+                : isCanceled
+                    ? _kAlert
+                    : const Color(0xFFC08A25); // pending / anything else
+
+    final String label = isLive
+        ? 'LIVE'
+        : s.isEmpty
+            ? '—'
+            : (s == 'canceledByUser' ? 'CANCELED' : s.toUpperCase());
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: fg.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: fg,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }

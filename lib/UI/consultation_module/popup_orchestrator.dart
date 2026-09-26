@@ -9,7 +9,6 @@ import '../../data/models/consultation/pending_popup.dart';
 import '../plans_module/all_plans.dart';
 import 'booking/book_consultation_sheet.dart';
 import 'popups/book_initial_reminder_sheet.dart';
-import 'popups/consultant_no_show_sheet.dart';
 import 'popups/daily_log_reminder_sheet.dart';
 import 'popups/day7_review_sheet.dart';
 import 'popups/early_checkin_sheet.dart';
@@ -274,14 +273,16 @@ class _PendingPopupOrchestratorState extends State<PendingPopupOrchestrator> {
         break;
 
       case 'POPUP_CONSULTANT_NO_SHOW':
-        final apptId = _readInt('appointmentId');
-        if (apptId == null) {
-          // Without an appointment id we can't report — just silently
-          // dismiss server-side and skip.
-          await ctrl.dismissPopup(p.variable);
-          break;
-        }
-        await ConsultantNoShowSheet.show(appointmentId: apptId);
+        // No longer shown as a blocking popup here — an appointment the
+        // consultant hasn't joined isn't something that should interrupt
+        // whatever screen the user happens to be on, and it was popping
+        // up repeatedly for stale/leftover appointments with no way to
+        // self-resolve. It's now surfaced inline, in context, on the Diet
+        // tab's UpcomingConsultationCard ("Check status" notice), which
+        // opens this same ConsultantNoShowSheet on demand. Just
+        // acknowledge server-side so this queue entry doesn't keep
+        // resurfacing here.
+        await ctrl.dismissPopup(p.variable);
         break;
 
       case 'POPUP_RENEW_PLAN':

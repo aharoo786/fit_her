@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../UI/auth_module/sign_up_screen/goal_screen.dart';
+import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
 import '../new_home/phase_theme.dart';
 
@@ -52,9 +55,11 @@ class PaidHeroGreeting extends StatelessWidget {
       );
     }
 
-    // Goal chip — "Set goal →" CTA when deltaKg is null; formatted delta
-    // otherwise. Uses mathematical minus (U+2212), not a hyphen.
-    chips.add(_goalChip(dashboard.goal?.deltaKg, theme.accent));
+    // Goal chip — the SIGNUP goal category (User.mainGoal, e.g. "Lose
+    // weight"), not the dietitian/weight-tracking delta. Shows "Set
+    // goal →" (tappable) when the user never picked one; otherwise shows
+    // their chosen goal, also tappable to change it.
+    chips.add(_goalChip(context, dashboard.user?.mainGoal, theme.accent));
 
     // Interleave '·' separators only between visible chips.
     final interleaved = <Widget>[];
@@ -144,27 +149,38 @@ class PaidHeroGreeting extends StatelessWidget {
         style: TextStyle(fontSize: size, fontWeight: weight, color: color),
       );
 
-  Widget _goalChip(double? deltaKg, Color accent) {
-    if (deltaKg == null) {
-      return Text(
-        'Set goal →',
+  Widget _goalChip(BuildContext context, String? mainGoal, Color accent) {
+    final hasGoal = mainGoal != null && mainGoal.trim().isNotEmpty;
+    return GestureDetector(
+      onTap: () => _onGoalTap(context, hasGoal ? mainGoal : null),
+      child: Text(
+        hasGoal ? mainGoal! : 'Set goal →',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: accent,
         ),
-      );
-    }
-    final prefix = deltaKg < 0 ? '−' : (deltaKg > 0 ? '+' : '');
-    final abs = deltaKg.abs().toStringAsFixed(1);
-    return Text(
-      '$prefix$abs kg',
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: accent,
       ),
     );
+  }
+
+  /// Opens the same goal picker GoalScreen uses at signup, pre-filled
+  /// with the current choice if any. Saves via
+  /// PaidHomeController.saveMainGoal (POST /users/profile/main_goal) and
+  /// pops back to the home screen — this is a direct in-place edit, not
+  /// a re-entry into the multi-step signup questionnaire.
+  Future<void> _onGoalTap(BuildContext context, String? currentGoal) async {
+    await Get.to(() => GoalScreen(
+          currentStep: 1,
+          totalSteps: 1,
+          initialGoal: currentGoal,
+          onNext: (selected) {
+            Get.back();
+            Get.find<PaidHomeController>().saveMainGoal(selected);
+          },
+        ));
   }
 }
 

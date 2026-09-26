@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:fitness_zone_2/data/models/nutrition_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:fitness_zone_2/data/models/diet_appointments.dart';
 import 'package:fitness_zone_2/data/models/dietitian_times.dart';
 import 'package:fitness_zone_2/data/models/get_all_dietitian_trainers/get_all_diet_plans_of_user.dart';
@@ -147,6 +148,125 @@ class DietController extends GetxController implements GetxService {
         });
       }
     });
+  }
+
+  // Flips a confirmed consultation to "In Progress" so the client's
+  // Join Meeting button turns green. Mirrors updateAppointmentStatus's
+  // shape (optimistic local update on the cached model + a toast) but
+  // hits the dedicated /start endpoint rather than the generic
+  // status-patch one, since /start also enforces "must be confirmed
+  // first" and sends the client a push notification server-side.
+  Future<void> startAppointmentSession(int id) async {
+    final connected = await connectionService.checkConnection();
+    if (!connected) {
+      CustomToast.noInternetToast();
+      return;
+    }
+    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+    try {
+      final response = await homeRepo.startAppointmentSession(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        id: id.toString(),
+      );
+      Get.back();
+      final body = response.body;
+      final ok = body is Map && body['status'] == '1';
+      if (ok) {
+        CustomToast.successToast(msg: body['message']?.toString() ?? 'Session started');
+        final appt = dietAppointmentsModel?.appointments.firstWhereOrNull((v) => v.id == id);
+        if (appt != null) {
+          appt.status = 'In Progress';
+          update();
+          await _openMeetLink(appt.resolvedMeetLink);
+        }
+      } else {
+        CustomToast.failToast(
+            msg: (body is Map ? body['message']?.toString() : null) ?? 'Could not start the session');
+      }
+    } catch (_) {
+      Get.back();
+      CustomToast.failToast(msg: 'Could not start the session. Please try again.');
+    }
+  }
+
+  // Opens the Google Meet link right after a session goes live, so
+  // starting the session and joining it is one tap instead of two —
+  // she used to have to start it here, then separately hunt down the
+  // link she pasted into the weekly slot. Silent no-op if no link has
+  // ever been set for this slot: the session still starts (the client
+  // side already tells her to add one), it just can't auto-open yet.
+  Future<void> _openMeetLink(String? link) async {
+    if (link == null || link.isEmpty) return;
+    final uri = Uri.tryParse(link);
+    if (uri == null || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      CustomToast.failToast(msg: "Session started, but couldn't open the meeting link automatically.");
+    }
+  }
+
+  // Public wrapper so screens can offer a standalone "Join call" action
+  // (re-opening a link for a session already under way) without going
+  // through startAppointmentSession, which also flips the status.
+  Future<void> openMeetLink(String? link) async {
+    if (link == null || link.isEmpty) {
+      CustomToast.failToast(msg: "No meeting link has been set for this slot yet.");
+      return;
+    }
+    await _openMeetLink(link);
+  }
+
+  // Inline status change from TodaySessionsScreen's consultation list —
+  // Completed / Cancel next to a booking, mirroring the same three
+  // actions (Join call / Completed / Cancel) ClientDetailsScreen has
+  // always had, so she doesn't have to leave the list and open a
+  // client's profile just to close out or cancel a session. Deliberately
+  // does NOT reuse updateAppointmentStatus(isFromAppointment: true) —
+  // that method calls Get.back() on success (it was written for the
+  // profile screen, where popping after the action makes sense); here
+  // we want to stay on the list and just see the row update in place.
+  Future<bool> setAppointmentStatusInline(int id, String status) async {
+    final connected = await connectionService.checkConnection();
+    if (!connected) {
+      CustomToast.noInternetToast();
+      return false;
+    }
+    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+    try {
+      final response = await homeRepo.updateAppointment(
+        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
+        map: {"status": status},
+        id: id.toString(),
+      );
+      Get.back();
+      final body = response.body;
+      final ok = body is Map && body['status'] == '1';
+      if (ok) {
+        CustomToast.successToast(
+            msg: body['message']?.toString() ??
+                (status == 'completed' ? 'Marked as completed' : 'Consultation canceled'));
+        if (status.toLowerCase() == 'completed') {
+          AnalyticsHelper.trackConsultationDone(id, status: status);
+        }
+        final appt = dietAppointmentsModel?.appointments.firstWhereOrNull((v) => v.id == id);
+        if (appt != null) {
+          appt.status = status;
+          // dietAppointmentsModel itself isn't Rx — mutating a field on
+          // one of its items doesn't notify Obx on its own. Toggling
+          // appointmentLoad false→true is the same trick
+          // updateAppointmentStatus already relies on elsewhere to force
+          // the list to redraw with the new status.
+          appointmentLoad.value = false;
+          appointmentLoad.value = true;
+        }
+        return true;
+      } else {
+        CustomToast.failToast(
+            msg: (body is Map ? body['message']?.toString() : null) ?? 'Could not update the consultation');
+      }
+    } catch (_) {
+      Get.back();
+      CustomToast.failToast(msg: 'Could not update the consultation. Please try again.');
+    }
+    return false;
   }
 
   getRescheduleAppointments({bool reschedule = false}) {
@@ -603,7 +723,15 @@ class DietController extends GetxController implements GetxService {
           // masked the mismatch behind a client-side crash instead of
           // surfacing the backend's rejection.
           for (var value in daySlotsOfDietModel!.slots) {
-            list.add({"start": value.start, "end": value.end, "id": value.id});
+            list.add({
+              "start": value.start,
+              "end": value.end,
+              "id": value.id,
+              // Included so the "Join Meeting" flow on the client side
+              // has something to show once she fills this in on the
+              // Slots screen — see day_slots_screen.dart.
+              "dietitionLink": value.dietitionLink,
+            });
           }
         } else {
           return;

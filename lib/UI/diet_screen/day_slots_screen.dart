@@ -75,7 +75,15 @@ class DaySlotsScreen extends StatelessWidget {
                             var slot = dietController
                                 .daySlotsOfDietModel!.slots[index];
 
-                            return Row(
+                            // Keyed so Flutter preserves the link
+                            // field's editing state across rebuilds
+                            // (time-picker taps, add/remove) instead
+                            // of resetting it each time.
+                            return Column(
+                              key: ValueKey(slot.id ?? 'new_$index'),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   GestureDetector(
@@ -206,7 +214,31 @@ class DaySlotsScreen extends StatelessWidget {
                                       ),
                                     ),
                                   )
-                                ]);
+                                ]),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  initialValue:
+                                      (slot.dietitionLink as String?) ?? '',
+                                  onChanged: (v) => slot.dietitionLink = v,
+                                  style: TextStyle(fontSize: 13.sp),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    prefixIcon: const Icon(
+                                        Icons.videocam_outlined,
+                                        size: 18),
+                                    hintText:
+                                        'Google Meet link for this slot',
+                                    hintStyle: TextStyle(fontSize: 12.sp),
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ],
+                            );
                           },
                           separatorBuilder: (context, index) {
                             return const SizedBox(

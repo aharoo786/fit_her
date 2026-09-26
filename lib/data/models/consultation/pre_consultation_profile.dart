@@ -30,6 +30,16 @@ class PreConsultationProfile {
   final DateTime? lastUserUpdate;
   final DateTime? lastDietitianEdit;
 
+  /// 3 to 6. Drives the meal template the AI plan uses.
+  final int? mealsPerDay;
+
+  /// Where the answers came from: 'trial' (filled during the free trial,
+  /// a paying client must confirm them once), 'user_confirmed',
+  /// 'dietitian', or null for the normal paid flow.
+  final String? intakeSource;
+
+  bool get isFromTrial => (intakeSource ?? '').startsWith('trial');
+
   const PreConsultationProfile({
     this.id,
     this.userId,
@@ -48,6 +58,8 @@ class PreConsultationProfile {
     this.isComplete = false,
     this.lastUserUpdate,
     this.lastDietitianEdit,
+    this.mealsPerDay,
+    this.intakeSource,
   });
 
   factory PreConsultationProfile.fromJson(Map<String, dynamic> json) {
@@ -69,6 +81,10 @@ class PreConsultationProfile {
       isComplete: (json['isComplete'] as bool?) ?? false,
       lastUserUpdate: _asDate(json['lastUserUpdate']),
       lastDietitianEdit: _asDate(json['lastDietitianEdit']),
+      mealsPerDay: json['mealsPerDay'] is int
+          ? json['mealsPerDay'] as int
+          : int.tryParse('${json['mealsPerDay'] ?? ''}'),
+      intakeSource: json['intakeSource'] as String?,
     );
   }
 

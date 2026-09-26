@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../data/controllers/diet_plan_admin_controller/diet_plan_admin_controller.dart';
+import '../../../data/controllers/dietitian_dashboard_controller/dietitian_dashboard_controller.dart';
 import '../../../data/models/diet_plan_v2/meal_templates.dart';
 import '../../../widgets/v2/v2_buttons.dart';
 import 'plan_review_edit_screen.dart';
@@ -76,6 +77,21 @@ class _GeneratePlanScreenState extends State<GeneratePlanScreen> {
     // error or success would render before we even fire.
     _ctrl.clearGenerationError();
     _ctrl.lastGeneratedPlan.value = null;
+    _prefillMealsFromForm();
+  }
+
+  // Start from the meals-per-day the dietitian set on the client's form
+  // during the consultation, instead of always defaulting to 5.
+  Future<void> _prefillMealsFromForm() async {
+    try {
+      final raw = await Get.find<DietitianDashboardController>()
+          .loadClientProfileRaw(widget.userId);
+      final n = int.tryParse('${raw?['mealsPerDay'] ?? ''}');
+      if (!mounted || n == null || n < 3 || n > 6) return;
+      setState(() => _mealsPerDay = n);
+    } catch (_) {
+      // Keep the default. Generation still works without the form.
+    }
   }
 
   @override

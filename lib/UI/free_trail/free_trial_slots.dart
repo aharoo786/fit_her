@@ -1,4 +1,4 @@
-import 'package:fitness_zone_2/UI/free_trail/trial_journey_screen.dart';
+import 'package:fitness_zone_2/widgets/new_home/trial_cta_card.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/controllers/workout_controller/work_out_controller.dart';
 import 'package:fitness_zone_2/helper/analytics_helper.dart';
@@ -179,11 +179,13 @@ class _FreeTrialSlotsState extends State<FreeTrialSlots> {
                   CustomButton(
                     text: "Continue to 3-Day Trial",
                     onPressed: () {
-                      // Bug 1 fix: do NOT call startTrial() here.
-                      // TrialJourneyScreen._loadJourney() calls getMyTrialJourney()
-                      // first and shows a confirmation dialog before starting —
-                      // calling startTrial() here bypasses that dialog entirely.
-                      Get.to(() => const TrialJourneyScreen());
+                      // Consolidated: same confirm-and-start dialog as
+                      // every other entry point (showTrialStartDialog),
+                      // which routes on into the diet quick-intake + AI
+                      // plan step before workout onboarding, instead of
+                      // TrialJourneyScreen's own separate confirm dialog
+                      // that skipped straight past both of those.
+                      showTrialStartDialog();
                     },
                   ),
                   SizedBox(
