@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
-import '../new_home/phase_theme.dart';
 
 /// "How I feel today" mood row.
 /// 5 mood cells, one selected at a time. Optimistic UI: tap reflects
@@ -85,17 +84,6 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final hasCycle = widget.dashboard.cycle?.cycleDay != null;
-    final phaseKey = hasCycle
-        ? parseCyclePhase(widget.dashboard.cycle?.phase).name
-        : 'none';
-    final accent = hasCycle
-        ? PhaseTheme.forPhaseString(widget.dashboard.cycle?.phase).accent
-        : const Color(0xFF6DC55A);
-    final selectedIndex = _effectiveIndex();
-    final reply = selectedIndex == null
-        ? null
-        : _MoodReplies.forPhase(phaseKey, selectedIndex);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -176,7 +164,6 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
                         Expanded(
                           child: _Cell(
                             mood: _moods[i],
-                            accent: accent,
                             selected: _effectiveIndex() == i,
                             onTap: () => _onTap(i),
                           ),
@@ -189,84 +176,9 @@ class _PaidFeelSelectorState extends State<PaidFeelSelector> {
               ),
             );
           }),
-          // One line reply to the mood she picked, tuned to her cycle
-          // phase. Fixed copy, no AI call.
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            child: reply == null
-                ? const SizedBox(width: double.infinity)
-                : Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(top: 9),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: accent.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      reply,
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 10.5,
-                        height: 1.4,
-                        color: Color(0xFF163220),
-                      ),
-                    ),
-                  ),
-          ),
         ],
       ),
     );
-  }
-}
-
-/// Reply lines per phase, indexed by mood cell:
-/// 0 Great · 1 Tired · 2 Sore · 3 Energy · 4 Stress.
-class _MoodReplies {
-  static const Map<String, List<String>> _byPhase = {
-    'menstrual': [
-      'Love that. Keep today light and enjoy the good energy 💚',
-      'Totally normal on period days. A gentle class and an early night will help 💚',
-      'Go easy today. Warm water and slow stretches ease cramps.',
-      'Nice! Still keep it gentle, your body is working hard.',
-      'Take a slow breath. A short walk or stretch can calm cramps and nerves.',
-    ],
-    'follicular': [
-      'That rising energy is real. Make the most of today\'s class 💪',
-      'Noted. Sleep well tonight, your energy is on the way up.',
-      'Good sign you worked hard. Stretch before class today.',
-      'Perfect timing. This is your week to try something new.',
-      'Noted. Moving today will help clear your head.',
-    ],
-    'ovulatory': [
-      'Peak days and you feel it. Give today\'s class your all ✨',
-      'Noted. Even on peak days rest matters. Keep today\'s class steady.',
-      'Warm up well today. Your body can take it, just listen to it.',
-      'That\'s your ovulation energy. Great day for strength work.',
-      'Noted. A strong workout today is a great way to let it out.',
-    ],
-    'luteal': [
-      'Lovely. Enjoy it and keep your meals steady today 💚',
-      'Normal before your period. A steady class and an early night will help.',
-      'Go a little lighter today. Your body needs more recovery now.',
-      'Nice! Use it well, but don\'t push to the limit this week.',
-      'Mood dips are common this week. Be kind to yourself today 💚',
-    ],
-    'none': [
-      'Love that. Make the most of it today 💚',
-      'Noted. A lighter class and an early night will help.',
-      'Stretch well before class and go at your own pace.',
-      'Great! Put that energy into today\'s class.',
-      'Take a slow breath. A short workout can really help.',
-    ],
-  };
-
-  static String? forPhase(String phase, int index) {
-    final list = _byPhase[phase] ?? _byPhase['none']!;
-    if (index < 0 || index >= list.length) return null;
-    return list[index];
   }
 }
 
@@ -279,13 +191,11 @@ class _Mood {
 
 class _Cell extends StatelessWidget {
   final _Mood mood;
-  final Color accent;
   final bool selected;
   final VoidCallback onTap;
 
   const _Cell({
     required this.mood,
-    required this.accent,
     required this.selected,
     required this.onTap,
   });
@@ -307,24 +217,24 @@ class _Cell extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-          // Selected: white cell with a phase coloured border.
           decoration: selected
               ? BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFF163220),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: accent, width: 1.5),
                   boxShadow: [
+                    // Glow tinted by the mood's own color — "Great" and
+                    // "Stress" both use the familiar dark pill (keeps it
+                    // consistent with selected states elsewhere in the
+                    // app) but now visibly glow a different color, so the
+                    // row responds to *which* feeling was picked.
                     BoxShadow(
-                      color: accent.withOpacity(0.25),
+                      color: mood.color.withOpacity(0.45),
                       offset: const Offset(0, 2),
-                      blurRadius: 8,
+                      blurRadius: 12,
                     ),
                   ],
                 )
-              : BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.transparent, width: 1.5),
-                ),
+              : null,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -337,7 +247,9 @@ class _Cell extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: mood.color.withOpacity(0.14),
+                  color: selected
+                      ? Colors.white.withOpacity(0.16)
+                      : mood.color.withOpacity(0.14),
                 ),
                 child: Text(
                   mood.emoji,
@@ -351,9 +263,7 @@ class _Cell extends StatelessWidget {
                   fontFamily: 'Poppins',
                   fontSize: 8.5,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected
-                      ? const Color(0xFF163220)
-                      : const Color(0xFF9AB09A),
+                  color: selected ? mood.color : const Color(0xFF9AB09A),
                 ),
               ),
             ],
