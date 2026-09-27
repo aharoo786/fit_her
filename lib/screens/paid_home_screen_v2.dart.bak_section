@@ -19,7 +19,7 @@ import '../widgets/paid_home_v2/paid_hero.dart';
 import '../widgets/paid_home_v2/paid_insight_card.dart';
 import '../widgets/paid_home_v2/paid_sleep_card.dart';
 import '../widgets/paid_home_v2/paid_stats_row.dart'
-    show PaidStatsRow;
+    show PaidStatsRow, PaidMealSummaryCard;
 import '../widgets/paid_home_v2/paid_water_card.dart';
 import '../widgets/v2/plan_expiry_banner.dart';
 import '../widgets/v2/plan_frozen_banner.dart';
@@ -396,9 +396,28 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                       const SizedBox(height: 8),
                       PaidStatsRow(dashboard: dashboard),
                       const SizedBox(height: 8),
-                      // Meals now lives in the stats row above (with
-                      // calories), so the cycle card has this row to itself.
-                      if (hasCycle) PaidCycleCard(dashboard: dashboard),
+                      // Cycle + Meals, side by side — one row, matching
+                      // the two-card rhythm used everywhere else on this
+                      // screen. The separate Nutrition ("% diet plan")
+                      // card was dropped per Shaista's request: Meals
+                      // already surfaces today's logging, so a second
+                      // card duplicating diet-plan info was redundant.
+                      // Falls back to Meals alone if there's no cycle
+                      // data yet.
+                      if (hasCycle)
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                  child: PaidCycleCard(dashboard: dashboard)),
+                              const SizedBox(width: 8),
+                              const Expanded(child: PaidMealSummaryCard()),
+                            ],
+                          ),
+                        )
+                      else
+                        const PaidMealSummaryCard(),
                       const SizedBox(height: 8),
                       PaidFooter(dashboard: dashboard),
                     ],

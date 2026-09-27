@@ -12,6 +12,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
@@ -232,7 +233,38 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
       key: scaffoldKey,
       resizeToAvoidBottomInset: true,
       body: _widgetOption.elementAt(widget.index!),
-      // WhatsApp floating button removed (kept clean home).
+      floatingActionButton: authController.logInUser!.status &&
+              Get.find<AuthController>().loginAsA.value == Constants.user &&
+              widget.index != 4
+          ? FloatingActionButton(
+              onPressed: () async {
+                final Uri whatsappUrl = Uri.parse(
+                    'https://api.whatsapp.com/send/?phone=${Get.find<HomeController>().userHomeData?.customSupporter?.phone}&text&type=phone_number&app_absent=0');
+                try {
+                  if (await canLaunchUrl(whatsappUrl)) {
+                    await launchUrl(whatsappUrl,
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    await launchUrl(whatsappUrl);
+                  }
+                } catch (e) {
+                  print('Could not launch WhatsApp: $e');
+                }
+              },
+              backgroundColor: const Color(0xFF25D366), // WhatsApp green color
+              child: SvgPicture.asset(
+                MyImgs.whatsappIcon,
+                width: 28,
+                height: 28,
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: authController.logInUser!.status &&
+              Get.find<AuthController>().loginAsA.value == Constants.user
+          ? FloatingActionButtonLocation.endFloat
+          : null,
       bottomNavigationBar: Get.find<AuthController>().loginAsA.value ==
               Constants.user
           ? _buildUserOrProNav(textTheme: textTheme, forPro: false)

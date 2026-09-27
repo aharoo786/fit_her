@@ -76,6 +76,7 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
 
     final consumedMl = h?.consumedMl;
     final targetMl = h?.targetMl;
+    final remainingMl = h?.remainingMl;
 
     final hasTarget = targetMl != null && targetMl > 0;
     final fillFraction = (hasTarget && consumedMl != null)
@@ -85,6 +86,15 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
         hasTarget && consumedMl != null && consumedMl >= targetMl;
     final overGoal =
         hasTarget && consumedMl != null && consumedMl > targetMl;
+
+    final String remainingText;
+    if (overGoal) {
+      remainingText = 'Goal reached! ${_formatL(consumedMl)}L today';
+    } else if (goalReached) {
+      remainingText = 'Goal reached!';
+    } else {
+      remainingText = '${remainingMl ?? 0}ml remaining';
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
@@ -106,24 +116,24 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
         // letting Spacer push the action buttons to the bottom.
         mainAxisSize: MainAxisSize.max,
         children: [
-          _buildHeaderRow(),
-          const SizedBox(height: 8),
-          _buildAmountLine(consumedMl, targetMl, hasTarget),
-          if (hasTarget) const SizedBox(height: 6),
+          _buildHeaderRow(consumedMl, targetMl, hasTarget),
+          const SizedBox(height: 6),
           if (hasTarget) _buildProgressBar(fillFraction, goalReached),
-          if (goalReached) const SizedBox(height: 5),
-          if (goalReached)
+          if (hasTarget) const SizedBox(height: 5),
+          if (hasTarget)
             Text(
-              overGoal
-                  ? 'Goal reached! ${_formatL(consumedMl ?? 0)} L today'
-                  : 'Goal reached!',
-              style: const TextStyle(
+              remainingText,
+              style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF6DC55A),
+                // Softened from a saturated error-red — being under your
+                // water goal at 2pm is completely normal, not a problem,
+                // so the "in progress" state shouldn't read as alarming.
+                color: goalReached
+                    ? const Color(0xFF6DC55A)
+                    : const Color(0xFFD9A441),
               ),
             ),
-          const SizedBox(height: 8),
           // Spacer pushes buttons to the bottom so both cards align.
           const Spacer(),
           _buildButtonRow(theme),
@@ -132,61 +142,63 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
     );
   }
 
-  Widget _buildHeaderRow() {
+  Widget _buildHeaderRow(int? consumedMl, int? targetMl, bool hasTarget) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          width: 18,
-          height: 18,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF5B9BD5).withOpacity(0.14),
-          ),
-          child: const Text('💧', style: TextStyle(fontSize: 10, height: 1.0)),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Small color badge behind the icon — was a bare tiny 10px
+            // grey label before, easy to skip past even though hydration
+            // is a core daily metric. Blue = water's own identity,
+            // distinct from Sleep's indigo below.
+            Container(
+              width: 18,
+              height: 18,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF5B9BD5).withOpacity(0.14),
+              ),
+              child: const Text('💧', style: TextStyle(fontSize: 10, height: 1.0)),
+            ),
+            const SizedBox(width: 5),
+            const Text(
+              'Water',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF163220),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 5),
-        const Text(
-          'Water',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF163220),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// "1.2 of 3.2 L". Litres only, so there's one unit on the card.
-  Widget _buildAmountLine(int? consumedMl, int? targetMl, bool hasTarget) {
-    final consumed = consumedMl ?? 0;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(
-          consumed == 0 ? '0' : _formatL(consumed),
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF163220),
-            height: 1.0,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          hasTarget
-              ? 'of ${_formatL(targetMl!, stripTrailingZero: true)} L'
-              : 'L today',
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.5,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF9AB09A),
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              consumedMl != null ? _formatL(consumedMl) : '—',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF163220),
+              ),
+            ),
+            Text(
+              hasTarget
+                  ? 'L/${_formatL(targetMl!, stripTrailingZero: true)}L'
+                  : 'L',
+              style: const TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF9AB09A),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -198,7 +210,7 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
     return Container(
       height: 6,
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F1E5),
+        color: const Color(0xFFD8EDD4),
         borderRadius: BorderRadius.circular(4),
         boxShadow: goalReached
             ? [
@@ -219,7 +231,7 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
             child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF5B9BD5), Color(0xFF9CC7EE)],
+                  colors: [Color(0xFF6DC55A), Color(0xFFA8F0C0)],
                 ),
               ),
             ),
@@ -240,8 +252,7 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
             children: [
               Expanded(
                 child: _ActionButton(
-                  label: '🥛 Glass',
-                  amount: '200 ml',
+                  label: '+200ml',
                   accent: theme.accent,
                   onTap: () => _onTap(200),
                 ),
@@ -249,8 +260,7 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
               const SizedBox(width: 6),
               Expanded(
                 child: _ActionButton(
-                  label: '🧴 Bottle',
-                  amount: '500 ml',
+                  label: '+500ml',
                   accent: theme.accent,
                   onTap: () => _onTap(500),
                 ),
@@ -278,13 +288,11 @@ class _PaidWaterCardState extends State<PaidWaterCard> {
 
 class _ActionButton extends StatelessWidget {
   final String label;
-  final String amount;
   final Color accent;
   final VoidCallback onTap;
 
   const _ActionButton({
     required this.label,
-    required this.amount,
     required this.accent,
     required this.onTap,
   });
@@ -295,38 +303,22 @@ class _ActionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        height: 28,
         alignment: Alignment.center,
+        // A touch more fill than the old near-transparent outline (0.08)
+        // so the buttons read as tappable chips, not faint ghost text.
         decoration: BoxDecoration(
           color: accent.withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: accent.withOpacity(0.45), width: 1),
         ),
-        // Friendly name on top, the real amount underneath so she
-        // knows exactly what one tap adds.
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                color: accent,
-                height: 1.1,
-              ),
-            ),
-            const SizedBox(height: 1),
-            Text(
-              amount,
-              style: TextStyle(
-                fontSize: 8.5,
-                fontWeight: FontWeight.w500,
-                color: accent.withOpacity(0.8),
-                height: 1.1,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            color: accent,
+          ),
         ),
       ),
     );

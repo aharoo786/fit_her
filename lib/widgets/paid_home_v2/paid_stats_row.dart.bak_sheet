@@ -493,41 +493,45 @@ void _openMealLogSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    // Sheet hugs its content (no big empty area under the meals) and
-    // only scrolls once the content is taller than 90% of the screen.
     builder: (sheetCtx) {
-      final media = MediaQuery.of(sheetCtx);
-      return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: media.size.height * 0.9),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFF9FCF7),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+      return DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) {
+          final bottomSafe = MediaQuery.of(sheetCtx).padding.bottom;
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFF9FCF7),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
             ),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + media.padding.bottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3EBDF),
-                      borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottomSafe),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF4EC),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const PaidMealLogCard(),
-              ],
+                  const PaidMealLogCard(),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     },
   );
@@ -561,10 +565,8 @@ class _EmptyStat extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF163220),
+            fontSize: 9,
+            color: Color(0xFF9AB09A),
           ),
         ),
         const SizedBox(height: 5),
@@ -635,10 +637,8 @@ class _StatColumn extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF163220),
+            fontSize: 9,
+            color: Color(0xFF9AB09A),
           ),
         ),
         const SizedBox(height: 3),

@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../UI/consultation_module/popup_orchestrator.dart';
+import '../UI/consultation_module/popups/medical_concern_sheet.dart';
 import '../UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import '../data/controllers/paid_home_controller/paid_home_controller.dart';
 import '../data/models/home_dashboard/home_dashboard_model.dart';
@@ -19,12 +20,14 @@ import '../widgets/paid_home_v2/paid_hero.dart';
 import '../widgets/paid_home_v2/paid_insight_card.dart';
 import '../widgets/paid_home_v2/paid_sleep_card.dart';
 import '../widgets/paid_home_v2/paid_stats_row.dart'
-    show PaidStatsRow;
+    show PaidStatsRow, PaidMealSummaryCard;
 import '../widgets/paid_home_v2/paid_water_card.dart';
+import '../widgets/v2/medical_concern_fab.dart';
 import '../widgets/v2/plan_expiry_banner.dart';
 import '../widgets/v2/plan_frozen_banner.dart';
 import '../widgets/v2/v2_plan_preparing_card.dart';
 import '../widgets/v2/v2_trial_banner.dart';
+import '../data/controllers/auth_controller/auth_controller.dart';
 import '../main.dart' show routeObserver;
 import '../widgets/v2/v2_today_meals_section.dart' show V2Day7TriggerBanner;
 
@@ -213,19 +216,33 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
           // Phase 2D wiring (consultation flow):
           //   • PendingPopupOrchestrator watches dashboard.pendingPopups
           //     and dispatches the right sheet by variable name.
+          //   • MedicalConcernFAB renders the floating "urgent help"
+          //     button per Decision 8 — paid surfaces only, hidden
+          //     during fullscreen modals via the static `suppress` flag.
           body: PendingPopupOrchestrator(
             // Inactivity popup's "View today's classes" CTA — switch the
             // bottom-bar to the Workout tab so the user lands on their
             // schedule. WorkPlansOfUser → tap into the plan → today's class.
             onOpenWorkoutSchedule: () =>
                 Get.offAll<dynamic>(() => BottomBarScreen(index: 1)),
-            child: _bodyStack(),
+            // Free trial users see this home too. The medical concern
+            // button escalates to a dietitian, which is a paid service,
+            // so it's left out for them.
+            child: _isTrialUser
+                ? _bodyStack()
+                : MedicalConcernFAB(
+                    onTap: () => MedicalConcernSheet.show(),
+                    child: _bodyStack(),
+                  ),
           ),
         ),
       );
     });
   }
 
+  /// Not paid but on the paid home: she's in her free trial.
+  bool get _isTrialUser =>
+      !(Get.find<AuthController>().logInUser?.status ?? false);
 
   Widget _bodyStack() {
     return Stack(
@@ -396,9 +413,28 @@ class _PaidHomeScreenV2State extends State<PaidHomeScreenV2>
                       const SizedBox(height: 8),
                       PaidStatsRow(dashboard: dashboard),
                       const SizedBox(height: 8),
-                      // Meals now lives in the stats row above (with
-                      // calories), so the cycle card has this row to itself.
-                      if (hasCycle) PaidCycleCard(dashboard: dashboard),
+                      // Cycle + Meals, side by side — one row, matching
+                      // the two-card rhythm used everywhere else on this
+                      // screen. The separate Nutrition ("% diet plan")
+                      // card was dropped per Shaista's request: Meals
+                      // already surfaces today's logging, so a second
+                      // card duplicating diet-plan info was redundant.
+                      // Falls back to Meals alone if there's no cycle
+                      // data yet.
+                      if (hasCycle)
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                  child: PaidCycleCard(dashboard: dashboard)),
+                              const SizedBox(width: 8),
+                              const Expanded(child: PaidMealSummaryCard()),
+                            ],
+                          ),
+                        )
+                      else
+                        const PaidMealSummaryCard(),
                       const SizedBox(height: 8),
                       PaidFooter(dashboard: dashboard),
                     ],

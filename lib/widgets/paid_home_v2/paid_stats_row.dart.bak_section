@@ -7,7 +7,6 @@ import '../../data/models/diet_plan_v2/diet_plan_v2_models.dart';
 import '../../data/models/diet_plan_v2/meal_log_v2.dart';
 import '../../data/models/home_dashboard/home_dashboard_model.dart';
 import '../../data/models/meal_log/meal_log.dart';
-import '../../UI/dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'log_weight_modal.dart';
 import 'paid_meal_log_card.dart';
 import 'set_target_weight_modal.dart';
@@ -27,8 +26,8 @@ import 'set_target_weight_modal.dart';
 // with Meals/Nutrition there). Do not re-add it here — that would
 // double-render the same widget.
 
-/// Stats grid below the hero: one row of 3 equal cards
-/// (Classes | Weight | Meals). Empty tiles show a prompt, never a 0.
+/// Stats grid below the hero — just the top row of 3 equal cards
+/// (Workouts | Weight | Calories).
 ///
 /// Cycle used to render here as a full-width "Row 2", but that left the
 /// no-plan case with two lonely full-width cards stacked on top of each
@@ -56,7 +55,7 @@ class PaidStatsRow extends StatelessWidget {
           const SizedBox(width: 7),
           Expanded(child: _WeightCard(dashboard: dashboard)),
           const SizedBox(width: 7),
-          Expanded(child: _MealsTile(dashboard: dashboard)),
+          Expanded(child: _CaloriesCard(dashboard: dashboard)),
         ],
       ),
     );
@@ -71,23 +70,14 @@ class _WorkoutsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Distinct class attendance days since Monday
-    // (DashboardController.buildStats()). Always an int, never null.
+    // Real count from DashboardController.buildStats() — distinct
+    // class-attendance days since Monday (Mon-based ISO week). Backend
+    // always returns an int (defaults to 0 on no attendance / on error),
+    // never null, so no separate empty state is needed here.
     final count = dashboard.stats?.workoutsThisWeek ?? 0;
-    if (count == 0) {
-      // No zero on screen: invite her to her first class instead.
-      return _CardShell(
-        onTap: () => Get.offAll<dynamic>(() => BottomBarScreen(index: 1)),
-        child: const _EmptyStat(
-          label: '🏋️ Classes',
-          prompt: 'Join your first class',
-          action: 'See today →',
-        ),
-      );
-    }
     return _CardShell(
       child: _StatColumn(
-        label: '🏋️ Classes',
+        label: '🏋️ Workouts',
         value: '$count',
         sub: 'this week',
       ),
@@ -157,33 +147,17 @@ class _WeightCard extends StatelessWidget {
     // than creating a second one. A trend only appears once the user has
     // a weigh-in from two DIFFERENT weeks — the old copy here ("log 2x
     // to see trend") wrongly implied logging twice today would do it.
-    // Shows her CURRENT weight, with the week-over-week change under it
-    // once there are weigh-ins from two different weeks (see
-    // DashboardController.buildStats()). Nothing logged yet: an "Add
-    // your weight" prompt instead of a confusing 0.0.
-    final current = dashboard.goal?.currentWeightKg;
     final delta = dashboard.stats?.weightDeltaKgThisWeek;
-    if (current == null || current <= 0) {
-      return _CardShell(
-        onTap: () => _onTap(context),
-        child: const _EmptyStat(
-          label: '⚖️ Weight',
-          prompt: 'Add your weight',
-          action: 'Add →',
-        ),
-      );
-    }
-    String sub = 'kg';
-    if (delta != null && delta != 0) {
-      final arrow = delta < 0 ? '↓' : '↑';
-      sub = 'kg · $arrow ${delta.abs().toStringAsFixed(1)}';
-    }
+    final hasDelta = delta != null;
+    final value = hasDelta
+        ? '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}'
+        : '--';
     return _CardShell(
       onTap: () => _onTap(context),
       child: _StatColumn(
         label: '⚖️ Weight',
-        value: current.toStringAsFixed(1),
-        sub: sub,
+        value: value,
+        sub: hasDelta ? 'kg/week' : 'log again next week',
         valueColor: _valueColor(delta),
       ),
     );
@@ -192,94 +166,25 @@ class _WeightCard extends StatelessWidget {
 
 // ─── Row 1, Card 3 ───────────────────────────────────────────────────────
 
-/// Meals logged today plus calories, so every tile in this row shows
-/// progress (Calories used to be a lonely target number here).
-///
-/// Calories eaten = sum of plan calories for meals marked "followed".
-/// Alternatives and skips aren't counted, since we don't know what she
-/// ate instead. With no structured plan there's nothing to add up, so
-/// only the target is shown.
-class _MealsTile extends StatelessWidget {
+class _CaloriesCard extends StatelessWidget {
   final HomeDashboardModel dashboard;
-  const _MealsTile({required this.dashboard});
-
-  static String _slotName(MealType t) {
-    switch (t) {
-      case MealType.breakfast:
-        return 'breakfast';
-      case MealType.lunch:
-        return 'lunch';
-      case MealType.dinner:
-        return 'dinner';
-    }
-  }
+  const _CaloriesCard({required this.dashboard});
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<MealLogController>()) {
-      Get.put(MealLogController(
-        homeRepo: Get.find(),
-        sharedPreferences: Get.find(),
-      ));
-    }
-    final ctrl = Get.find<MealLogController>();
+    // Real personalized daily target from DashboardController.buildStats()
+    // — null only when the backend couldn't compute one (missing age,
+    // weight, or height on the profile), shown honestly as "--" rather
+    // than a fake number. "target", not "left" — see file-level note:
+    // there's no food/kcal consumption tracking to subtract from this.
+    final budget = dashboard.stats?.dailyKcalBudget;
+    final value = budget != null ? '$budget' : '--';
     return _CardShell(
-      onTap: () => _openMealLogSheet(context),
-      child: Obx(() {
-        int logged;
-        int total;
-        int? eatenKcal;
-        int? targetKcal = dashboard.stats?.dailyKcalBudget;
-        final dietCtrl = Get.isRegistered<DietPlanUserController>()
-            ? Get.find<DietPlanUserController>()
-            : null;
-        final day = dietCtrl?.todaysDay;
-        if (dietCtrl?.activePlan.value != null &&
-            day != null &&
-            day.meals.isNotEmpty) {
-          final logs = dietCtrl!.todayLogsByType;
-          total = day.meals.length;
-          logged = 0;
-          eatenKcal = 0;
-          for (final m in day.meals) {
-            final log = logs[m.mealType.wire];
-            if (log != null && log.status != MealLogStatusV2.pending) {
-              logged++;
-            }
-            if (log?.status == MealLogStatusV2.followed) {
-              eatenKcal = eatenKcal! + m.calories;
-            }
-          }
-          if (day.totalCalories > 0) targetKcal = day.totalCalories;
-        } else {
-          total = MealType.values.length;
-          logged = ctrl.todayMeals.values
-              .where((m) => m.status != MealStatus.pending)
-              .length;
-        }
-
-        String kcalLine;
-        if (targetKcal == null) {
-          kcalLine = 'logged today';
-        } else if (eatenKcal != null) {
-          kcalLine = '$eatenKcal of $targetKcal kcal';
-        } else {
-          kcalLine = '$targetKcal kcal target';
-        }
-
-        if (logged == 0) {
-          return _EmptyStat(
-            label: '🍽️ Meals',
-            prompt: 'Log ${_slotName(currentMealForNow())}',
-            sub: targetKcal != null ? '0 of $targetKcal kcal' : null,
-          );
-        }
-        return _StatColumn(
-          label: '🍽️ Meals',
-          value: '$logged/$total',
-          sub: kcalLine,
-        );
-      }),
+      child: _StatColumn(
+        label: '🍎 Calories',
+        value: value,
+        sub: budget != null ? 'kcal target' : 'complete profile',
+      ),
     );
   }
 }
@@ -493,116 +398,51 @@ void _openMealLogSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    // Sheet hugs its content (no big empty area under the meals) and
-    // only scrolls once the content is taller than 90% of the screen.
     builder: (sheetCtx) {
-      final media = MediaQuery.of(sheetCtx);
-      return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: media.size.height * 0.9),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFF9FCF7),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+      return DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) {
+          final bottomSafe = MediaQuery.of(sheetCtx).padding.bottom;
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFF9FCF7),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
             ),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + media.padding.bottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3EBDF),
-                      borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottomSafe),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF4EC),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const PaidMealLogCard(),
-              ],
+                  const PaidMealLogCard(),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     },
   );
 }
 
 // ─── Shared bits ─────────────────────────────────────────────────────────
-
-/// Empty state for a stat tile: a short prompt in place of a 0, plus a
-/// small green action or a muted sub line. Same label style as
-/// [_StatColumn] so the row stays even.
-class _EmptyStat extends StatelessWidget {
-  final String label;
-  final String prompt;
-  final String? action;
-  final String? sub;
-
-  const _EmptyStat({
-    required this.label,
-    required this.prompt,
-    this.action,
-    this.sub,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF163220),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          prompt,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF163220),
-            height: 1.25,
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (action != null)
-          Text(
-            action!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF3C9A2C),
-            ),
-          )
-        else if (sub != null)
-          Text(
-            sub!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 9,
-              color: Color(0xFF9AB09A),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 /// Standard label / value / sub stack used by every card. Centralises
 /// font sizing + colours so the 5 cards stay visually identical.
@@ -635,10 +475,8 @@ class _StatColumn extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF163220),
+            fontSize: 9,
+            color: Color(0xFF9AB09A),
           ),
         ),
         const SizedBox(height: 3),
