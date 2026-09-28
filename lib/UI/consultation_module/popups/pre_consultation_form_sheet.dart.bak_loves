@@ -96,7 +96,6 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
 
   // ── Step 5: Workout (combined / workout-only) ──
   String? _fitnessLevel;
-  Map<String, dynamic> _wsKeep = {};
   final TextEditingController _injuries = TextEditingController();
   final Set<String> _equipment = <String>{};
 
@@ -193,9 +192,6 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
       // Workout section (optional sub-object).
       final ws = profile.workoutSection;
       if (ws != null) {
-        // Keep keys this form doesn't edit (favoriteWorkouts,
-        // preferredSlotIds from the free trial) when saving.
-        _wsKeep = Map<String, dynamic>.from(ws);
         _fitnessLevel = ws['fitnessLevel'] as String?;
         if (ws['injuries'] is String) {
           _injuries.text = ws['injuries'] as String;
@@ -305,7 +301,6 @@ class _PreConsultationFormSheetState extends State<PreConsultationFormSheet> {
       case 4:
         return {
           'workoutSection': {
-            ..._wsKeep,
             'fitnessLevel': _fitnessLevel,
             'injuries': _injuries.text.trim().isEmpty
                 ? null

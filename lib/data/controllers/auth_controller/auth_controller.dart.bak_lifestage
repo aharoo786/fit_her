@@ -1,6 +1,4 @@
 import 'dart:convert';
-import '../consultation_controller/consultation_controller.dart';
-import '../../../UI/auth_module/sign_up_screen/life_stage_gate.dart';
 import 'dart:io';
 import 'package:fitness_zone_2/UI/auth_module/login/login.dart';
 import 'package:fitness_zone_2/UI/auth_module/result_screen.dart';
@@ -603,29 +601,6 @@ class AuthController extends GetxController implements GetxService {
     // Time-preference onboarding is only relevant for regular Users —
     // trainers, dietitians, admins, and specialists go straight to home.
     final isRegularUser = logInUser?.userType == 'User';
-
-    // Life stage gate (signup step 5). Pregnant women, and new mothers
-    // still inside their recovery time, see a Coming soon screen instead
-    // of the app. A new mother whose time is up (or anyone who stopped
-    // at that step) continues signup from the start, with her answers
-    // prefilled. Rules live on the backend: helper/lifeStage.js.
-    // Paid clients are never locked out here: if a paying client tells
-    // us she's pregnant, her dietitian handles it.
-    if (isRegularUser && !(logInUser?.status ?? false)) {
-      final ls = await Get.find<ConsultationController>().getLifeStage();
-      final access = ls?['access'];
-      if (access == 'pregnant' || access == 'waiting') {
-        Get.offAll(() => LifeStageComingSoonScreen(data: ls!));
-        return;
-      }
-      // baby_check: past her due date + waiting time, ask again at step 5.
-      if (access == 'needs_details' ||
-          access == 'needs_clearance' ||
-          access == 'baby_check') {
-        restartSignupFlow();
-        return;
-      }
-    }
 
     // Primary gate: explicit done flag written by TimePreferenceScreen._save()
     // on any completion path (select + go, skip, or Android back).

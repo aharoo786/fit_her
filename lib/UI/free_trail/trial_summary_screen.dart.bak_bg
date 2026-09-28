@@ -7,7 +7,6 @@ import 'package:intl/intl.dart' show NumberFormat;
 import '../../data/controllers/home_controller/home_controller.dart';
 import '../plans_module/all_plans.dart';
 import '../plans_module/select_payment_mode.dart';
-import '../../widgets/trial_page_background.dart';
 
 /// "My trial" summary: what she did in her trial, a short note from the
 /// Fit Her Team, and (from her last trial day) the offer in HER
@@ -85,8 +84,8 @@ class _TrialSummaryScreenState extends State<TrialSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return TrialPageBackground(child: Scaffold(
-      backgroundColor: Colors.transparent,
+    return Scaffold(
+      backgroundColor: _kBg,
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(
@@ -109,7 +108,7 @@ class _TrialSummaryScreenState extends State<TrialSummaryScreen> {
                     ],
                   ),
                 ),
-    ));
+    );
   }
 
   Widget _errorView() => SafeArea(

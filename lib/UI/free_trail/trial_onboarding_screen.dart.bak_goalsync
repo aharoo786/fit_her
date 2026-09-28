@@ -265,13 +265,8 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
   /// Null when signup didn't record a goal (older accounts).
   String? _goalFromSignup() {
     final auth = Get.find<AuthController>();
-    // Memory first, then the saved login user as a fallback.
-    String pick(String a, String? b) => a.trim().isNotEmpty ? a : (b ?? '');
-    final main = pick(auth.mainGoal.value, auth.logInUser?.mainGoal)
-        .trim()
-        .toLowerCase();
-    final cond = pick(auth.healthConditions.value, auth.logInUser?.healthConditions)
-        .toLowerCase();
+    final main = auth.mainGoal.value.trim().toLowerCase();
+    final cond = auth.healthConditions.value.toLowerCase();
     if (main.isEmpty) return null;
     if (_cycleStatus == 'postpartum') return 'postpartum';
     if (cond.contains('pcos')) return 'pcos_management';

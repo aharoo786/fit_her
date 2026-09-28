@@ -249,17 +249,6 @@ class _SessionRow extends StatelessWidget {
                   bordered: true,
                   onTap: () => _markCompleted(dietController, appointment),
                 ),
-                // She never joined: cancels without using up her
-                // consultation and asks her to rebook. The Meet
-                // attendance check does the same automatically after the
-                // call; this is the quick manual version.
-                _MiniAction(
-                  icon: Icons.person_off_outlined,
-                  label: "Client didn't join",
-                  color: const Color(0xFF8A5A06),
-                  bg: const Color(0xFFFFF1D6),
-                  onTap: () => _confirmClientNoShow(context, dietController, appointment),
-                ),
                 _MiniAction(
                   icon: Icons.close_rounded,
                   label: 'Cancel',
@@ -306,36 +295,6 @@ Future<void> _markCompleted(
   );
   if (goNow == true) {
     Get.to(() => const PlansToDeliverScreen());
-  }
-}
-
-Future<void> _confirmClientNoShow(
-  BuildContext context,
-  DietController dietController,
-  diet_models.Appointment appointment,
-) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text("Client didn't join?"),
-      content: const Text(
-        "We'll cancel this session without using up her consultation and ask her to book a new time. You can do this 10 minutes after the start time.",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Keep waiting'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text("Yes, she didn't join",
-              style: TextStyle(color: Color(0xFF8A5A06))),
-        ),
-      ],
-    ),
-  );
-  if (confirmed == true) {
-    await dietController.reportClientNoShow(appointment.id);
   }
 }
 

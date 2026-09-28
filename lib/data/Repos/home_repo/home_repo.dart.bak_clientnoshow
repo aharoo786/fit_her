@@ -523,13 +523,6 @@ class HomeRepo extends GetxService {
     });
   }
 
-  // Dietitian marks that the client never joined her consultation.
-  Future<Response> reportClientNoShow(
-      {required String accessToken, required String id}) async {
-    return await apiProvider.postData("/appointment/$id/client-no-show",
-        body: {}, headers: {"accessToken": accessToken});
-  }
-
   Future<Response> validateTrialToken({required String token}) async {
     return await apiProvider.postData(
       Constants.trialValidateToken,

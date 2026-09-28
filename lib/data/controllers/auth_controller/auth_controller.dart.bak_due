@@ -618,10 +618,7 @@ class AuthController extends GetxController implements GetxService {
         Get.offAll(() => LifeStageComingSoonScreen(data: ls!));
         return;
       }
-      // baby_check: past her due date + waiting time, ask again at step 5.
-      if (access == 'needs_details' ||
-          access == 'needs_clearance' ||
-          access == 'baby_check') {
+      if (access == 'needs_details' || access == 'needs_clearance') {
         restartSignupFlow();
         return;
       }

@@ -141,9 +141,6 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
   final Set<int> _pickedSlots = {};
   Map<String, dynamic>? _classData;
   bool _classesLoading = false;
-  final List<String> _pickedTimes = [];
-  // Step 6 has two screens: pick times, then see the week.
-  bool _weekView = false;
 
   // Welcome preview: her current cycle phase (null if she has no cycle data).
   String? _phase;
@@ -265,13 +262,8 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
   /// Null when signup didn't record a goal (older accounts).
   String? _goalFromSignup() {
     final auth = Get.find<AuthController>();
-    // Memory first, then the saved login user as a fallback.
-    String pick(String a, String? b) => a.trim().isNotEmpty ? a : (b ?? '');
-    final main = pick(auth.mainGoal.value, auth.logInUser?.mainGoal)
-        .trim()
-        .toLowerCase();
-    final cond = pick(auth.healthConditions.value, auth.logInUser?.healthConditions)
-        .toLowerCase();
+    final main = auth.mainGoal.value.trim().toLowerCase();
+    final cond = auth.healthConditions.value.toLowerCase();
     if (main.isEmpty) return null;
     if (_cycleStatus == 'postpartum') return 'postpartum';
     if (cond.contains('pcos')) return 'pcos_management';
@@ -292,7 +284,6 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
       // Drop picks for classes that no longer exist.
       final ids = _classes.map((c) => c['slotId'] as int).toSet();
       _pickedSlots.removeWhere((id) => !ids.contains(id));
-      _timesFromSlots();
     });
   }
 
@@ -313,7 +304,6 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
         'equipment': _equip.toList(),
         'favoriteWorkouts': _loves.toList(),
         'preferredSlotIds': _pickedSlots.toList(),
-        'preferredTimes': _pickedTimes.toList(),
       };
 
   bool get _stepValid {
@@ -331,7 +321,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
       case 5:
         return _loves.isNotEmpty;
       case 6:
-        return _pickedTimes.isNotEmpty;
+        return _pickedSlots.isNotEmpty;
       case 7:
         return _confirmed && _consented;
       default:
@@ -372,10 +362,6 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
   Future<void> _next() async {
     FocusScope.of(context).unfocus();
     if (_step == _lastStep) return _finish();
-    if (_step == 6 && !_weekView) {
-      setState(() => _weekView = true);
-      return;
-    }
     if (_step == 0 && _skipGoal) {
       setState(() => _saving = true);
       final ok = await _consult.patchProfile(_bodyForStep(1)!);
@@ -404,9 +390,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
 
   void _back() {
     FocusScope.of(context).unfocus();
-    if (_step == 6 && _weekView) {
-      setState(() => _weekView = false);
-    } else if (_step > 0) {
+    if (_step > 0) {
       setState(() => _step = (_step == 2 && _skipGoal) ? 0 : _step - 1);
     } else {
       _leave();
@@ -528,7 +512,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
                               ),
                             ),
                             child: SingleChildScrollView(
-                              key: ValueKey('$_step${_step == 6 && _weekView ? 'w' : ''}'),
+                              key: ValueKey(_step),
                               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                               child: _stepContent(),
                             ),
@@ -611,13 +595,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
             ? 'Start my free trial'
             : (_step == 5 && _loves.isEmpty)
                 ? 'Pick at least one  →'
-                : _step == 6
-                    ? (_pickedTimes.isEmpty
-                        ? 'Pick a time  →'
-                        : !_weekView
-                            ? 'See my week  →'
-                            : 'Remind me at ${_pickedTimes.join(' & ')}  →')
-                    : 'Continue';
+                : 'Continue';
     final enabled = _stepValid && !_saving && !_generating;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
@@ -634,6 +612,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (_step == 6) _pickedBar(),
           if (_step == 0) _WelcomeTrustLine(days: _home.trialDays.value),
           SizedBox(
             width: double.infinity,
@@ -669,21 +648,6 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
                     ),
             ),
           ),
-          if (_step == 6 && _pickedTimes.isNotEmpty && _classes.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                _weekView
-                    ? "We'll remind you 15 min before and when class goes live"
-                    : 'Tap a picked time to change it',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11.5,
-                  color: _kInkSoft,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -835,7 +799,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
   /// daytime class. Night classes (11 PM to 6 AM her time) are only used
   /// if nothing else exists.
   Map<String, dynamic>? _welcomeClass() {
-    final list = _dayClasses;
+    final list = _classes;
     if (list.isEmpty) return null;
     bool daytime(Map<String, dynamic> c) {
       final k = c['sortKey'];
@@ -857,9 +821,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
     final wantGentle = _phase == 'menstrual' || _phase == 'luteal';
     final wantStrong = _phase == 'ovulatory' || _phase == 'follicular';
 
-    final picked = list
-        .where((c) => _pickedTimes.contains('${c['startLocal']}'))
-        .toList();
+    final picked = list.where((c) => _pickedSlots.contains(c['slotId'])).toList();
     if (picked.isNotEmpty) return picked.first;
     final day = list.where(daytime).toList();
     var pool = day.isNotEmpty ? day : list;
@@ -894,7 +856,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
           final groups = <Widget>[];
           for (final entry in _parts.entries) {
             final inPart =
-                _dayClasses.where((c) => c['part'] == entry.key).toList();
+                _classes.where((c) => c['part'] == entry.key).toList();
             if (inPart.isEmpty) continue;
             final meta = entry.value;
             groups.add(Container(
@@ -920,13 +882,15 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
                     ),
                   ),
                   ...inPart.map((c) {
-                    final t = '${c['startLocal']}';
+                    final id = c['slotId'] as int;
                     return TrialClassCard(
                       data: c,
-                      selected: _pickedTimes.contains(t),
+                      selected: _pickedSlots.contains(id),
                       showPakistanTime: showPk,
                       onTap: () {
-                        setSheet(() => _toggleTime(t));
+                        setSheet(() {
+                          if (!_pickedSlots.remove(id)) _pickedSlots.add(id);
+                        });
                         if (mounted) setState(() {});
                       },
                     );
@@ -976,7 +940,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
                           ],
                         ),
                       ),
-                      if (_pickedTimes.isNotEmpty)
+                      if (_pickedSlots.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 5),
@@ -985,7 +949,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${_pickedTimes.length} picked',
+                            '${_pickedSlots.length} picked',
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 11.5,
@@ -1378,10 +1342,7 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
         ),
         _ReviewCard(
           title: 'Class reminders',
-          onEdit: () => setState(() {
-            _step = 6;
-            _weekView = false;
-          }),
+          onEdit: () => setState(() => _step = 6),
           lines: _pickedSummary(),
         ),
         const SizedBox(height: 6),
@@ -1450,243 +1411,59 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
     'night': ['🌙', 'Night', Color(0xFFE9ECF8)],
   };
 
-  // Her class times ("h:mm A", her time zone) live in _pickedTimes, in
-  // pick order (1st, 2nd). _pickedSlots holds every class at those times
-  // on every day, so the server reminds her whichever day it is.
-  static const _weekOrder = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-  ];
-
-  String? _dayOf(Map<String, dynamic> c) {
-    final d = c['dayLocal'] ?? c['day'];
-    return d is String && d.isNotEmpty ? d : null;
-  }
-
-  String get _tomorrowName =>
-      _weekOrder[DateTime.now().add(const Duration(days: 1)).weekday - 1];
-
-  /// Tomorrow's classes if the schedule has days, else all classes.
-  List<Map<String, dynamic>> get _dayClasses {
-    final all = _classes;
-    final tm = all.where((c) => _dayOf(c) == _tomorrowName).toList();
-    return tm.isNotEmpty ? tm : all;
-  }
-
-  List<String> get _weekDays {
-    final set = _classes.map(_dayOf).whereType<String>().toSet();
-    return _weekOrder.where(set.contains).toList();
-  }
-
-  List<Map<String, dynamic>> _classesOn(String? day) =>
-      _classes.where((c) => _dayOf(c) == null || _dayOf(c) == day).toList();
-
-  /// Distinct class start times, earliest first.
-  List<Map<String, dynamic>> get _timeOptions {
-    final seen = <String>{};
-    final out = <Map<String, dynamic>>[];
-    final sorted = [..._classes]..sort((a, b) =>
-        ((a['sortKey'] ?? 0) as num).compareTo((b['sortKey'] ?? 0) as num));
-    for (final c in sorted) {
-      final t = '${c['startLocal'] ?? ''}';
-      if (t.isEmpty || !seen.add(t)) continue;
-      out.add({'time': t, 'part': c['part'], 'sortKey': c['sortKey']});
-    }
-    return out;
-  }
-
-  void _syncSlotsFromTimes() {
-    _pickedSlots
-      ..clear()
-      ..addAll(_classes
-          .where((c) => _pickedTimes.contains('${c['startLocal']}'))
-          .map((c) => c['slotId'] as int));
-  }
-
-  /// Rebuilds her picked times from saved slot ids (first load).
-  void _timesFromSlots() {
-    if (_pickedTimes.isNotEmpty || _pickedSlots.isEmpty) return;
-    for (final o in _timeOptions) {
-      final t = o['time'] as String;
-      if (_classes.any((c) =>
-          '${c['startLocal']}' == t && _pickedSlots.contains(c['slotId']))) {
-        _pickedTimes.add(t);
-        if (_pickedTimes.length == 2) break;
-      }
-    }
-    _syncSlotsFromTimes();
-  }
-
-  /// Tap a time: picks it, or removes it if already picked. A third pick
-  /// replaces the 2nd.
-  void _toggleTime(String t) {
-    if (!_pickedTimes.remove(t)) {
-      if (_pickedTimes.length >= 2) _pickedTimes.removeLast();
-      _pickedTimes.add(t);
-    }
-    _syncSlotsFromTimes();
-  }
-
-  static List<Object> _typeStyle(String type) {
-    final t = type.toLowerCase();
-    if (RegExp(r'zumba|danc').hasMatch(t)) {
-      return ['Zumba', const Color(0xFFFCE1EC), const Color(0xFFC2185B)];
-    }
-    if (RegExp(r'yoga|stretch|pilates|mobility|breath').hasMatch(t)) {
-      return ['Yoga', const Color(0xFFECE6FA), const Color(0xFF6A4FB3)];
-    }
-    if (RegExp(r'\blow\b|gentle|walk|beginner').hasMatch(t)) {
-      return ['Low', const Color(0xFFE1F0FA), const Color(0xFF2E7DAF)];
-    }
-    if (RegExp(r'hiit|high|cardio|burn').hasMatch(t)) {
-      return ['HIIT', const Color(0xFFFFE3D3), const Color(0xFFC4551F)];
-    }
-    if (RegExp(r'strength|tone|weight|sculpt').hasMatch(t)) {
-      return ['Strength', const Color(0xFFFFF3CC), const Color(0xFF9A6F00)];
-    }
-    final w = type.trim().split(RegExp(r'\s+')).first;
-    return [
-      w.isEmpty ? 'Class' : (w.length > 8 ? w.substring(0, 8) : w),
-      _kAccentBg,
-      _kInk,
-    ];
-  }
-
-  /// True when the class matches a workout she said she loves.
-  bool _isFavourite(Map<String, dynamic> c) {
-    if (_loves.isEmpty || _loves.contains('mix')) return false;
-    final t = '${c['type'] ?? ''} ${c['level'] ?? ''}'.toLowerCase();
-    const pats = {
-      'high_intensity': r'hiit|high|cardio|burn',
-      'strength': r'strength|tone|weight|sculpt',
-      'zumba': r'zumba|danc',
-      'yoga': r'yoga|stretch|pilates|mobility',
-      'low_intensity': r'\blow\b|gentle|walk|beginner',
-    };
-    return _loves.any((l) => pats[l] != null && RegExp(pats[l]!).hasMatch(t));
-  }
-
-  String _short(String day) => day.length > 3 ? day.substring(0, 3) : day;
-
-  /// Days that have a class at one of her times.
-  List<String?> get _workoutDays {
-    final days = _weekDays;
-    final list = days.isEmpty ? <String?>[null] : days.cast<String?>();
-    return list
-        .where((d) => _classesOn(d)
-            .any((c) => _pickedTimes.contains('${c['startLocal']}')))
+  List<String> _pickedSummary() {
+    final byId = {for (final c in _classes) c['slotId'] as int: c};
+    return _pickedSlots
+        .where(byId.containsKey)
+        .map((id) => '🔔  ${byId[id]!['startLocal']} ${byId[id]!['type']}')
         .toList();
   }
 
-  String _rangeLabel(List<String?> days) {
-    if (days.isEmpty || days.first == null || days.length == 7) return 'Every day';
-    if (days.length == 1) return days.first!;
-    return '${_short(days.first!)} to ${_short(days.last!)}';
-  }
-
-  /// Her next class at one of her times: {'when': 'tomorrow', 'c': class}.
-  Map<String, dynamic>? _firstClass() {
-    final now = DateTime.now();
-    final nowMin = now.hour * 60 + now.minute;
-    for (int i = 0; i < 7; i++) {
-      final name = _weekOrder[now.add(Duration(days: i)).weekday - 1];
-      final list = _classesOn(name)
-          .where((c) => _pickedTimes.contains('${c['startLocal']}'))
-          .where((c) => i > 0 || ((c['sortKey'] ?? 0) as num) > nowMin + 10)
-          .toList()
-        ..sort((a, b) =>
-            ((a['sortKey'] ?? 0) as num).compareTo((b['sortKey'] ?? 0) as num));
-      if (list.isNotEmpty) {
-        return {
-          'when': i == 0 ? 'today' : (i == 1 ? 'tomorrow' : name),
-          'c': list.first,
-        };
-      }
-    }
-    return null;
-  }
-
-  List<String> _pickedSummary() {
-    if (_pickedTimes.isEmpty) return const [];
-    final days = _workoutDays;
-    return [
-      '🔔  ${_pickedTimes.join(' and ')}',
-      '${days.length == 1 && days.first == null ? 'Every day' : '${days.length} workout days'}, ${_rangeLabel(days)}',
-    ];
-  }
-
-  Widget _stepBadge(String text) => Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: _kAccentBg,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                    color: _kAccent, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                text,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5A7A56),
-                ),
-              ),
-            ],
-          ),
+  Widget _pickedBar() {
+    final picked = _pickedSummary()
+        .map((l) => l.replaceFirst('🔔  ', ''))
+        .toList();
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: picked.isEmpty ? Colors.white : _kInk,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: picked.isEmpty ? _kBorder : _kInk),
+      ),
+      child: Text(
+        picked.isEmpty
+            ? 'Pick at least one class time 👆'
+            : "🔔 You'll be reminded for: ${picked.join(', ')}",
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          color: picked.isEmpty ? _kInkSoft : Colors.white,
         ),
-      );
-
-  Widget _twoToneTitle(String a, String b) => RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 24,
-            height: 1.25,
-            fontWeight: FontWeight.w800,
-            color: _kInk,
-          ),
-          children: [
-            TextSpan(text: a),
-            TextSpan(text: b, style: const TextStyle(color: _kDeep)),
-          ],
-        ),
-      );
-
-  Widget _subLine(String text) => Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text(
-          text,
-          style: const TextStyle(
-              fontFamily: 'Poppins', fontSize: 13, height: 1.45, color: _kInkSoft),
-        ),
-      );
+      ),
+    );
+  }
 
   Widget _classStep() {
     final classes = _classes;
+    final window = _classData?['joinWindowMinutes'] ?? _home.joinWindowMinutes.value;
+    Widget body;
     if (_classesLoading && classes.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 80),
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
         child: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(_kAccent),
           ),
         ),
       );
-    }
-    if (classes.isEmpty) {
-      return Column(
+    } else if (classes.isEmpty) {
+      body = Column(
         children: [
-          const SizedBox(height: 60),
+          const SizedBox(height: 20),
           const Text(
             "We couldn't load the class times.",
             style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: _kInkSoft),
@@ -1704,550 +1481,73 @@ class _TrialOnboardingScreenState extends State<TrialOnboardingScreen> {
           ),
         ],
       );
-    }
-    _timesFromSlots();
-    return _weekView && _pickedTimes.isNotEmpty ? _weekScreen() : _timeScreen();
-  }
-
-  // ── Step 6a: Tell us when you're free ─────────────────────────────
-  Widget _timeScreen() {
-    final options = _timeOptions;
-
-    Widget slot(String tag, String? time) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+    } else {
+      final groups = <Widget>[];
+      for (final entry in _parts.entries) {
+        final inPart = classes.where((c) => c['part'] == entry.key).toList();
+        if (inPart.isEmpty) continue;
+        final meta = entry.value;
+        groups.add(Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           decoration: BoxDecoration(
-            color: time == null ? const Color(0xFFF6F8F5) : _kAccentBg,
-            borderRadius: BorderRadius.circular(10),
+            color: meta[2] as Color,
+            borderRadius: BorderRadius.circular(22),
           ),
-          child: Text.rich(
-            TextSpan(children: [
-              TextSpan(
-                text: '$tag  ',
-                style: const TextStyle(fontSize: 10.5, color: _kInkSoft),
-              ),
-              TextSpan(
-                text: time ?? 'Pick',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: time == null ? _kInkSoft : _kInk,
-                ),
-              ),
-            ]),
-            style: const TextStyle(fontFamily: 'Poppins'),
-          ),
-        );
-
-    final groups = <Widget>[];
-    for (final entry in _parts.entries) {
-      final inPart = options.where((o) => o['part'] == entry.key).toList();
-      if (inPart.isEmpty) continue;
-      final meta = entry.value;
-      final range = inPart.length == 1
-          ? '${inPart.first['time']}'
-          : '${inPart.first['time']} to ${inPart.last['time']}';
-      groups.add(Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
-              TextSpan(children: [
-                TextSpan(
-                  text: '${meta[0]}  ${meta[1]}',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w800, color: _kInk),
-                ),
-                TextSpan(
-                  text: '   $range',
-                  style: const TextStyle(fontSize: 11.5, color: _kInkSoft),
-                ),
-              ]),
-              style: const TextStyle(fontFamily: 'Poppins'),
-            ),
-            const SizedBox(height: 10),
-            LayoutBuilder(builder: (context, box) {
-              final w = (box.maxWidth - 20) / 3;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 12,
-                children: inPart.map((o) {
-                  final t = o['time'] as String;
-                  final idx = _pickedTimes.indexOf(t);
-                  final on = idx >= 0;
-                  return GestureDetector(
-                    onTap: () => setState(() => _toggleTime(t)),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          width: w,
-                          height: 46,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: on ? _kDeep : Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                                color: on ? _kDeep : _kBorder, width: 1.5),
-                          ),
-                          child: Text(
-                            t,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: on ? Colors.white : _kInk,
-                            ),
-                          ),
-                        ),
-                        if (on)
-                          Positioned(
-                            top: -8,
-                            right: 6,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: _kDeep),
-                              ),
-                              child: Text(
-                                idx == 0 ? '1st' : '2nd',
-                                style: const TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: _kDeep,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            }),
-          ],
-        ),
-      ));
-    }
-
-    final days = _workoutDays;
-    Widget getRow(IconData icon, String bold, String rest) => Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 17, color: _kDeep),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(children: [
-                    TextSpan(
-                        text: bold,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    TextSpan(
-                        text: rest, style: const TextStyle(color: _kInkSoft)),
-                  ]),
-                  style: const TextStyle(
-                      fontFamily: 'Poppins', fontSize: 12.5, color: _kInk),
-                ),
-              ),
-            ],
-          ),
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 6),
-        _stepBadge('Your time'),
-        const SizedBox(height: 12),
-        _twoToneTitle('Tell us when ', "you're free"),
-        _subLine("Pick 2 times and we'll remind you before class."),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _kBorder),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _pickedTimes.isEmpty
-                    ? Icons.radio_button_unchecked_rounded
-                    : Icons.check_circle_rounded,
-                size: 18,
-                color: _pickedTimes.isEmpty ? _kBorder : _kAccent,
-              ),
-              const SizedBox(width: 6),
-              const Expanded(
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 10),
                 child: Text(
-                  'Your times',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _kInk,
-                  ),
-                ),
-              ),
-              slot('1st', _pickedTimes.isNotEmpty ? _pickedTimes[0] : null),
-              const SizedBox(width: 6),
-              slot('2nd', _pickedTimes.length > 1 ? _pickedTimes[1] : null),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        ...groups,
-        if (_pickedTimes.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 2),
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-            decoration: BoxDecoration(
-              color: _kAccentBg,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Here's what you'll get",
-                  style: TextStyle(
+                  '${meta[0]}  ${meta[1]}',
+                  style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: _kInk,
                   ),
                 ),
-                getRow(
-                  Icons.calendar_month_rounded,
-                  days.length == 1 && days.first == null
-                      ? 'A class every day'
-                      : '${days.length} workout days',
-                  days.length == 1 && days.first == null
-                      ? ''
-                      : '  ${_rangeLabel(days)}',
-                ),
-                getRow(
-                  Icons.schedule_rounded,
-                  _pickedTimes.length == 2 ? '2 times' : '1 time',
-                  ' to choose from each day',
-                ),
-                getRow(
-                  Icons.notifications_active_outlined,
-                  'A reminder',
-                  ' before class and when it goes live',
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  // ── Step 6b: Your week is ready ───────────────────────────────────
-  Widget _weekScreen() {
-    final window = _classData?['joinWindowMinutes'] ?? _home.joinWindowMinutes.value;
-    final win = window is int ? window : 10;
-    final days = _workoutDays;
-    final everyDay = days.length == 1 && days.first == null;
-    final times = _pickedTimes.join(' or ');
-    final favDays = days
-        .where((d) => _classesOn(d).any((c) =>
-            _pickedTimes.contains('${c['startLocal']}') && _isFavourite(c)))
-        .length;
-    final first = _firstClass();
-    final tz = _classData?['showsPakistanTime'] == true
-        ? 'your time zone'
-        : 'Pakistan time';
-
-    Widget pill(String text) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        );
-
-    Widget rule(IconData icon, String text) => Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: const Color(0xFFB7791F)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  text,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: _kInk,
-                  ),
-                ),
               ),
+              ...inPart.map((c) {
+                final id = c['slotId'] as int;
+                return TrialClassCard(
+                  data: c,
+                  selected: _pickedSlots.contains(id),
+                  showPakistanTime: _classData?['showsPakistanTime'] == true,
+                  onTap: () => setState(() {
+                    if (!_pickedSlots.remove(id)) _pickedSlots.add(id);
+                  }),
+                );
+              }),
             ],
           ),
-        );
-
-    // Timetable grid: columns are days, rows are class times.
-    final gridDays = _weekDays.isEmpty ? <String?>[null] : _weekDays.cast<String?>();
-    final tmName = _tomorrowName;
-    const timeCol = 58.0;
-    final header = Row(
-      children: [
-        const SizedBox(width: timeCol),
-        ...gridDays.map((d) {
-          final tm = d == tmName;
-          return Expanded(
-            child: Text(
-              d == null ? 'Daily' : (tm ? 'Tmrw' : _short(d)),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 10.5,
-                fontWeight: tm ? FontWeight.w800 : FontWeight.w600,
-                color: tm ? _kDeep : _kInkSoft,
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-    bool anyFav = false;
-    final rows = _timeOptions.map((o) {
-      final t = o['time'] as String;
-      final mine = _pickedTimes.contains(t);
-      return Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        decoration: BoxDecoration(
-          color: mine ? _kAccentBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: mine ? _kAccent : Colors.transparent),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: timeCol,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 6),
-                child: Text(
-                  t,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 10.5,
-                    fontWeight: mine ? FontWeight.w800 : FontWeight.w500,
-                    color: mine ? _kDeep : _kInkSoft,
-                  ),
-                ),
-              ),
-            ),
-            ...gridDays.map((d) {
-              final here = _classesOn(d)
-                  .where((c) => '${c['startLocal']}' == t)
-                  .toList();
-              if (here.isEmpty) {
-                return const Expanded(
-                  child: SizedBox(
-                    height: 26,
-                    child: Center(
-                      child: Text('·',
-                          style: TextStyle(color: _kBorder, fontSize: 16)),
-                    ),
-                  ),
-                );
-              }
-              final c = here.first;
-              final st = _typeStyle('${c['type'] ?? ''}');
-              final fav = _isFavourite(c);
-              if (fav) anyFav = true;
-              return Expanded(
-                child: Container(
-                  height: 26,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: st[1] as Color,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      fav ? '${st[0]} ★' : '${st[0]}',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: st[2] as Color,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      );
-    }).toList();
+        ));
+      }
+      body = Column(children: groups);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 6),
-        _stepBadge('Your week'),
-        const SizedBox(height: 12),
-        _twoToneTitle('Your week ', 'is ready'),
-        _subLine("Your times on the trainers' timetable."),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_kClassA, _kClassB],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'YOUR PLAN · ${_rangeLabel(days).toUpperCase()}',
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  color: Color(0xFFA8F0C0),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                everyDay
-                    ? 'A class every day at $times'
-                    : '${days.length} workout days at $times',
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 18,
-                  height: 1.3,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (favDays > 0)
-                    pill(everyDay
-                        ? '★ A workout you love'
-                        : '★ $favDays of ${days.length} days have a favourite'),
-                  if (first != null)
-                    pill('First: ${first['when']}, '
-                        '${(first['c'] as Map)['startLocal']} · '
-                        '${_typeStyle('${(first['c'] as Map)['type'] ?? ''}')[0]}'),
-                ],
-              ),
-            ],
-          ),
+        const _StepHeader(
+          title: 'Pick your class times ⏰',
+          sub: "We'll remind you before each one. No booking needed. "
+              'Most women pick 1 or 2.',
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF7E6),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFFBE3B5)),
+        body,
+        if (classes.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            _classData?['showsPakistanTime'] == true
+                ? 'Times shown in your time zone.'
+                : 'Times shown in Pakistan time.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 11.5, color: _kInkSoft),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'BEFORE YOUR FIRST CLASS',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: Color(0xFFB7791F),
-                ),
-              ),
-              rule(Icons.timer_outlined, 'Join in the first $win minutes'),
-              rule(Icons.female_rounded, 'Women only'),
-              rule(Icons.videocam_off_outlined, 'Live only, no recordings'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _kBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 6, bottom: 12),
-                child: Text.rich(
-                  TextSpan(children: [
-                    const TextSpan(
-                      text: "Trainers' weekly timetable\n",
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                          color: _kInk),
-                    ),
-                    TextSpan(
-                      text: 'Live · $tz',
-                      style: const TextStyle(fontSize: 11, color: _kInkSoft),
-                    ),
-                  ]),
-                  style: const TextStyle(fontFamily: 'Poppins', height: 1.4),
-                ),
-              ),
-              header,
-              ...rows,
-              if (anyFav)
-                const Padding(
-                  padding: EdgeInsets.only(top: 10, left: 6),
-                  child: Text(
-                    '★ a workout you love',
-                    style: TextStyle(
-                        fontFamily: 'Poppins', fontSize: 11, color: _kInkSoft),
-                  ),
-                ),
-            ],
-          ),
-        ),
+          const SizedBox(height: 16),
+          TrialClassRulesCard(joinWindowMinutes: window is int ? window : 10),
+        ],
       ],
     );
   }

@@ -82,7 +82,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
 
   // Step 5: "Which of these fits you right now?" Saved on the backend
   // (pre-consultation profile) so the trial / paid forms never ask again.
-  //   * pregnant                -> due date, then Coming soon, signup stops.
+  //   * pregnant                -> Coming soon, signup stops.
   //   * recently had a baby     -> birth date + delivery type. Still inside
   //                                the waiting time: Coming soon with her
   //                                date. Past it: doctor tick, then carry on.
@@ -97,13 +97,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
                 .saveLifeStage({'status': value});
             if (ls == null) return; // toast already shown, stay on screen
             if (value == 'pregnant') {
-              Get.to(() => PregnancyDetailsScreen(
-                    currentStep: 5,
-                    totalSteps: _totalSteps,
-                    initial: ls,
-                    onSaved: (res) =>
-                        Get.offAll(() => LifeStageComingSoonScreen(data: res)),
-                  ));
+              Get.offAll(() => LifeStageComingSoonScreen(data: ls));
               return;
             }
             if (value == 'postpartum') {

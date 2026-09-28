@@ -189,40 +189,6 @@ class DietController extends GetxController implements GetxService {
     }
   }
 
-  // Dietitian: "Client didn't join". Server cancels the booking without
-  // using up her consultation and pushes her a "book a new time" note.
-  Future<void> reportClientNoShow(int id) async {
-    final connected = await connectionService.checkConnection();
-    if (!connected) {
-      CustomToast.noInternetToast();
-      return;
-    }
-    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
-    try {
-      final response = await homeRepo.reportClientNoShow(
-        accessToken: sharedPreferences.getString(Constants.accessToken) ?? "",
-        id: id.toString(),
-      );
-      Get.back();
-      final body = response.body;
-      final ok = body is Map && body['status'] == '1';
-      final msg = body is Map ? body['message']?.toString() : null;
-      if (ok) {
-        CustomToast.successToast(msg: msg ?? "Marked as missed. She's been asked to rebook.");
-        final appt = dietAppointmentsModel?.appointments.firstWhereOrNull((v) => v.id == id);
-        if (appt != null) {
-          appt.status = 'canceled';
-          update();
-        }
-      } else {
-        CustomToast.failToast(msg: msg ?? 'Could not update. Please try again.');
-      }
-    } catch (_) {
-      Get.back();
-      CustomToast.failToast(msg: 'Could not update. Please try again.');
-    }
-  }
-
   // Opens the Google Meet link right after a session goes live, so
   // starting the session and joining it is one tap instead of two —
   // she used to have to start it here, then separately hunt down the

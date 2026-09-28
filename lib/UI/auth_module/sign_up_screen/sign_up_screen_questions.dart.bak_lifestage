@@ -1,5 +1,4 @@
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
-import 'package:fitness_zone_2/data/controllers/consultation_controller/consultation_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
 import 'package:fitness_zone_2/UI/auth_module/time_preference_screen.dart';
@@ -11,14 +10,11 @@ import '../cycle_data_screen.dart';
 import 'age_screen.dart';
 import 'health_conditions_screen.dart';
 import 'height_screen.dart';
-import 'life_stage_gate.dart';
-import 'life_stage_screen.dart';
 import 'weight_screen.dart';
 
 /// Orchestrates the onboarding question flow:
 /// GoalScreen (step 1, handled before this) →
-/// Age (2) → Weight (3) → Height (4) → Which fits you (5) →
-/// Cycle (6, only if she has periods) → HealthConditions (7) → TimePreference (8)
+/// Age (2) → Weight (3) → Height (4) → Cycle (5) → HealthConditions (6) → TimePreference (7)
 ///
 /// Each step is a standalone screen using the shared OnboardingScaffold design.
 class SignUpScreenQuestions extends StatefulWidget {
@@ -31,7 +27,7 @@ class SignUpScreenQuestions extends StatefulWidget {
 }
 
 class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
-  static const int _totalSteps = 8;
+  static const int _totalSteps = 7;
 
   late final String _goal;
   late final int _initialAge;
@@ -76,84 +72,13 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
           currentStep: 4,
           totalSteps: _totalSteps,
           initialValue: _initialHeight,
-          onNext: (height) => _goToLifeStage(age, weight, height),
+          onNext: (height) => _goToCycle(age, weight, height),
         ));
-  }
-
-  // Step 5: "Which of these fits you right now?" Saved on the backend
-  // (pre-consultation profile) so the trial / paid forms never ask again.
-  //   * pregnant                -> due date, then Coming soon, signup stops.
-  //   * recently had a baby     -> birth date + delivery type. Still inside
-  //                                the waiting time: Coming soon with her
-  //                                date. Past it: doctor tick, then carry on.
-  //   * periods on time / irregular / trying for a baby -> cycle step.
-  //   * periods stopped / rather not say -> skip cycle, health conditions.
-  void _goToLifeStage(int age, double weight, double height) {
-    Get.to(() => LifeStageScreen(
-          currentStep: 5,
-          totalSteps: _totalSteps,
-          onNext: (value) async {
-            final ls = await Get.find<ConsultationController>()
-                .saveLifeStage({'status': value});
-            if (ls == null) return; // toast already shown, stay on screen
-            if (value == 'pregnant') {
-              Get.to(() => PregnancyDetailsScreen(
-                    currentStep: 5,
-                    totalSteps: _totalSteps,
-                    initial: ls,
-                    onSaved: (res) =>
-                        Get.offAll(() => LifeStageComingSoonScreen(data: res)),
-                  ));
-              return;
-            }
-            if (value == 'postpartum') {
-              _goToPostpartum(ls, age, weight, height);
-              return;
-            }
-            if (lifeStageHasPeriods(value)) {
-              _goToCycle(age, weight, height);
-            } else {
-              _saveCycleData({'dataProvided': 0});
-              _goToHealthConditions(age, weight, height);
-            }
-          },
-        ));
-  }
-
-  void _goToPostpartum(
-      Map<String, dynamic> ls, int age, double weight, double height) {
-    Get.to(() => PostpartumDetailsScreen(
-          currentStep: 5,
-          totalSteps: _totalSteps,
-          initial: ls,
-          onSaved: (res) {
-            switch (res['access']) {
-              case 'waiting':
-                Get.offAll(() => LifeStageComingSoonScreen(data: res));
-                break;
-              case 'needs_clearance':
-                Get.to(() => DoctorClearanceScreen(
-                      currentStep: 5,
-                      totalSteps: _totalSteps,
-                      onCleared: () => _afterPostpartumCleared(age, weight, height),
-                    ));
-                break;
-              default: // full: already cleared earlier
-                _afterPostpartumCleared(age, weight, height);
-            }
-          },
-        ));
-  }
-
-  // Periods may not be back yet after birth, so the cycle step is skipped.
-  void _afterPostpartumCleared(int age, double weight, double height) {
-    _saveCycleData({'dataProvided': 0});
-    _goToHealthConditions(age, weight, height);
   }
 
   void _goToCycle(int age, double weight, double height) {
     Get.to(() => CycleDataScreen(
-          currentStep: 6,
+          currentStep: 5,
           totalSteps: _totalSteps,
           onContinue: (cycleData) {
             _saveCycleData(cycleData);
@@ -168,7 +93,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
 
   void _goToHealthConditions(int age, double weight, double height) {
     Get.to(() => HealthConditionsScreen(
-          currentStep: 7,
+          currentStep: 6,
           totalSteps: _totalSteps,
           initialConditions: _initialConditions,
           onNext: (conditions) => _goToTimePreference(conditions, age, weight, height),
@@ -177,7 +102,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
 
   void _goToTimePreference(String conditions, int age, double weight, double height) {
     Get.to(() => TimePreferenceScreen(
-          currentStep: 8,
+          currentStep: 7,
           totalSteps: _totalSteps,
           // TimePreference saves timeBlock to SharedPreferences first,
           // then calls this. updateUserDetails() will see hasTimeBlock = true

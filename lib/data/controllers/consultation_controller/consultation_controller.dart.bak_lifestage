@@ -62,43 +62,6 @@ class ConsultationController extends GetxController {
   /// Per-step PATCH (Decision 5). Returns true on `status:"1"`. The
   /// caller passes the partial body — controller doesn't second-guess
   /// what fields belong to the current step.
-  // ── Life stage (signup step 5) ───────────────────────────────────────
-  // Returns the backend's { status, access, availableFrom, babyBirthDate,
-  // deliveryType, waitDays } or null on failure. access is one of:
-  // full | pregnant | needs_details | waiting | needs_clearance.
-
-  Future<Map<String, dynamic>?> getLifeStage() async {
-    try {
-      final r = await homeRepo.getLifeStage(accessToken: _token);
-      final parsed = r.body is String ? jsonDecode(r.body) : r.body;
-      if (parsed is Map && parsed['status'] == '1' && parsed['data'] is Map) {
-        return Map<String, dynamic>.from(parsed['data']);
-      }
-    } catch (e) {
-      debugPrint('[lifeStage] get: $e');
-    }
-    return null;
-  }
-
-  /// Saves and returns the new state. On failure shows the server's
-  /// message and returns null.
-  Future<Map<String, dynamic>?> saveLifeStage(Map<String, dynamic> body) async {
-    try {
-      final r = await homeRepo.saveLifeStage(accessToken: _token, body: body);
-      final parsed = r.body is String ? jsonDecode(r.body) : r.body;
-      if (parsed is Map && parsed['status'] == '1' && parsed['data'] is Map) {
-        return Map<String, dynamic>.from(parsed['data']);
-      }
-      CustomToast.failToast(
-          msg: (parsed is Map ? parsed['message'] : null)?.toString() ??
-              'Could not save. Please try again.');
-    } catch (e) {
-      debugPrint('[lifeStage] save: $e');
-      CustomToast.failToast(msg: 'Could not save. Please try again.');
-    }
-    return null;
-  }
-
   Future<bool> patchProfile(Map<String, dynamic> body) async {
     try {
       final response = await homeRepo.patchPreConsultationProfile(
