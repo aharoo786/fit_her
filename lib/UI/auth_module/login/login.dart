@@ -46,7 +46,8 @@ class _LoginState extends State<Login> {
   static const Color _textDark = Color(0xFF163220);
   static const Color _textSub = Color(0xFF7B947A);
   static const Color _label = Color(0xFF5A7A56);
-  static const Color _placeholder = Color(0xFFBCD5B8);
+  static const Color _inputBorder = Color(0xFFE2E8F0);
+  static const Color _placeholder = Color(0xFF9CA3AF);
   static const Color _primaryGreen = Color(0xFF6DC55A);
   static const Color _dividerLine = Color(0xFFE5F1E0);
   static const Color _dividerText = Color(0xFF9AB09A);
@@ -274,7 +275,7 @@ class _LoginState extends State<Login> {
         padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 13.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: _sheetBorder, width: 1.5),
+          border: Border.all(color: _inputBorder, width: 1.2),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -394,7 +395,11 @@ class _LoginState extends State<Login> {
         fillColor: Colors.white,
         contentPadding:
             EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-        hintStyle: const TextStyle(color: _placeholder),
+        hintStyle: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 13.sp,
+          color: _placeholder,
+        ),
         suffixIcon: suffixIcon == null
             ? null
             : Padding(
@@ -404,7 +409,7 @@ class _LoginState extends State<Login> {
         suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: _sheetBorder, width: 1.5),
+          borderSide: const BorderSide(color: _inputBorder, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),

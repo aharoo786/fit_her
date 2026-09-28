@@ -26,8 +26,8 @@ class HealthConditionsScreen extends StatefulWidget {
 
   const HealthConditionsScreen({
     Key? key,
-    this.currentStep = 2,
-    this.totalSteps = 8,
+    this.currentStep = 4,
+    this.totalSteps = 5,
     this.initialConditions,
     required this.onNext,
   }) : super(key: key);
@@ -112,7 +112,6 @@ class _HealthConditionsScreenState extends State<HealthConditionsScreen> {
     return OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'Health conditions',
       questionLine1: 'Are you managing',
       questionLine2: 'any conditions?',
       subtitle:

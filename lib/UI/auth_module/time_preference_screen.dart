@@ -115,7 +115,6 @@ class _TimePreferenceScreenState extends State<TimePreferenceScreen> {
       child: OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'Notifications',
       questionLine1: 'When do you like',
       questionLine2: 'to work out?',
       subtitle: "We'll only notify you about classes\nduring your preferred time",

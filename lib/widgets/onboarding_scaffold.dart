@@ -19,7 +19,7 @@ class OnboardingScaffold extends StatelessWidget {
 
   final int currentStep;
   final int totalSteps;
-  final String badgeText;
+  final String? badgeText;
   final String questionLine1;
   final String questionLine2;
   final String subtitle;
@@ -29,12 +29,14 @@ class OnboardingScaffold extends StatelessWidget {
   final VoidCallback? onSkip;
   final String? skipText;
   final VoidCallback? onBack;
+  final bool showBackButton;
+  final String? caption;
 
   const OnboardingScaffold({
     Key? key,
     required this.currentStep,
     required this.totalSteps,
-    required this.badgeText,
+    this.badgeText,
     required this.questionLine1,
     required this.questionLine2,
     required this.subtitle,
@@ -44,27 +46,32 @@ class OnboardingScaffold extends StatelessWidget {
     this.onSkip,
     this.skipText,
     this.onBack,
+    this.showBackButton = true,
+    this.caption,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: showBackButton,
+      child: Scaffold(
       backgroundColor: bg,
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,
         child: Stack(
           children: [
-            // Background circles
+            // Background circles — positioned below the nav row so the
+            // progress bar and step counter are never covered by the bubble.
             Positioned(
-              top: -80.h,
+              top: 110.h,
               right: -70.w,
               child: Container(
-                width: 260.w,
-                height: 260.w,
+                width: 240.w,
+                height: 240.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: circleBg.withValues(alpha: 0.5),
+                  color: circleBg.withValues(alpha: 0.45),
                 ),
               ),
             ),
@@ -90,23 +97,26 @@ class OnboardingScaffold extends StatelessWidget {
                         left: 28.w, right: 28.w, top: 14.h),
                     child: Row(
                       children: [
-                        GestureDetector(
-                          onTap: onBack ?? () => Get.back(),
-                          child: Container(
-                            width: 40.w,
-                            height: 40.w,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(
-                                  color: dividerLine, width: 1.5),
+                        if (showBackButton)
+                          GestureDetector(
+                            onTap: onBack ?? () => Get.back(),
+                            child: Container(
+                              width: 40.w,
+                              height: 40.w,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                border: Border.all(
+                                    color: dividerLine, width: 1.5),
+                              ),
+                              child: Center(
+                                child: Icon(Icons.arrow_back_ios_new,
+                                    size: 16.sp, color: textDark),
+                              ),
                             ),
-                            child: Center(
-                              child: Icon(Icons.arrow_back_ios_new,
-                                  size: 16.sp, color: textDark),
-                            ),
-                          ),
-                        ),
+                          )
+                        else
+                          SizedBox(width: 40.w),
                         SizedBox(width: 12.w),
                         Expanded(
                           child: Container(
@@ -129,13 +139,17 @@ class OnboardingScaffold extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 12.w),
-                        Text(
-                          '$currentStep / $totalSteps',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                            color: textMuted,
+                        SizedBox(
+                          width: 42.w,
+                          child: Text(
+                            '$currentStep / $totalSteps',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              color: textMuted,
+                            ),
                           ),
                         ),
                       ],
@@ -150,40 +164,42 @@ class OnboardingScaffold extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Step badge
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 14.w, vertical: 6.h),
-                            decoration: BoxDecoration(
-                              color: circleBg,
-                              borderRadius:
-                                  BorderRadius.circular(20.r),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 7.w,
-                                  height: 7.w,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: green,
+                          // Step badge (optional)
+                          if (badgeText != null && badgeText!.isNotEmpty) ...[
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 14.w, vertical: 6.h),
+                              decoration: BoxDecoration(
+                                color: circleBg,
+                                borderRadius:
+                                    BorderRadius.circular(20.r),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 7.w,
+                                    height: 7.w,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: green,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(width: 6.w),
-                                Text(
-                                  badgeText,
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: textSub,
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    badgeText!,
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: textSub,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 18.h),
+                            SizedBox(height: 18.h),
+                          ],
 
                           // Question
                           RichText(
@@ -255,6 +271,17 @@ class OnboardingScaffold extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (caption != null) ...[
+                          SizedBox(height: 10.h),
+                          Text(
+                            caption!,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12.sp,
+                              color: textMuted,
+                            ),
+                          ),
+                        ],
                         if (onSkip != null) ...[
                           SizedBox(height: 4.h),
                           TextButton(
@@ -278,7 +305,7 @@ class OnboardingScaffold extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// Builds a pill chip selector row.

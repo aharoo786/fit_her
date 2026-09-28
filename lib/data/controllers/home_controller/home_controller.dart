@@ -1172,14 +1172,7 @@ class HomeController extends GetxController implements GetxService {
                   Get.find<AuthController>().logInUser = model.data;
                   Get.find<AuthController>().addLocalStorage(model.data!, password);
                   // getPlans();
-                  Get.offAll(() => GoalScreen(
-                    onNext: (goal) {
-                      // Use Get.to (not Get.off) so GoalScreen stays in the
-                      // stack. This lets the back arrow on AgeScreen pop
-                      // SignUpScreenQuestions and land on GoalScreen correctly.
-                      Get.to(() => SignUpScreenQuestions(selectedGoal: goal));
-                    },
-                  ));
+                  Get.offAll(() => const SignUpScreenQuestions());
                 }
                 clearyControllers();
               }

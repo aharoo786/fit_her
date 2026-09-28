@@ -13,7 +13,7 @@ class CycleDataScreen extends StatefulWidget {
   const CycleDataScreen({
     Key? key,
     this.currentStep = 3,
-    this.totalSteps = 8,
+    this.totalSteps = 5,
     required this.onContinue,
     required this.onSkip,
   }) : super(key: key);
@@ -75,7 +75,6 @@ class _CycleDataScreenState extends State<CycleDataScreen> {
     return OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'Your cycle',
       questionLine1: 'Tell us about',
       questionLine2: 'your cycle',
       subtitle:

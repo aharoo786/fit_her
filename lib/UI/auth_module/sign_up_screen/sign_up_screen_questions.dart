@@ -1,159 +1,1452 @@
+import 'package:fitness_zone_2/data/api_provider/api_provider.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
 import 'package:fitness_zone_2/data/Repos/cycle_repo/cycle_data_repository.dart';
-import 'package:fitness_zone_2/UI/auth_module/time_preference_screen.dart';
 import 'package:fitness_zone_2/values/constants.dart';
+import 'package:fitness_zone_2/widgets/onboarding_scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
-import '../cycle_data_screen.dart';
-import 'age_screen.dart';
-import 'health_conditions_screen.dart';
-import 'height_screen.dart';
-import 'weight_screen.dart';
+class _GoalOption {
+  final String emoji;
+  final String title;
+  final String subtitle;
 
-/// Orchestrates the onboarding question flow:
-/// GoalScreen (step 1, handled before this) →
-/// Age (2) → Weight (3) → Height (4) → Cycle (5) → HealthConditions (6) → TimePreference (7)
-///
-/// Each step is a standalone screen using the shared OnboardingScaffold design.
+  const _GoalOption({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+  });
+}
+
+class _Condition {
+  final String emoji;
+  final String label;
+
+  const _Condition(this.emoji, this.label);
+}
+
+class _TimeBlock {
+  final String emoji;
+  final String label;
+  final String subtitle;
+  final String value;
+
+  const _TimeBlock({
+    required this.emoji,
+    required this.label,
+    required this.subtitle,
+    required this.value,
+  });
+}
+
+/// Unified 5-Step Onboarding Questionnaire using a single PageView:
+/// 1 / 5: Goal selection
+/// 2 / 5: Body Metrics (Age, Weight, Height + Live BMI)
+/// 3 / 5: Menstrual Cycle tracking
+/// 4 / 5: Health Conditions
+/// 5 / 5: Workout Time Preference
 class SignUpScreenQuestions extends StatefulWidget {
   final String? selectedGoal;
+  final int? initialPage;
 
-  const SignUpScreenQuestions({Key? key, this.selectedGoal}) : super(key: key);
+  const SignUpScreenQuestions({
+    Key? key,
+    this.selectedGoal,
+    this.initialPage,
+  }) : super(key: key);
 
   @override
   State<SignUpScreenQuestions> createState() => _SignUpScreenQuestionsState();
 }
 
 class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
-  static const int _totalSteps = 7;
+  static const int _totalSteps = 5;
 
-  late final String _goal;
-  late final int _initialAge;
-  late final double _initialWeight;
-  late final double _initialHeight;
-  late final String _initialConditions;
+  int _currentPage = 0;
+  bool _isSubmitting = false;
+  bool _isGoingForward = true;
+  bool _pageVisible = true; // controls two-phase fade: out → swap → in
+  late final ScrollController _cycleScrollController;
+
+  void _scrollCycleToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_cycleScrollController.hasClients) {
+        _cycleScrollController.animateTo(
+          _cycleScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  // ── Step 1: Goal State ──
+  int _selectedGoalIndex = 0;
+  static const List<_GoalOption> _goals = [
+    _GoalOption(
+      emoji: '⚖️',
+      title: 'Lose weight',
+      subtitle: 'Calorie tracking, fat burn classes',
+    ),
+    _GoalOption(
+      emoji: '🥑',
+      title: 'Gain weight',
+      subtitle: 'Healthy calorie surplus, nutrition guidance',
+    ),
+    _GoalOption(
+      emoji: '💪',
+      title: 'Build strength & tone',
+      subtitle: 'Resistance training, body recomposition',
+    ),
+    _GoalOption(
+      emoji: '🏃',
+      title: 'Improve fitness',
+      subtitle: 'Cardio, stamina, daily energy',
+    ),
+    _GoalOption(
+      emoji: '🧘',
+      title: 'Reduce stress',
+      subtitle: 'Yoga, mindfulness, wellness',
+    ),
+  ];
+
+  // ── Step 2: Body Metrics State ──
+  late double _age;
+  late double _weight;
+  late double _height;
+
+  // ── Step 3: Cycle Data State ──
+  DateTime _selectedPeriodDate = DateTime.now();
+  double _cycleLength = 28;
+  String? _periodDuration = '3–5 days';
+  String? _flowType = 'Moderate';
+  String? _isRegular = '✓ Yes';
+  bool _cycleSkipped = false;
+
+  // ── Step 4: Health Conditions State ──
+  static const List<_Condition> _conditions = [
+    _Condition('🔬', 'PCOS'),
+    _Condition('🤱', 'Postpartum'),
+    _Condition('🦋', 'Thyroid'),
+    _Condition('🌸', 'Menopause'),
+    _Condition('🦴', 'Arthritis'),
+    _Condition('🩸', 'Endometriosis'),
+    _Condition('💉', 'Diabetes'),
+  ];
+  final Set<String> _selectedConditions = {};
+  bool _noneConditions = false;
+
+  // ── Step 5: Time Preference State ──
+  int _selectedTimeIndex = 0;
+  static const List<_TimeBlock> _timeBlocks = [
+    _TimeBlock(
+      emoji: '🌅',
+      label: 'Morning',
+      subtitle: '6 AM – 11 AM, start the day strong',
+      value: 'morning',
+    ),
+    _TimeBlock(
+      emoji: '☀️',
+      label: 'Afternoon',
+      subtitle: '11 AM – 4 PM, midday energy boost',
+      value: 'afternoon',
+    ),
+    _TimeBlock(
+      emoji: '🌇',
+      label: 'Evening',
+      subtitle: '4 PM – 8 PM, unwind after work',
+      value: 'evening',
+    ),
+    _TimeBlock(
+      emoji: '🌙',
+      label: 'Night',
+      subtitle: '8 PM – 11 PM, late session crew',
+      value: 'night',
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
+    _cycleScrollController = ScrollController();
     final auth = Get.find<AuthController>();
 
-    _goal = widget.selectedGoal ?? auth.mainGoal.value;
-    _initialAge = int.tryParse(auth.editAge.text) ?? 25;
-    _initialWeight = double.tryParse(auth.editWeight.text) ?? 55;
-    _initialHeight = double.tryParse(auth.editHeight.text) ?? 5.4;
-    _initialConditions = auth.healthConditions.value;
+    // Initial page
+    _currentPage = widget.initialPage ?? (widget.selectedGoal != null ? 1 : 0);
+
+    // Goal
+    final goalToMatch = widget.selectedGoal ?? auth.mainGoal.value;
+    if (goalToMatch.isNotEmpty) {
+      final idx = _goals.indexWhere(
+        (g) => g.title.toLowerCase() == goalToMatch.toLowerCase(),
+      );
+      if (idx != -1) _selectedGoalIndex = idx;
+    }
+
+    // Metrics
+    _age = (double.tryParse(auth.editAge.text) ?? 25.0).clamp(18.0, 70.0);
+    _weight = (double.tryParse(auth.editWeight.text) ?? 55.0).clamp(30.0, 150.0);
+    _height = (double.tryParse(auth.editHeight.text) ?? 5.4).clamp(3.0, 7.0);
+
+    // Conditions
+    final cond = auth.healthConditions.value;
+    if (cond.isNotEmpty) {
+      if (cond == 'none') {
+        _noneConditions = true;
+      } else {
+        _selectedConditions.addAll(cond.split(','));
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _cycleScrollController.dispose();
+    super.dispose();
+  }
+
+  String get _displayHeight {
+    final feet = _height.floor();
+    final inches = ((_height - feet) * 12).round();
+    return "$feet' $inches\"";
+  }
+
+  double get _bmi {
+    final heightInMeters = _height * 0.3048;
+    if (heightInMeters <= 0) return 0;
+    return _weight / (heightInMeters * heightInMeters);
+  }
+
+  String get _bmiCategory {
+    final b = _bmi;
+    if (b < 18.5) return 'Underweight';
+    if (b < 25.0) return 'Healthy weight';
+    if (b < 30.0) return 'Overweight';
+    return 'Obese';
+  }
+
+  String get _selectedGoalTitle => _goals[_selectedGoalIndex].title;
+
+  Future<void> _nextPage() async {
+    if (_currentPage == 2) _cycleSkipped = false;
+    if (_currentPage >= _totalSteps - 1) return;
+
+    // Phase 1: fade out current content
+    setState(() {
+      _pageVisible = false;
+      _isGoingForward = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 180));
+
+    // Phase 2: swap page (invisible), then fade in
+    if (!mounted) return;
+    setState(() {
+      _currentPage++;
+    });
+    await Future.delayed(const Duration(milliseconds: 20));
+    if (!mounted) return;
+    setState(() {
+      _pageVisible = true;
+    });
+  }
+
+  Future<void> _prevPage() async {
+    if (_currentPage <= 0) return;
+
+    // Phase 1: fade out current content
+    setState(() {
+      _pageVisible = false;
+      _isGoingForward = false;
+    });
+    await Future.delayed(const Duration(milliseconds: 180));
+
+    // Phase 2: swap page (invisible), then fade in
+    if (!mounted) return;
+    setState(() {
+      _currentPage--;
+    });
+    await Future.delayed(const Duration(milliseconds: 20));
+    if (!mounted) return;
+    setState(() {
+      _pageVisible = true;
+    });
+  }
+
+  Future<void> _pickPeriodDate() async {
+    final now = DateTime.now();
+    final earliest = now.subtract(const Duration(days: 60));
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedPeriodDate,
+      firstDate: earliest,
+      lastDate: now,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: OnboardingScaffold.green,
+              onPrimary: Colors.white,
+              onSurface: OnboardingScaffold.textDark,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _selectedPeriodDate = picked);
+    }
+  }
+
+  Future<void> _finish() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
+    final auth = Get.find<AuthController>();
+    final prefs = auth.sharedPreferences;
+    final token = prefs.getString(Constants.accessToken) ?? '';
+
+    // 1. BMI Calculation
+    final heightInMeters = _height * 0.3048;
+    final bmi = _weight / (heightInMeters * heightInMeters);
+    final bmiStr = bmi.toStringAsFixed(2);
+
+    // 2. Persist Time Preference
+    final selectedTimeBlock = _timeBlocks[_selectedTimeIndex].value;
+    prefs.setString(Constants.timeBlock, selectedTimeBlock);
+    prefs.setString(Constants.timePreferenceDone, 'true');
+    try {
+      final api = Get.find<ApiProvider>();
+      await api.postData(
+        '/users/notification_preferences',
+        body: {'timeBlock': selectedTimeBlock},
+        headers: {'accessToken': token},
+      );
+    } catch (_) {}
+
+    // 3. Persist Cycle Data
+    final cycleBody = _cycleSkipped
+        ? {'dataProvided': 0}
+        : {
+            'lastPeriodDate': DateFormat('yyyy-MM-dd').format(_selectedPeriodDate),
+            'averageCycleLength': _cycleLength.round(),
+            'isRegular': _isRegular == '✓ Yes'
+                ? 'yes'
+                : _isRegular == '✗ No'
+                    ? 'no'
+                    : 'not sure',
+            'periodDuration': _periodDuration,
+            'flowType': _flowType,
+            'dataProvided': 1,
+          };
+    try {
+      Get.find<CycleDataRepository>().saveCycleData(accessToken: token, body: cycleBody);
+    } catch (_) {}
+
+    // 4. Update user details in API (HomeController navigates to BottomBarScreen on success)
+    final conditionsStr = _noneConditions
+        ? 'none'
+        : _selectedConditions.isEmpty
+            ? ''
+            : _selectedConditions.join(',');
+
+    Get.find<HomeController>().addUserDetails(
+      status: false,
+      age: _age.round().toString(),
+      weight: _weight.round().toString(),
+      height: _height.toString(),
+      bmiResult: bmiStr,
+      mainGoal: _selectedGoalTitle,
+      healthConditions: conditionsStr,
+    );
+
+    // 5. Update local AuthController observables for immediate profile update
+    auth.editBmi.text = bmiStr;
+    auth.editAge.text = _age.round().toString();
+    auth.editWeight.text = _weight.round().toString();
+    auth.editHeight.text = _height.toString();
+    auth.mainGoal.value = _selectedGoalTitle;
+    auth.healthConditions.value = conditionsStr;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Step 2: Age (Goal was step 1 via GoalScreen)
-    return AgeScreen(
-      currentStep: 2,
-      totalSteps: _totalSteps,
-      initialValue: _initialAge,
-      onNext: (age) => _goToWeight(age),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentPage > 0) {
+          _prevPage();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: OnboardingScaffold.bg,
+        body: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: Stack(
+            children: [
+              // ── Persistent Top-Right Bubble ──
+              Positioned(
+                top: 110.h,
+                right: -70.w,
+                child: Container(
+                  width: 240.w,
+                  height: 240.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: OnboardingScaffold.circleBg.withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+
+              // ── Persistent Bottom-Left Bubble ──
+              Positioned(
+                bottom: 140.h,
+                left: -60.w,
+                child: Container(
+                  width: 180.w,
+                  height: 180.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: OnboardingScaffold.circleBg.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+
+              // ── Main Layout ──
+              SafeArea(
+                child: Column(
+                  children: [
+                    // ── Pinned Navigation Header ──
+                    Padding(
+                      padding: EdgeInsets.only(left: 28.w, right: 28.w, top: 14.h),
+                      child: Row(
+                        children: [
+                          if (_currentPage > 0 || widget.selectedGoal != null)
+                            GestureDetector(
+                              onTap: _prevPage,
+                              child: Container(
+                                width: 40.w,
+                                height: 40.w,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  border: Border.all(color: OnboardingScaffold.dividerLine, width: 1.5),
+                                ),
+                                child: Center(
+                                  child: Icon(Icons.arrow_back_ios_new, size: 16.sp, color: OnboardingScaffold.textDark),
+                                ),
+                              ),
+                            )
+                          else
+                            SizedBox(
+                              width: 40.w,
+                              height: 40.w,
+                            ),
+                          SizedBox(width: 12.w),
+
+                          // ── 5-Segment Pill Indicators ──
+                          Expanded(
+                            child: Row(
+                              children: List.generate(_totalSteps, (i) {
+                                final isActive = i == _currentPage;
+                                final isDone = i < _currentPage;
+                                return Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 3.w),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 350),
+                                      curve: Curves.easeInOutCubic,
+                                      height: 4.h,
+                                      decoration: BoxDecoration(
+                                        color: (isActive || isDone)
+                                            ? OnboardingScaffold.green
+                                            : OnboardingScaffold.circleBg,
+                                        borderRadius: BorderRadius.circular(2.r),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Page Content: AnimatedOpacity (no overlap, pure sequential) ──
+                    Expanded(
+                      child: AnimatedOpacity(
+                        opacity: _pageVisible ? 1.0 : 0.0,
+                        duration: Duration(
+                          milliseconds: _pageVisible ? 260 : 160,
+                        ),
+                        curve: _pageVisible ? Curves.easeOut : Curves.easeIn,
+                        child: AnimatedSlide(
+                          offset: _pageVisible ? Offset.zero : Offset(0, _isGoingForward ? -0.03 : 0.03),
+                          duration: Duration(
+                            milliseconds: _pageVisible ? 300 : 160,
+                          ),
+                          curve: _pageVisible ? Curves.easeOutCubic : Curves.easeIn,
+                          child: _buildCurrentPage(),
+                        ),
+                      ),
+                    ),
+
+                    // ── Pinned Bottom CTA (Always at the exact same vertical position) ──
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(28.w, 8.h, 28.w, 20.h),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54.h,
+                            child: ElevatedButton(
+                              onPressed: _isSubmitting ? null : (_currentPage == _totalSteps - 1 ? _finish : _nextPage),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: OnboardingScaffold.green,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16.r),
+                                ),
+                              ),
+                              child: _isSubmitting
+                                  ? SizedBox(
+                                      width: 22.w,
+                                      height: 22.w,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Text(
+                                      _currentPage == _totalSteps - 1 ? 'Get Started 🎉' : 'Next →',
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          SizedBox(
+                            height: 38.h,
+                            child: Center(
+                              child: _buildBottomSubAction(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  void _goToWeight(int age) {
-    Get.to(() => WeightScreen(
-          currentStep: 3,
-          totalSteps: _totalSteps,
-          initialValue: _initialWeight,
-          onNext: (weight) => _goToHeight(age, weight),
-        ));
-  }
-
-  void _goToHeight(int age, double weight) {
-    Get.to(() => HeightScreen(
-          currentStep: 4,
-          totalSteps: _totalSteps,
-          initialValue: _initialHeight,
-          onNext: (height) => _goToCycle(age, weight, height),
-        ));
-  }
-
-  void _goToCycle(int age, double weight, double height) {
-    Get.to(() => CycleDataScreen(
-          currentStep: 5,
-          totalSteps: _totalSteps,
-          onContinue: (cycleData) {
-            _saveCycleData(cycleData);
-            _goToHealthConditions(age, weight, height);
+  /// Consistent sub-action under the pinned primary CTA across all 5 steps
+  Widget _buildBottomSubAction() {
+    switch (_currentPage) {
+      case 0:
+        return Text(
+          'You can always change this later',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12.sp,
+            color: OnboardingScaffold.textMuted,
+          ),
+        );
+      case 1:
+        return Text(
+          'You can always update these anytime in your profile',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12.sp,
+            color: OnboardingScaffold.textMuted,
+          ),
+        );
+      case 2:
+        return TextButton(
+          onPressed: () {
+            setState(() => _cycleSkipped = true);
+            _nextPage();
           },
-          onSkip: () {
-            _saveCycleData({'dataProvided': 0});
-            _goToHealthConditions(age, weight, height);
-          },
-        ));
+          child: Text(
+            'Skip — not tracking cycle',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13.sp,
+              color: OnboardingScaffold.textMuted,
+            ),
+          ),
+        );
+      case 3:
+        return const SizedBox.shrink();
+      case 4:
+        return Text(
+          'You can change notification times anytime in Settings',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12.sp,
+            color: OnboardingScaffold.textMuted,
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
-  void _goToHealthConditions(int age, double weight, double height) {
-    Get.to(() => HealthConditionsScreen(
-          currentStep: 6,
-          totalSteps: _totalSteps,
-          initialConditions: _initialConditions,
-          onNext: (conditions) => _goToTimePreference(conditions, age, weight, height),
-        ));
+  // ════════════════════════════════════════════════════════
+  // ── DISPATCHER: returns the current page widget
+  // ════════════════════════════════════════════════════════
+  Widget _buildCurrentPage() {
+    switch (_currentPage) {
+      case 0:
+        return _buildGoalPage();
+      case 1:
+        return _buildBodyMetricsPage();
+      case 2:
+        return _buildCyclePage();
+      case 3:
+        return _buildHealthConditionsPage();
+      case 4:
+        return _buildTimePreferencePage();
+      default:
+        return _buildGoalPage();
+    }
   }
 
-  void _goToTimePreference(String conditions, int age, double weight, double height) {
-    Get.to(() => TimePreferenceScreen(
-          currentStep: 7,
-          totalSteps: _totalSteps,
-          // TimePreference saves timeBlock to SharedPreferences first,
-          // then calls this. updateUserDetails() will see hasTimeBlock = true
-          // and navigate straight to BottomBarScreen.
-          onCompleted: (_) => _finish(conditions, age, weight, height),
-        ));
-  }
-
-  void _saveCycleData(Map<String, dynamic> cycleData) {
-    final token = Get.find<AuthController>()
-        .sharedPreferences
-        .getString(Constants.accessToken) ?? '';
-    Get.find<CycleDataRepository>()
-        .saveCycleData(accessToken: token, body: cycleData);
-  }
-
-  void _finish(String conditions, int age, double weight, double height) {
-    // Calculate BMI: weight(kg) / height(m)^2
-    final heightInMeters = height * 0.3048;
-    final bmi = weight / (heightInMeters * heightInMeters);
-    final bmiStr = bmi.toStringAsFixed(2);
-
-    final auth = Get.find<AuthController>();
-
-    // Send to API — on success, updateUserDetails() navigates to BottomBarScreen.
-    // timeBlock is already saved to SharedPreferences so the TimePreferenceScreen
-    // check in updateUserDetails() is skipped.
-    Get.find<HomeController>().addUserDetails(
-      status: false,
-      age: age.toString(),
-      weight: weight.round().toString(),
-      height: height.toString(),
-      bmiResult: bmiStr,
-      mainGoal: _goal,
-      healthConditions: conditions,
+  // ════════════════════════════════════════════════════════
+  // ── PAGE 1: GOAL SELECTION
+  // ════════════════════════════════════════════════════════
+  Widget _buildGoalPage() {
+    return _buildPageLayout(
+      questionLine1: "What's your",
+      questionLine2: 'main goal?',
+      subtitle: "We'll personalise your entire\nexperience around this",
+      content: Column(
+        children: List.generate(_goals.length, (i) {
+          final opt = _goals[i];
+          final isSelected = i == _selectedGoalIndex;
+          return Padding(
+            padding: EdgeInsets.only(bottom: 12.h),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedGoalIndex = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+                decoration: BoxDecoration(
+                  color: isSelected ? OnboardingScaffold.optionSelectedBg : OnboardingScaffold.optionBg,
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(
+                    color: isSelected ? OnboardingScaffold.green : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(opt.emoji, style: TextStyle(fontSize: 26.sp)),
+                    SizedBox(width: 14.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            opt.title,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: OnboardingScaffold.textDark,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            opt.subtitle,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w300,
+                              color: OnboardingScaffold.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected ? OnboardingScaffold.green : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected ? OnboardingScaffold.green : OnboardingScaffold.radioBorder,
+                          width: 2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Center(
+                              child: CustomPaint(
+                                size: Size(12.w, 12.w),
+                                painter: _CheckPainter(),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
+  }
 
-    // Update local controllers for profile display
-    auth.editBmi.text = bmiStr;
-    auth.editAge.text = age.toString();
-    auth.editWeight.text = weight.round().toString();
-    auth.editHeight.text = height.toString();
-    auth.mainGoal.value = _goal;
-    auth.healthConditions.value = conditions;
+  // ════════════════════════════════════════════════════════
+  // ── PAGE 2: BODY METRICS (AGE, WEIGHT, HEIGHT)
+  // ════════════════════════════════════════════════════════
+  Widget _buildBodyMetricsPage() {
+    return _buildPageLayout(
+      questionLine1: 'Tell us about',
+      questionLine2: 'your body',
+      subtitle: "We'll tailor your calorie targets and workout intensity using these metrics",
+      content: Column(
+        children: [
+          // ── Age Card ──
+          _buildSliderMetricCard(
+            emoji: '🎂',
+            label: 'Age',
+            valueText: '${_age.round()}',
+            unitText: 'years old',
+            sliderValue: _age,
+            min: 18,
+            max: 70,
+            divisions: 52,
+            minLabel: '18 yrs',
+            maxLabel: '70 yrs',
+            onChanged: (v) => setState(() => _age = v),
+          ),
+          SizedBox(height: 14.h),
+
+          // ── Weight Card ──
+          _buildSliderMetricCard(
+            emoji: '⚖️',
+            label: 'Weight',
+            valueText: '${_weight.round()}',
+            unitText: 'kg',
+            sliderValue: _weight,
+            min: 30,
+            max: 150,
+            divisions: 120,
+            minLabel: '30 kg',
+            maxLabel: '150 kg',
+            onChanged: (v) => setState(() => _weight = v),
+          ),
+          SizedBox(height: 14.h),
+
+          // ── Height Card ──
+          _buildSliderMetricCard(
+            emoji: '📏',
+            label: 'Height',
+            valueText: _displayHeight,
+            unitText: 'ft',
+            sliderValue: _height,
+            min: 3.0,
+            max: 7.0,
+            divisions: 48,
+            minLabel: "3' 0\"",
+            maxLabel: "7' 0\"",
+            onChanged: (v) => setState(() => _height = v),
+          ),
+          SizedBox(height: 16.h),
+
+          // ── Live BMI Preview Card ──
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: OnboardingScaffold.optionSelectedBg,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: OnboardingScaffold.green.withValues(alpha: 0.35),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text('📊', style: TextStyle(fontSize: 16.sp)),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Est. BMI: ',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: OnboardingScaffold.textDark,
+                      ),
+                    ),
+                    Text(
+                      _bmi.toStringAsFixed(1),
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w700,
+                        color: OnboardingScaffold.green,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: OnboardingScaffold.circleBg,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    _bmiCategory,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: OnboardingScaffold.textSub,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 10.h),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── PAGE 3: CYCLE TRACKING
+  // ════════════════════════════════════════════════════════
+  Widget _buildCyclePage() {
+    return _buildPageLayout(
+      questionLine1: 'Tell us about',
+      questionLine2: 'your cycle',
+      subtitle: 'This powers your hormonal intelligence and phase tracking',
+      scrollController: _cycleScrollController,
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Q1: Last Period Date ──
+          OnboardingScaffold.buildLabel('When did your ', 'last period', ' start?'),
+          SizedBox(height: 10.h),
+          GestureDetector(
+            onTap: _pickPeriodDate,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 15.h),
+              decoration: BoxDecoration(
+                color: OnboardingScaffold.optionBg,
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(color: OnboardingScaffold.radioBorder, width: 2),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DateFormat('MMMM d, yyyy').format(_selectedPeriodDate),
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: OnboardingScaffold.textDark,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        'Tap to change',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12.sp,
+                          color: OnboardingScaffold.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text('📅', style: TextStyle(fontSize: 20.sp)),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 20.h),
+
+          // ── Q2: Cycle Length Slider ──
+          OnboardingScaffold.buildLabel('Average ', 'cycle length?'),
+          SizedBox(height: 10.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 16.h),
+            decoration: BoxDecoration(
+              color: OnboardingScaffold.optionBg,
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '${_cycleLength.round()}',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 28.sp,
+                            fontWeight: FontWeight.w700,
+                            color: OnboardingScaffold.textDark,
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          'days',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14.sp,
+                            color: OnboardingScaffold.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      _cycleLength < 25
+                          ? 'Shorter'
+                          : _cycleLength > 35
+                              ? 'Longer'
+                              : 'Typical',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: OnboardingScaffold.green,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 6.h),
+                SliderTheme(
+                  data: SliderThemeData(
+                    activeTrackColor: OnboardingScaffold.green,
+                    inactiveTrackColor: OnboardingScaffold.radioBorder,
+                    thumbColor: OnboardingScaffold.green,
+                    overlayColor: OnboardingScaffold.green.withValues(alpha: 0.15),
+                    trackHeight: 5.h,
+                    thumbShape: _OnboardingThumb(),
+                  ),
+                  child: Slider(
+                    value: _cycleLength,
+                    min: 21,
+                    max: 45,
+                    divisions: 24,
+                    onChanged: (v) => setState(() => _cycleLength = v),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('21 days', style: TextStyle(fontFamily: 'Poppins', fontSize: 11.sp, color: OnboardingScaffold.textMuted)),
+                      Text('45 days', style: TextStyle(fontFamily: 'Poppins', fontSize: 11.sp, color: OnboardingScaffold.textMuted)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20.h),
+
+          // ── Q3: Period Duration ──
+          OnboardingScaffold.buildLabel('How many ', 'days', ' do you bleed?'),
+          SizedBox(height: 10.h),
+          OnboardingScaffold.buildPillRow(
+            options: const [
+              '1–2 days',
+              '3–5 days',
+              '6–7 days',
+              '8+ days',
+            ],
+            selected: _periodDuration,
+            onSelect: (v) {
+              setState(() => _periodDuration = v);
+              _scrollCycleToBottom();
+            },
+          ),
+          SizedBox(height: 20.h),
+
+          // ── Q4: Flow Type ──
+          OnboardingScaffold.buildLabel('How ', 'heavy', ' is your flow?'),
+          SizedBox(height: 10.h),
+          OnboardingScaffold.buildPillRow(
+            options: const ['Light', 'Moderate', 'Heavy'],
+            selected: _flowType,
+            onSelect: (v) => setState(() => _flowType = v),
+          ),
+          SizedBox(height: 20.h),
+
+          // ── Q5: Regularity ──
+          OnboardingScaffold.buildLabel('Are your periods ', 'regular', '?'),
+          SizedBox(height: 10.h),
+          OnboardingScaffold.buildYesNoRow(
+            options: const ['✓ Yes', '✗ No', '? Not sure'],
+            selected: _isRegular,
+            onSelect: (v) => setState(() => _isRegular = v),
+          ),
+          SizedBox(height: 10.h),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── PAGE 4: HEALTH CONDITIONS
+  // ════════════════════════════════════════════════════════
+  Widget _buildHealthConditionsPage() {
+    return _buildPageLayout(
+      questionLine1: 'Are you managing',
+      questionLine2: 'any conditions?',
+      subtitle: "Select all that apply — we'll personalise your program, diet plan and symptom tracking around each one",
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10.w,
+            runSpacing: 10.h,
+            children: [
+              ..._conditions.map((cond) {
+                final isSel = _selectedConditions.contains(cond.label);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _noneConditions = false;
+                      if (_selectedConditions.contains(cond.label)) {
+                        _selectedConditions.remove(cond.label);
+                      } else {
+                        _selectedConditions.add(cond.label);
+                      }
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: isSel ? OnboardingScaffold.optionSelectedBg : OnboardingScaffold.optionBg,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(
+                        color: isSel ? OnboardingScaffold.green : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(cond.emoji, style: TextStyle(fontSize: 18.sp)),
+                        SizedBox(width: 8.w),
+                        Text(
+                          cond.label,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14.sp,
+                            fontWeight: isSel ? FontWeight.w600 : FontWeight.w500,
+                            color: OnboardingScaffold.textDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+
+              // 'None of the above' chip
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedConditions.clear();
+                    _noneConditions = !_noneConditions;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                    color: _noneConditions ? OnboardingScaffold.optionSelectedBg : OnboardingScaffold.optionBg,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: _noneConditions ? OnboardingScaffold.green : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('✨', style: TextStyle(fontSize: 18.sp)),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'None of the above',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14.sp,
+                          fontWeight: _noneConditions ? FontWeight.w600 : FontWeight.w500,
+                          color: OnboardingScaffold.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── PAGE 5: TIME PREFERENCE & FINISH
+  // ════════════════════════════════════════════════════════
+  Widget _buildTimePreferencePage() {
+    return _buildPageLayout(
+      questionLine1: 'What time',
+      questionLine2: 'suits you?',
+      subtitle: "We'll schedule class recommendations and workout reminders around your preference",
+      content: Column(
+        children: List.generate(_timeBlocks.length, (i) {
+          final block = _timeBlocks[i];
+          final isSelected = i == _selectedTimeIndex;
+          return Padding(
+            padding: EdgeInsets.only(bottom: 12.h),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTimeIndex = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+                decoration: BoxDecoration(
+                  color: isSelected ? OnboardingScaffold.optionSelectedBg : OnboardingScaffold.optionBg,
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(
+                    color: isSelected ? OnboardingScaffold.green : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(block.emoji, style: TextStyle(fontSize: 26.sp)),
+                    SizedBox(width: 14.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            block.label,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: OnboardingScaffold.textDark,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            block.subtitle,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w300,
+                              color: OnboardingScaffold.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected ? OnboardingScaffold.green : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected ? OnboardingScaffold.green : OnboardingScaffold.radioBorder,
+                          width: 2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Center(
+                              child: CustomPaint(
+                                size: Size(12.w, 12.w),
+                                painter: _CheckPainter(),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── HELPER: COMMON PAGE LAYOUT WRAPPER
+  // ════════════════════════════════════════════════════════
+  Widget _buildPageLayout({
+    required String questionLine1,
+    required String questionLine2,
+    required String subtitle,
+    required Widget content,
+    ScrollController? scrollController,
+  }) {
+    return SingleChildScrollView(
+      controller: scrollController,
+      padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 20.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Question Heading
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 24.sp,
+                fontWeight: FontWeight.w700,
+                color: OnboardingScaffold.textDark,
+                height: 1.3,
+              ),
+              children: [
+                TextSpan(text: '$questionLine1\n'),
+                TextSpan(
+                  text: questionLine2,
+                  style: const TextStyle(color: OnboardingScaffold.green),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 6.h),
+
+          // Subtitle
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w300,
+              color: OnboardingScaffold.textMuted,
+              height: 1.6,
+            ),
+          ),
+          SizedBox(height: 20.h),
+
+          // Page Specific Content
+          content,
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // ── HELPER: SLIDER METRIC CARD (BODY METRICS)
+  // ════════════════════════════════════════════════════════
+  Widget _buildSliderMetricCard({
+    required String emoji,
+    required String label,
+    required String valueText,
+    required String unitText,
+    required double sliderValue,
+    required double min,
+    required double max,
+    required int divisions,
+    required String minLabel,
+    required String maxLabel,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: OnboardingScaffold.optionBg,
+        borderRadius: BorderRadius.circular(18.r),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(emoji, style: TextStyle(fontSize: 18.sp)),
+                  SizedBox(width: 8.w),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: OnboardingScaffold.textDark,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    valueText,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w700,
+                      color: OnboardingScaffold.green,
+                    ),
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    unitText,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                      color: OnboardingScaffold.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          SliderTheme(
+            data: SliderThemeData(
+              activeTrackColor: OnboardingScaffold.green,
+              inactiveTrackColor: OnboardingScaffold.radioBorder,
+              thumbColor: OnboardingScaffold.green,
+              overlayColor: OnboardingScaffold.green.withValues(alpha: 0.15),
+              trackHeight: 5.h,
+              thumbShape: _OnboardingThumb(),
+            ),
+            child: Slider(
+              value: sliderValue,
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  minLabel,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11.sp,
+                    color: OnboardingScaffold.textMuted,
+                  ),
+                ),
+                Text(
+                  maxLabel,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11.sp,
+                    color: OnboardingScaffold.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-/// Kept for backward compatibility — used by questionair_screen.dart
+/// Kept for backward compatibility
 class Question {
   final String text;
   final List<String>? options;
 
   Question({required this.text, this.options});
+}
+
+class _CheckPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final sx = size.width / 12;
+    final sy = size.height / 12;
+
+    final path = Path()
+      ..moveTo(2 * sx, 6 * sy)
+      ..lineTo(4.5 * sx, 9 * sy)
+      ..lineTo(10 * sx, 3 * sy);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _OnboardingThumb extends SliderComponentShape {
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) => const Size(22, 22);
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final canvas = context.canvas;
+    canvas.drawCircle(
+      center + const Offset(0, 2),
+      11,
+      Paint()
+        ..color = OnboardingScaffold.green.withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+    canvas.drawCircle(center, 11, Paint()..color = Colors.white);
+    canvas.drawCircle(center, 8, Paint()..color = OnboardingScaffold.green);
+  }
 }

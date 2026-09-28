@@ -61,10 +61,11 @@ class _SetTargetWeightModalState extends State<SetTargetWeightModal> {
     }
     _selectedKg = seed.clamp(_minKg, _maxKg);
 
-    _needsDirectionPicker = widget.dashboard.user?.mainGoal != 'Lose weight';
+    final mainGoal = widget.dashboard.user?.mainGoal;
+    _needsDirectionPicker = mainGoal != 'Lose weight' && mainGoal != 'Gain weight';
     _direction = _needsDirectionPicker
         ? (goal?.weightGoalDirection ?? 'lose')
-        : 'lose';
+        : (mainGoal == 'Gain weight' ? 'gain' : 'lose');
   }
 
   Future<void> _onSave() async {

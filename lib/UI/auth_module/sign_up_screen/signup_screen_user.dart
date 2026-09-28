@@ -40,8 +40,9 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
   static const Color _textSub = Color(0xFF5A7A56);
   static const Color _textMuted = Color(0xFF9AB09A);
   static const Color _green = Color(0xFF6DC55A);
-  static const Color _dividerLine = Color(0xFFD8EDD4);
-  static const Color _placeholder = Color(0xFFC8E8C0);
+  static const Color _dividerLine = Color(0xFFE5E7EB);
+  static const Color _inputBorder = Color(0xFFE2E8F0);
+  static const Color _placeholder = Color(0xFF9CA3AF);
 
   // Neha's customer support ID
   static const int _defaultCustomerSupportId = 44;
@@ -210,7 +211,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                                         borderRadius:
                                             BorderRadius.circular(14.r),
                                         border: Border.all(
-                                            color: _dividerLine, width: 1),
+                                            color: _inputBorder, width: 1.2),
                                       ),
                                       child: Center(
                                         child: Image.asset(
@@ -257,7 +258,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                               SizedBox(height: 5.h),
                               _buildTextField(
                                 controller: _fullNameController,
-                                hint: 'Shaista Khalid',
+                                hint: 'Ayesha Khan',
                                 keyboardType: TextInputType.name,
                                 inputFormatters: [
                                   FilteringTextInputFormatter
@@ -307,7 +308,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                                 hintText: '300 1234567',
                                 hintStyle: TextStyle(
                                   fontFamily: 'Poppins',
-                                  fontSize: 14.sp,
+                                  fontSize: 13.sp,
                                   color: _placeholder,
                                 ),
                                 filled: true,
@@ -317,7 +318,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
                                   borderSide:
-                                      BorderSide(color: _dividerLine, width: 1),
+                                      const BorderSide(color: _inputBorder, width: 1.2),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
@@ -365,7 +366,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                                 hintText: 'Create a password',
                                 hintStyle: TextStyle(
                                   fontFamily: 'Poppins',
-                                  fontSize: 14.sp,
+                                  fontSize: 13.sp,
                                   color: _placeholder,
                                 ),
                                 filled: true,
@@ -374,8 +375,8 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
                                     horizontal: 16.w, vertical: 14.h),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
-                                  borderSide: BorderSide(
-                                      color: _dividerLine, width: 1),
+                                  borderSide: const BorderSide(
+                                      color: _inputBorder, width: 1.2),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
@@ -542,7 +543,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
         hintText: hint,
         hintStyle: TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 14.sp,
+          fontSize: 13.sp,
           color: _placeholder,
         ),
         filled: true,
@@ -551,7 +552,7 @@ class _SignUpNewUserState extends State<SignUpNewUser> {
             EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: _dividerLine, width: 1),
+          borderSide: const BorderSide(color: _inputBorder, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),

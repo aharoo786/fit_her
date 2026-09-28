@@ -207,11 +207,7 @@ class _ZindigiEntryScreenState extends State<ZindigiEntryScreen> {
     // collected by the SAME onboarding wizard normal signups already
     // go through. No new screens needed for that part — just enter
     // the existing chain at its normal starting point.
-    Get.offAll(() => GoalScreen(
-          onNext: (goal) {
-            Get.to(() => SignUpScreenQuestions(selectedGoal: goal));
-          },
-        ));
+    Get.offAll(() => const SignUpScreenQuestions());
   }
 
   @override
