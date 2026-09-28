@@ -279,14 +279,16 @@ class AuthController extends GetxController implements GetxService {
     sharedPreferences.setString(Constants.userTimeZoneKey, tzName);
   }
 
-  login({String? userType, String? email, String? password}) {
+  login({String? userType, String? email, String? password, bool showLoading = true}) {
     connectionService.checkConnection().then((value) async {
       if (!value) {
         CustomToast.noInternetToast();
         // Get.back();
       } else {
         isLoggingIn.value = true;
-        Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        if (showLoading) {
+          Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+        }
         if (userType != null) {
           loginAsA.value = userType;
         }
@@ -298,7 +300,9 @@ class AuthController extends GetxController implements GetxService {
           userType: loginAsA.value,
         )
             .then((response) async {
-          Get.back();
+          if (showLoading) {
+            Get.back();
+          }
           isLoggingIn.value = false;
           print('AuthController.login ${response}}');
           if (response.statusCode == 200) {
@@ -347,11 +351,16 @@ class AuthController extends GetxController implements GetxService {
     });
   }
 
-  signInUsingGoogle(String userEmail, String name, String signedFrom, {String? userType, bool fromLocal = false}) {
-    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+  signInUsingGoogle(String userEmail, String name, String signedFrom, {String? userType, bool fromLocal = false, bool? showLoading}) {
+    final bool shouldShowLoading = showLoading ?? !fromLocal;
+    if (shouldShowLoading) {
+      Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+    }
     connectionService.checkConnection().then((value) async {
       if (!value) {
-        Get.back();
+        if (shouldShowLoading) {
+          Get.back();
+        }
 
         CustomToast.noInternetToast();
         // Get.back();
@@ -364,7 +373,9 @@ class AuthController extends GetxController implements GetxService {
         )
             .then((response) async {
           Get.log("login api response :${response.body}");
-          Get.back();
+          if (shouldShowLoading) {
+            Get.back();
+          }
           if (response.statusCode == 200) {
             if (response.body["status"] == "0") {
               CustomToast.failToast(msg: response.body["message"]);

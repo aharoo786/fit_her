@@ -126,6 +126,7 @@ class _WeightCard extends StatelessWidget {
   // unknown (never asked yet, e.g. no target weight set at all).
   String? _direction() {
     if (dashboard.user?.mainGoal == 'Lose weight') return 'lose';
+    if (dashboard.user?.mainGoal == 'Gain weight') return 'gain';
     return dashboard.goal?.weightGoalDirection;
   }
 

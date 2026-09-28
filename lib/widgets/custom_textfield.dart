@@ -146,7 +146,7 @@ class CustomTextField extends StatelessWidget {
                   child: icon,
                 )
               : null,
-          errorStyle: TextStyle(fontSize: 0),
+          errorStyle: const TextStyle(fontSize: 0),
           suffixText: suffixtext,
           focusColor: MyColors.green50,
         ),

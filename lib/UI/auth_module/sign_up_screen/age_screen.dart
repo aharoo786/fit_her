@@ -12,7 +12,7 @@ class AgeScreen extends StatefulWidget {
   const AgeScreen({
     Key? key,
     this.currentStep = 2,
-    this.totalSteps = 8,
+    this.totalSteps = 7,
     this.initialValue = 25,
     required this.onNext,
   }) : super(key: key);
@@ -35,7 +35,6 @@ class _AgeScreenState extends State<AgeScreen> {
     return OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'About you',
       questionLine1: "Let's get your",
       questionLine2: 'age',
       subtitle: 'This helps us tailor workouts and nutrition to your body',

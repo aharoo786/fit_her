@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:fitness_zone_2/UI/auth_module/walt_through/walk_through_screenn.dart';
 import 'package:fitness_zone_2/data/services/notification_scheduler.dart';
 import 'package:fitness_zone_2/helper/notification_services.dart';
@@ -46,6 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _subtitleController;
   late final AnimationController _dotsController;
   late final AnimationController _loaderController;
+  late final AnimationController _sideBounceController;
 
   // ── Timers (stored so dispose() can cancel them; prevents the
   // `_elements.contains(...)` assertion error that fires when an
@@ -121,12 +123,14 @@ class _SplashScreenState extends State<SplashScreen>
               "",
               userType: loginAsa,
               fromLocal: true,
+              showLoading: false,
             );
           } else {
             Get.find<AuthController>().login(
               userType: loginAsa,
               email: email,
               password: password,
+              showLoading: false,
             );
           }
         }
@@ -177,15 +181,25 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 600),
     );
 
-    // 7. Loader pulses (1600ms onward, loops)
+    // 7. Loader wave movement (loops continuously)
     _loaderController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1100),
+    );
+
+    // 8. Side circles gentle floating bounce (loops continuously)
+    _sideBounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
     );
   }
 
   void _runAnimationSequence() {
-    _circleController.forward();
+    _circleController.forward().then((_) {
+      if (mounted) {
+        _sideBounceController.repeat(reverse: true);
+      }
+    });
 
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _logoController.forward();
@@ -207,8 +221,8 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) _dotsController.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: 1600), () {
-      if (mounted) _loaderController.repeat(reverse: true);
+    Future.delayed(const Duration(milliseconds: 1400), () {
+      if (mounted) _loaderController.repeat();
     });
   }
 
@@ -234,6 +248,7 @@ class _SplashScreenState extends State<SplashScreen>
     _subtitleController.dispose();
     _dotsController.dispose();
     _loaderController.dispose();
+    _sideBounceController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -318,22 +333,31 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  // ── Background decorative circles ──
+  // ── Background decorative circles with gentle bounce/float ──
   Widget _buildCircles() {
     return AnimatedBuilder(
-      animation: _circleController,
+      animation: Listenable.merge([_circleController, _sideBounceController]),
       builder: (context, _) {
         final scale = CurvedAnimation(
           parent: _circleController,
           curve: Curves.easeOutBack,
         ).value;
+
+        // Subtle floating bounce for side corner circles
+        final bounceVal = CurvedAnimation(
+          parent: _sideBounceController,
+          curve: Curves.easeInOutSine,
+        ).value;
+        final floatOffset = (bounceVal - 0.5) * 12.h;
+        final subtleScale = 1.0 + (bounceVal * 0.04);
+
         return Stack(
           children: [
             Positioned(
-              top: -100.h,
-              right: -80.w,
+              top: -100.h + floatOffset,
+              right: -80.w - (floatOffset * 0.5),
               child: Transform.scale(
-                scale: scale,
+                scale: scale * subtleScale,
                 child: Container(
                   width: 280.w,
                   height: 280.w,
@@ -345,10 +369,10 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
             Positioned(
-              bottom: -55.h,
-              left: -55.w,
+              bottom: -55.h - floatOffset,
+              left: -55.w + (floatOffset * 0.5),
               child: Transform.scale(
-                scale: scale,
+                scale: scale * subtleScale,
                 child: Container(
                   width: 190.w,
                   height: 190.w,
@@ -468,11 +492,17 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  // ── 4 cycle dots pop in one by one ──
+  // ── 4 cycle dots pop in one by one and float gently ──
   Widget _buildCycleDots() {
     return AnimatedBuilder(
-      animation: _dotsController,
+      animation: Listenable.merge([_dotsController, _sideBounceController]),
       builder: (context, _) {
+        final bounceVal = CurvedAnimation(
+          parent: _sideBounceController,
+          curve: Curves.easeInOutSine,
+        ).value;
+        final floatY = (bounceVal - 0.5) * 3.h;
+
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(4, (i) {
@@ -486,14 +516,17 @@ class _SplashScreenState extends State<SplashScreen>
             );
             return Padding(
               padding: EdgeInsets.symmetric(horizontal: 4.w),
-              child: Transform.scale(
-                scale: dotScale.value,
-                child: Container(
-                  width: 7.w,
-                  height: 7.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _dotColors[i],
+              child: Transform.translate(
+                offset: Offset(0, floatY),
+                child: Transform.scale(
+                  scale: dotScale.value,
+                  child: Container(
+                    width: 7.w,
+                    height: 7.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _dotColors[i],
+                    ),
                   ),
                 ),
               ),
@@ -504,46 +537,44 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  // ── Loader: 3 pulsing dots ──
+  // ── Loader: 3 dots moving in a wave bounce (loading animation) ──
   Widget _buildLoader() {
-    final pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _loaderController, curve: Curves.easeInOut),
-    );
-
     return AnimatedBuilder(
       animation: _loaderController,
       builder: (context, _) {
-        final pulse = pulseAnim.value;
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 6.w,
-              height: 6.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _green.withValues(alpha: pulse),
+          children: List.generate(3, (i) {
+            // Staggered wave progression across the 3 dots
+            final double t = _loaderController.value;
+            // Phase offset for wave motion
+            final double phase = (t - (i * 0.18)) % 1.0;
+            // Smooth sine bounce in the active half of cycle
+            final double bounceFactor = (phase >= 0.0 && phase <= 0.5)
+                ? math.sin(phase / 0.5 * math.pi)
+                : 0.0;
+            final double offsetY = -6.h * bounceFactor;
+            final double scale = 1.0 + (0.28 * bounceFactor);
+            final double opacity = (0.35 + (0.65 * bounceFactor)).clamp(0.35, 1.0);
+
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: 3.5.w),
+              child: Transform.translate(
+                offset: Offset(0, offsetY),
+                child: Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 6.w,
+                    height: 6.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _green.withValues(alpha: opacity),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            SizedBox(width: 6.w),
-            Container(
-              width: 6.w,
-              height: 6.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _green.withValues(alpha: pulse * 0.5),
-              ),
-            ),
-            SizedBox(width: 6.w),
-            Container(
-              width: 6.w,
-              height: 6.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _circleColor.withValues(alpha: pulse),
-              ),
-            ),
-          ],
+            );
+          }),
         );
       },
     );
@@ -553,13 +584,13 @@ class _SplashScreenState extends State<SplashScreen>
   Widget _buildVersionText() {
     final versionFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _loaderController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+        parent: _subtitleController,
+        curve: Curves.easeIn,
       ),
     );
 
     return AnimatedBuilder(
-      animation: _loaderController,
+      animation: _subtitleController,
       builder: (context, _) {
         return Opacity(
           opacity: versionFade.value.clamp(0.0, 1.0),

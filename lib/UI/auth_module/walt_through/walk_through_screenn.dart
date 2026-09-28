@@ -28,38 +28,12 @@ class WalkThroughScreen extends StatelessWidget {
   // Cycle-phase colors — wheel arcs + matching pill text colors.
   static const Color _menstrualArc = Color(0xFFFF8A8A);
   static const Color _follicularArc = Color(0xFF6DC55A);
-  static const Color _ovulationArc = Color(0xFFA8F0C0);
+  static const Color _ovulationArc = Color(0xFF5ECFB0); // Aqua / Teal
   static const Color _lutealArc = Color(0xFFFAC775);
   static const Color _menstrualLabel = Color(0xFFC45A5A);
   static const Color _follicularLabel = Color(0xFF3A8A3A);
-  static const Color _ovulationLabel = Color(0xFF5A8C66);
+  static const Color _ovulationLabel = Color(0xFF267D6B);
   static const Color _lutealLabel = Color(0xFF9C7430);
-
-  // Arc wedges match S01_Welcome_V3_Refined.html exactly. The HTML uses
-  // `conic-gradient(from -90deg, …)` so pink/red starts at 9 o'clock and
-  // sweeps clockwise. Flutter's SweepGradient CLAMPS angles outside the
-  // [startAngle, endAngle] range (doesn't wrap), so we can't just rotate
-  // the startAngle — we keep it at -π/2 (12 o'clock) and instead shift
-  // the colour stops so each phase lands in the right visual quadrant:
-  //
-  //   gradient position → visual angle (clockwise from 12 o'clock)
-  //   0.00 → 0.25         12 → 3 o'clock         → green  (follicular)
-  //   0.25 → 0.3056       3 → just past 3        → mint   (ovulation, 5.55%)
-  //   0.3056 → 0.75       rest of bottom + left  → orange (luteal, 44.44%)
-  //   0.75 → 1.00         9 → 12 o'clock         → pink   (menstrual, 25%)
-  // Duplicate stops produce hard arc boundaries.
-  static const List<double> _wheelStops = [
-    0.0, 0.25,
-    0.25, 0.3056,
-    0.3056, 0.75,
-    0.75, 1.0,
-  ];
-  static const List<Color> _wheelColors = [
-    _follicularArc, _follicularArc,
-    _ovulationArc, _ovulationArc,
-    _lutealArc, _lutealArc,
-    _menstrualArc, _menstrualArc,
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -150,10 +124,10 @@ class WalkThroughScreen extends StatelessWidget {
   // not on a uniform polar rim).
   Widget _buildWheel() {
     return SizedBox(
-      // 280 wheel + 40-px buffer on each side so the pills can extend
-      // past the arc rim without being clipped by Stack bounds.
+      // 280 wheel + buffer so the pills can extend
+      // past the arc rim without being clipped.
       width: 320.w,
-      height: 320.w,
+      height: 330.w,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
@@ -163,15 +137,6 @@ class WalkThroughScreen extends StatelessWidget {
             height: 280.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              // startAngle stays at -π/2 (12 o'clock); the visual rotation
-              // to match CSS `from -90deg` is encoded in _wheelStops instead.
-              // See the _wheelStops comment for the full quadrant mapping.
-              gradient: const SweepGradient(
-                startAngle: -math.pi / 2,
-                endAngle: 3 * math.pi / 2,
-                stops: _wheelStops,
-                colors: _wheelColors,
-              ),
               boxShadow: [
                 BoxShadow(
                   color: _primaryGreen.withValues(alpha: 0.15),
@@ -185,103 +150,138 @@ class WalkThroughScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Inner white mask + "28 DAYS · YOUR CYCLE"
-                Center(
-                  child: Container(
-                    width: 244.w,
-                    height: 244.w,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _bgTop,
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '28',
-                            style: TextStyle(
-                              fontFamily: 'Fraunces',
-                              fontSize: 60.sp,
-                              fontWeight: FontWeight.w300,
-                              color: _textDark,
-                              letterSpacing: -2.4, // -0.04em × 60
-                              height: 1.0,
+            child: CustomPaint(
+              size: Size(280.w, 280.w),
+              painter: _CycleWheelPainter(
+                colors: const [
+                  _menstrualArc,
+                  _follicularArc,
+                  _ovulationArc,
+                  _lutealArc,
+                ],
+                dayFractions: const [
+                  5 / 28,  // 🩸 Menstrual: Day 1–5 (5 days)
+                  8 / 28,  // 🌱 Follicular: Day 6–13 (8 days)
+                  1 / 28,  // 🥚 Ovulation: Day 14 (1 day)
+                  14 / 28, // 🌙 Luteal: Day 15–28 (14 days)
+                ],
+                strokeWidth: 18.w,
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Inner white mask + "28 DAYS · YOUR CYCLE"
+                  Center(
+                    child: Container(
+                      width: 244.w,
+                      height: 244.w,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _bgTop,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '28',
+                              style: TextStyle(
+                                fontFamily: 'Fraunces',
+                                fontSize: 60.sp,
+                                fontWeight: FontWeight.w300,
+                                color: _textDark,
+                                letterSpacing: -2.4, // -0.04em × 60
+                                height: 1.0,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            'DAYS · YOUR CYCLE',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w700,
-                              color: _textSub,
-                              letterSpacing: 1.62, // 0.18em × 9
+                            SizedBox(height: 4.h),
+                            Text(
+                              'DAYS · YOUR CYCLE',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 9.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _textSub,
+                                letterSpacing: 1.62, // 0.18em × 9
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Phase pills — positioned to match HTML .pl-1..4 exactly.
-                // pl-1 Menstrual: top:8 inside wheel, centred horizontally.
-                Positioned(
-                  top: 8.h,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: _buildPhasePill('MENSTRUAL', _menstrualLabel),
-                  ),
+                // Phase pills — positioned on the angular midpoint of each phase:
+                // 🩸 Menstrual: Day 2.5 (32.14°)
+                _buildPositionedPill(
+                  label: 'MENSTRUAL',
+                  color: _menstrualLabel,
+                  angleInDegrees: (2.5 / 28) * 360,
+                  radius: 130.w,
                 ),
-                // pl-2 Follicular: right:-12 (sticks out past wheel), centred vertically.
-                Positioned(
-                  right: -12.w,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: _buildPhasePill('FOLLICULAR', _follicularLabel),
-                  ),
+                // 🌱 Follicular: Day 9.0 (115.71°)
+                _buildPositionedPill(
+                  label: 'FOLLICULAR',
+                  color: _follicularLabel,
+                  angleInDegrees: (9.0 / 28) * 360,
+                  radius: 130.w,
                 ),
-                // pl-3 Ovulation: bottom:8 inside wheel, centred horizontally.
-                Positioned(
-                  bottom: 8.h,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: _buildPhasePill('OVULATION', _ovulationLabel),
-                  ),
+                // 🥚 Ovulation: Day 13.5 (173.57°)
+                // Moved under the circle (radius: 156.w) so the 1-day teal
+                // arc on the wheel remains 100% visible and uncovered.
+                _buildPositionedPill(
+                  label: 'OVULATION',
+                  color: _ovulationLabel,
+                  angleInDegrees: (13.5 / 28) * 360,
+                  radius: 156.w,
                 ),
-                // pl-4 Luteal: left:-8 (sticks out past wheel), centred vertically.
-                Positioned(
-                  left: -8.w,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: _buildPhasePill('LUTEAL', _lutealLabel),
-                  ),
+                // 🌙 Luteal: Day 21.0 (270.00°)
+                _buildPositionedPill(
+                  label: 'LUTEAL',
+                  color: _lutealLabel,
+                  angleInDegrees: (21.0 / 28) * 360,
+                  radius: 130.w,
                 ),
               ],
             ),
           ),
-        ],
+        ),
+      ],
+    ),
+  );
+}
+
+  Widget _buildPositionedPill({
+    required String label,
+    required Color color,
+    required double angleInDegrees,
+    required double radius,
+  }) {
+    final double rad = angleInDegrees * math.pi / 180;
+    final double dx = radius * math.sin(rad);
+    final double dy = -radius * math.cos(rad);
+
+    return Center(
+      child: Transform.translate(
+        offset: Offset(dx, dy),
+        child: _buildPhasePill(label, color),
       ),
     );
   }
 
   Widget _buildPhasePill(String label, Color color) {
-    // Solid 85% white instead of CSS backdrop-blur (Q6: skip blur for
-    // mid-range Android performance).
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         label,
@@ -364,15 +364,66 @@ class WalkThroughScreen extends StatelessWidget {
         onPressed: () {
           Get.to(() => Login());
         },
-        child: Text(
-          'I already have an account',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
+        child: RichText(
+          text: TextSpan(
+            text: 'Already have an account? ',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w400,
+              color: _textSub,
+            ),
+            children: [
+              TextSpan(
+                text: 'Log in',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _primaryGreen,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _CycleWheelPainter extends CustomPainter {
+  final List<Color> colors;
+  final List<double> dayFractions;
+  final double strokeWidth;
+
+  const _CycleWheelPainter({
+    required this.colors,
+    required this.dayFractions,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt
+      ..isAntiAlias = true;
+
+    double currentAngle = -math.pi / 2; // Start at 12 o'clock
+
+    for (int i = 0; i < colors.length; i++) {
+      final sweepAngle = 2 * math.pi * dayFractions[i];
+      paint.color = colors[i];
+      canvas.drawArc(rect, currentAngle, sweepAngle, false, paint);
+      currentAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CycleWheelPainter oldDelegate) => false;
 }

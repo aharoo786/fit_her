@@ -23,8 +23,8 @@ class TimePreferenceScreen extends StatefulWidget {
 
   const TimePreferenceScreen({
     Key? key,
-    this.currentStep = 6,
-    this.totalSteps = 8,
+    this.currentStep = 5,
+    this.totalSteps = 5,
     this.initialValue,
     required this.onNext,
   }) : super(key: key);
@@ -75,7 +75,6 @@ class _TimePreferenceScreenState extends State<TimePreferenceScreen> {
     return OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'Your routine',
       questionLine1: "What time",
       questionLine2: 'suits you?',
       subtitle: "We'll schedule recommendations around your preference",

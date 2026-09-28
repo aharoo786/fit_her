@@ -11,8 +11,8 @@ class WeightScreen extends StatefulWidget {
 
   const WeightScreen({
     Key? key,
-    this.currentStep = 4,
-    this.totalSteps = 8,
+    this.currentStep = 3,
+    this.totalSteps = 7,
     this.initialValue = 55,
     required this.onNext,
   }) : super(key: key);
@@ -35,7 +35,6 @@ class _WeightScreenState extends State<WeightScreen> {
     return OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'Your body',
       questionLine1: "Let's get your",
       questionLine2: 'weight',
       subtitle: 'This helps us calculate your BMI and personalise plans',

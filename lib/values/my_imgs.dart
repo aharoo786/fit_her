@@ -250,7 +250,7 @@ class MyImgs {
   static const String diet = "assets/svg/diet.svg";
   static const String homeSVG = "assets/svg/Home.svg";
   static const String helpSVG = "assets/svg/Help.svg";
-  static const String workout = "assets/svg/workout.svg";
+  static const String workout = "assets/svg/workoutHome.svg";
   static const String progress = "assets/svg/progress.svg";
   static const String progressbar = "assets/svg/Progressbar.svg";
   static const String upload = "assets/svg/upload.svg";

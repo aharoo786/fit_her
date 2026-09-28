@@ -34,7 +34,8 @@ class ForgotPassword extends StatelessWidget {
   static const Color _bannerBorder = Color(0xFFC8E8BC);
   static const Color _bannerSub = Color(0xFF7A8C78);
   static const Color _sheetBorder = Color(0xFFD8EDD4);
-  static const Color _placeholder = Color(0xFFBCD5B8);
+  static const Color _inputBorder = Color(0xFFE2E8F0);
+  static const Color _placeholder = Color(0xFF9CA3AF);
   static const Color _error = Color(0xFFD14343);
 
   @override
@@ -266,10 +267,14 @@ class ForgotPassword extends StatelessWidget {
         counterText: '',
         contentPadding:
             EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-        hintStyle: const TextStyle(color: _placeholder),
+        hintStyle: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 13.sp,
+          color: _placeholder,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: _sheetBorder, width: 1.5),
+          borderSide: const BorderSide(color: _inputBorder, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),

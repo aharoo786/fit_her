@@ -521,6 +521,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Get.to(() => GoalScreen(
+                    showBackButton: true,
                     initialGoal:
                         Get.find<AuthController>().mainGoal.value,
                     onNext: (goal) {

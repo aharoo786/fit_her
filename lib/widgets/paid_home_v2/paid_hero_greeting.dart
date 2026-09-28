@@ -176,6 +176,7 @@ class PaidHeroGreeting extends StatelessWidget {
           currentStep: 1,
           totalSteps: 1,
           initialGoal: currentGoal,
+          showBackButton: true,
           onNext: (selected) {
             Get.back();
             Get.find<PaidHomeController>().saveMainGoal(selected);
