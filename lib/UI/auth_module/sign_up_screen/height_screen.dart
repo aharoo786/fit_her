@@ -11,8 +11,8 @@ class HeightScreen extends StatefulWidget {
 
   const HeightScreen({
     Key? key,
-    this.currentStep = 5,
-    this.totalSteps = 8,
+    this.currentStep = 4,
+    this.totalSteps = 7,
     this.initialValue = 5.4,
     required this.onNext,
   }) : super(key: key);
@@ -41,7 +41,6 @@ class _HeightScreenState extends State<HeightScreen> {
     return OnboardingScaffold(
       currentStep: widget.currentStep,
       totalSteps: widget.totalSteps,
-      badgeText: 'Your body',
       questionLine1: "Let's get your",
       questionLine2: 'height',
       subtitle: 'Used with weight to calculate your BMI accurately',

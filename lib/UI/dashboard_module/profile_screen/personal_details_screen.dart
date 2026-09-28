@@ -189,9 +189,10 @@ class PersonalDetailsScreen extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => Get.to(() => GoalScreen(
+            showBackButton: true,
             initialGoal: Get.find<AuthController>().mainGoal.value,
             onNext: (goal) {
-              Get.off(() => SignUpScreenQuestions(selectedGoal: goal));
+              Get.to(() => SignUpScreenQuestions(selectedGoal: goal));
             },
           )),
       child: Container(

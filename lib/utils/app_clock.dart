@@ -47,7 +47,7 @@ class AppClock {
   /// server's snapshot was taken halfway through the round-trip. This is
   /// the same heuristic NTP uses for non-symmetric latency.
   static Future<bool> init({Duration timeout = const Duration(seconds: 5)}) async {
-    final url = Uri.parse('${Constants.baseUrl}admin/server-time');
+    final url = Uri.parse('${Constants.baseUrl}/admin/server-time');
     final sendStopwatch = Stopwatch()..start();
     try {
       final response = await http.get(url).timeout(timeout);
