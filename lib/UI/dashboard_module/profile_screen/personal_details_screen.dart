@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/goal_screen.dart';
 import 'package:fitness_zone_2/UI/auth_module/sign_up_screen/sign_up_screen_questions.dart';
 import 'package:fitness_zone_2/data/controllers/auth_controller/auth_controller.dart';
+import 'package:fitness_zone_2/values/constants.dart';
 
 /// Read-only view of the signed-in user's personal details. Reached from
 /// the V1 Profile screen → "Personal details" menu row. An "Edit" button
@@ -23,11 +24,16 @@ class PersonalDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final phone = (authController.logInUser?.phone != null &&
+            authController.logInUser!.phone.trim().isNotEmpty)
+        ? authController.logInUser!.phone
+        : (authController.sharedPreferences.getString(Constants.userMobileNumber) ?? '');
+
     final rows = <_DetailRow>[
       _DetailRow('First name', authController.editFirstName.text),
       _DetailRow('Last name', authController.editLastName.text),
       _DetailRow('Email', authController.editEmail.text),
-      _DetailRow('Phone', authController.logInUser?.phone ?? ''),
+      _DetailRow('Phone', phone),
       _DetailRow('Age', authController.editAge.text),
       _DetailRow('Height', authController.editHeight.text),
       _DetailRow('Weight', authController.editWeight.text),

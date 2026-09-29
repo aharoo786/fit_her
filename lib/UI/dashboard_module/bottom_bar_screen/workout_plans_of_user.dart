@@ -67,7 +67,11 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
     // Defer so Rx writes don't fire during the first build, which would
     // trigger Obx while the framework is still building widgets → assertion.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) workOutController.getWorkoutAllPlansFunc();
+      if (mounted) {
+        workOutController.getWorkoutAllPlansFunc(
+          silent: workOutController.workoutPlans != null,
+        );
+      }
     });
   }
 
@@ -75,8 +79,8 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
     return Obx(() {
-      if (workOutController.workOutOfUserLoad.value &&
-          workOutController.workoutPlans != null) {
+      final isLoaded = workOutController.workOutOfUserLoad.value;
+      if (isLoaded && workOutController.workoutPlans != null) {
         final plans = workOutController.workoutPlans!.plans;
         if (plans.length == 1) {
           final singlePlanId = plans.first.id.toString();
@@ -121,115 +125,133 @@ class _WorkPlansOfUserState extends State<WorkPlansOfUser> {
             keyValue: 'workout-trial',
           );
         }
-      }
 
-      return Scaffold(
-        appBar: HelpingWidgets().appBarWidget(
-            widget.showBackButton
-                ? () {
-                    Get.back();
-                  }
-                : null,
-            text: "Your Plans"),
-        body: _animatedBody(
-          workOutController.workOutOfUserLoad.value
-              ? workOutController.workoutPlans!.plans.isEmpty
-                  ? Column(
-                      children: [
-                        Expanded(
-                          child:
-                              HelpingWidgets().getOurPlans(context, textTheme),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 16.h),
-                          child: TextButton(
-                            onPressed: () {
-                              Get.to(() => const RecommendedSlotsScreen());
-                            },
-                            child: Text(
-                              'View recommended sessions →',
-                              style: textTheme.bodyMedium!.copyWith(
-                                color: MyColors.buttonColor,
-                                fontWeight: FontWeight.w600,
-                              ),
+        return Scaffold(
+          appBar: HelpingWidgets().appBarWidget(
+              widget.showBackButton
+                  ? () {
+                      Get.back();
+                    }
+                  : null,
+              text: "Your Plans"),
+          body: _animatedBody(
+            plans.isEmpty
+                ? Column(
+                    children: [
+                      Expanded(
+                        child:
+                            HelpingWidgets().getOurPlans(context, textTheme),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 16.h),
+                        child: TextButton(
+                          onPressed: () {
+                            Get.to(() => const RecommendedSlotsScreen());
+                          },
+                          child: Text(
+                            'View recommended sessions →',
+                            style: textTheme.bodyMedium!.copyWith(
+                              color: MyColors.buttonColor,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
-                    )
-                  : ListView.separated(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
-                      itemCount: workOutController.workoutPlans!.plans.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        var plan = workOutController.workoutPlans!.plans[index];
-                        return GestureDetector(
-                          onTap: () {
-                            Get.to(() => WorkOutBottomScreen(
-                                  planId: plan.id.toString(),
-                                ));
-                            selectedPlan = plan.id.toString();
-                            workOutController
-                                .getDietPlanDetailsFunc(plan.id.toString());
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                      offset: const Offset(0, 2),
-                                      blurRadius: 4,
-                                      color: Colors.black.withOpacity(0.1))
-                                ]),
-                            child: Row(children: [
-                              SizedBox(
-                                width: 70.w,
-                                child: Image.asset(MyImgs.logo),
-                              ),
-                              SizedBox(
-                                width: 10.w,
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      plan.title,
-                                      style: textTheme.bodyLarge!.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 20.h, vertical: 20.h),
+                    itemCount: plans.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      var plan = plans[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Get.to(() => WorkOutBottomScreen(
+                                planId: plan.id.toString(),
+                              ));
+                          selectedPlan = plan.id.toString();
+                          workOutController
+                              .getDietPlanDetailsFunc(plan.id.toString());
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 4,
+                                    color: Colors.black.withOpacity(0.1))
+                              ]),
+                          child: Row(children: [
+                            SizedBox(
+                              width: 70.w,
+                              child: Image.asset(MyImgs.logo),
+                            ),
+                            SizedBox(
+                              width: 10.w,
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    plan.title,
+                                    style: textTheme.bodyLarge!.copyWith(
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    Text(
-                                      plan.shortDescription,
-                                      style: textTheme.bodySmall!.copyWith(),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ]),
-                          ),
-                        );
-                      },
-                      separatorBuilder: (BuildContext context, int index) {
-                        return SizedBox(
-                          height: 20.w,
-                        );
-                      },
-                    )
-              : const Center(
-                  child: CircularProgress(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    plan.shortDescription,
+                                    style: textTheme.bodySmall!.copyWith(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            )
+                          ]),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) {
+                      return SizedBox(
+                        height: 20.w,
+                      );
+                    },
+                  ),
+            keyValue: plans.isEmpty ? 'workout-empty' : 'workout-list',
+          ),
+        );
+      }
+
+      // Initial loading state (plans not loaded yet):
+      // Matches WorkOutBottomScreen's background color with centered progress indicator,
+      // never flashing the legacy "Your Plans" AppBar.
+      return Scaffold(
+        backgroundColor: const Color(0xFFE8F4E0),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              if (widget.showBackButton)
+                Positioned(
+                  top: 8.h,
+                  left: 8.w,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Color(0xFF1A3A22)),
+                    onPressed: () => Get.back(),
+                  ),
                 ),
-          keyValue: workOutController.workOutOfUserLoad.value
-              ? (workOutController.workoutPlans!.plans.isEmpty
-                  ? 'workout-empty'
-                  : 'workout-list')
-              : 'workout-loading',
+              const Center(
+                child: CircularProgress(),
+              ),
+            ],
+          ),
         ),
       );
     });

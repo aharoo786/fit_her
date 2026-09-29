@@ -30,12 +30,14 @@ class OnboardingScaffold extends StatelessWidget {
   final String? skipText;
   final VoidCallback? onBack;
   final bool showBackButton;
+  final bool showProgressBar;
+  final bool showStepCounter;
   final String? caption;
 
   const OnboardingScaffold({
     Key? key,
-    required this.currentStep,
-    required this.totalSteps,
+    this.currentStep = 1,
+    this.totalSteps = 1,
     this.badgeText,
     required this.questionLine1,
     required this.questionLine2,
@@ -47,6 +49,8 @@ class OnboardingScaffold extends StatelessWidget {
     this.skipText,
     this.onBack,
     this.showBackButton = true,
+    this.showProgressBar = true,
+    this.showStepCounter = true,
     this.caption,
   }) : super(key: key);
 
@@ -117,41 +121,47 @@ class OnboardingScaffold extends StatelessWidget {
                           )
                         else
                           SizedBox(width: 40.w),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Container(
-                            height: 4.h,
-                            decoration: BoxDecoration(
-                              color: circleBg,
-                              borderRadius: BorderRadius.circular(2.r),
-                            ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: currentStep / totalSteps,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: green,
-                                  borderRadius:
-                                      BorderRadius.circular(2.r),
+                        if (showProgressBar) ...[
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Container(
+                              height: 4.h,
+                              decoration: BoxDecoration(
+                                color: circleBg,
+                                borderRadius: BorderRadius.circular(2.r),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: totalSteps > 0 ? (currentStep / totalSteps).clamp(0.0, 1.0) : 1.0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: green,
+                                    borderRadius:
+                                        BorderRadius.circular(2.r),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 12.w),
-                        SizedBox(
-                          width: 42.w,
-                          child: Text(
-                            '$currentStep / $totalSteps',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: textMuted,
+                        ] else ...[
+                          const Spacer(),
+                        ],
+                        if (showStepCounter && showProgressBar) ...[
+                          SizedBox(width: 12.w),
+                          SizedBox(
+                            width: 42.w,
+                            child: Text(
+                              '$currentStep / $totalSteps',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                                color: textMuted,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
