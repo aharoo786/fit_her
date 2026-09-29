@@ -67,6 +67,10 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   late DateTime _selectedDate;
   late DateTime _weekStart; // Monday of the displayed week
 
+  final ScrollController _timelineScrollController = ScrollController();
+  final GlobalKey _activeSlotKey = GlobalKey();
+  bool _hasAutoScrolled = false;
+
   // Step 4 sync layers — see [_kHeartbeatInterval] / [_kClockTickerInterval]
   // / [_kStaleAfter] for cadence rationale.
   Timer? _heartbeatTimer;
@@ -130,6 +134,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
 
   @override
   void dispose() {
+    _timelineScrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _heartbeatTimer?.cancel();
     _clockTickerTimer?.cancel();
@@ -163,6 +168,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
     // backgrounded; refetch now so the screen is current on first
     // glance after resume.
     if (state == AppLifecycleState.resumed) {
+      _hasAutoScrolled = false;
       _heartbeat(reason: 'resumed');
     }
   }
@@ -207,8 +213,10 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
+                    _hasAutoScrolled = false;
                     // Preserved API call — same arg, same shape.
-                    workOutController.getDietPlanDetailsFunc(widget.planId);
+                    workOutController.getDietPlanDetailsFunc(widget.planId,
+                        forceRefresh: true);
                     if (motivationController.motivationStats.value == null &&
                         !motivationController.isLoadingStats.value) {
                       motivationController.fetchMotivationStats();
@@ -358,6 +366,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
     return GestureDetector(
       onTap: () => setState(() {
         _selectedDate = DateTime(d.year, d.month, d.day);
+        _hasAutoScrolled = false;
       }),
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 9.h, horizontal: 4.w),
@@ -393,12 +402,57 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
     );
   }
 
+  bool _isToday(DateTime d) {
+    final now = AppClock.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  int _findActiveSlotIndex(List<Slot> slots) {
+    if (slots.isEmpty || !_isToday(_selectedDate)) return -1;
+
+    // 1. Any slot currently LIVE
+    for (int i = 0; i < slots.length; i++) {
+      if (_isLiveState(_stateFor(slots[i]))) {
+        return i;
+      }
+    }
+
+    // 2. First upcoming slot (soon or far)
+    for (int i = 0; i < slots.length; i++) {
+      final s = _stateFor(slots[i]);
+      if (!_isPastState(s) &&
+          s != SlotUIState.cancelled &&
+          s != SlotUIState.endedEarly) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  void _scrollToActiveSlot() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasAutoScrolled) return;
+      final targetContext = _activeSlotKey.currentContext;
+      if (targetContext != null) {
+        _hasAutoScrolled = true;
+        Scrollable.ensureVisible(
+          targetContext,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.0,
+        );
+      }
+    });
+  }
+
   // ── Timeline (or empty state) ──────────────────────────────────────────
   Widget _buildTimelineScrollable() {
     final slots = _slotsForSelectedDay();
     if (slots.isEmpty) {
       // AlwaysScrollable so RefreshIndicator still works on empty days.
       return SingleChildScrollView(
+        controller: _timelineScrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         child: SizedBox(
           height: 380.h,
@@ -406,13 +460,24 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
         ),
       );
     }
+
+    final activeIndex = _findActiveSlotIndex(slots);
+    if (!_hasAutoScrolled && activeIndex > 0) {
+      _scrollToActiveSlot();
+    }
+
     return SingleChildScrollView(
+      controller: _timelineScrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 30.h),
       child: Column(
         children: [
           for (int i = 0; i < slots.length; i++)
-            _buildTimelineRow(slots[i], isLast: i == slots.length - 1),
+            _buildTimelineRow(
+              slots[i],
+              isLast: i == slots.length - 1,
+              key: (i == activeIndex) ? _activeSlotKey : null,
+            ),
         ],
       ),
     );
@@ -453,7 +518,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
   }
 
   // ── Single timeline row: time | dot+connector | card ───────────────────
-  Widget _buildTimelineRow(Slot slot, {required bool isLast}) {
+  Widget _buildTimelineRow(Slot slot, {required bool isLast, Key? key}) {
     final state = _stateFor(slot);
     final access = buildUserAccess(homeController);
     final input = buildSlotInput(slot, _selectedDate);
@@ -465,21 +530,24 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
       minutesUntilStart: mins,
       blockReason: blockReasonFor(access),
     );
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 50.w, child: _buildTimeColumn(slot, state)),
-          SizedBox(width: 14.w),
-          SizedBox(width: 12.w, child: _buildDotColumn(state, isLast)),
-          SizedBox(width: 14.w),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 14.h),
-              child: _buildCard(slot, state, presentation),
+    return KeyedSubtree(
+      key: key,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 50.w, child: _buildTimeColumn(slot, state)),
+            SizedBox(width: 14.w),
+            SizedBox(width: 12.w, child: _buildDotColumn(state, isLast)),
+            SizedBox(width: 14.w),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 14.h),
+                child: _buildCard(slot, state, presentation),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1085,6 +1153,7 @@ class _WorkOutBottomScreenState extends State<WorkOutBottomScreen>
       // Keep selected weekday position relative to the new week.
       final selectedWeekdayOffset = _selectedDate.weekday - 1;
       _selectedDate = _weekStart.add(Duration(days: selectedWeekdayOffset));
+      _hasAutoScrolled = false;
     });
   }
 

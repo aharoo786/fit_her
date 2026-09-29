@@ -90,7 +90,7 @@ class _UnpaidHomeScreenV2State extends State<UnpaidHomeScreenV2> {
     }
     // Also re-check user plans in case an admin approved payment
     if (Get.isRegistered<HomeController>()) {
-      Get.find<HomeController>().getUserHomeFunc();
+      Get.find<HomeController>().getUserHomeFunc(forceRefresh: true);
     }
     await fresh;
   }

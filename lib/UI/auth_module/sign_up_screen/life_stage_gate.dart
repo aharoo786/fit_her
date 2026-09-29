@@ -107,13 +107,12 @@ class _PregnancyDetailsScreenState extends State<PregnancyDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return OnboardingScaffold(
-      currentStep: widget.currentStep,
-      totalSteps: widget.totalSteps,
-      badgeText: 'Your body',
+      showProgressBar: false,
+      showStepCounter: false,
       questionLine1: 'Congratulations!',
       questionLine2: 'When is your baby due?',
       subtitle: "We'll check in with you after your baby arrives.",
-      buttonText: _saving ? 'Saving…' : 'Next →',
+      buttonText: _saving ? 'Saving…' : 'Submit',
       onNext: _next,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,13 +253,12 @@ class _PostpartumDetailsScreenState extends State<PostpartumDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return OnboardingScaffold(
-      currentStep: widget.currentStep,
-      totalSteps: widget.totalSteps,
-      badgeText: 'Your body',
+      showProgressBar: false,
+      showStepCounter: false,
       questionLine1: 'Congratulations!',
       questionLine2: 'Tell us about your baby',
       subtitle: "So we know when it's safe for you to start classes.",
-      buttonText: _saving ? 'Saving…' : 'Next →',
+      buttonText: _saving ? 'Saving…' : 'Submit',
       onNext: _next,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
