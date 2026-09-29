@@ -521,7 +521,6 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Get.to(() => GoalScreen(
-                    showBackButton: true,
                     initialGoal:
                         Get.find<AuthController>().mainGoal.value,
                     onNext: (goal) {
@@ -713,7 +712,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
     final home = Get.isRegistered<HomeController>() ? Get.find<HomeController>() : null;
     final trialActive = auth.trialActivated.value;
 
-    // Trial expiry from trialJourney.startedAt and the server's trial length.
+    // Compute trial expiry from trialJourney.startedAt (3-day window).
     DateTime? trialEndsAt;
     int? trialDaysLeft;
     if (trialActive && home != null) {
@@ -721,7 +720,7 @@ class _ProfileScreenUserState extends State<ProfileScreenUser> {
       if (rawStart != null) {
         final startedAt = DateTime.tryParse(rawStart.toString());
         if (startedAt != null) {
-          trialEndsAt = startedAt.add(home.kTrialLength);
+          trialEndsAt = startedAt.add(const Duration(days: 3));
           final hours = trialEndsAt.difference(DateTime.now()).inHours;
           trialDaysLeft = hours > 0 ? (hours / 24).ceil() : 0;
         }

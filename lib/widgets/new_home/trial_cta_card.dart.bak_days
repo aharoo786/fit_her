@@ -152,7 +152,7 @@ void showLockedFeatureDialog(String feature) {
             ),
             const SizedBox(height: 6),
             Text(
-              'Start your ${Get.find<HomeController>().trialDays.value}-day free trial to unlock $feature and everything '
+              'Start your 3-day free trial to unlock $feature and everything '
               'else on your dashboard.',
               textAlign: TextAlign.center,
               style: const TextStyle(
@@ -260,12 +260,12 @@ class _IdleCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 9),
-              Flexible(
+              const Flexible(
                 child: Text(
-                  '${Get.find<HomeController>().trialDays.value} days free · then PKR 3500/month',
+                  '3 days free · then PKR 3500/month',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -297,9 +297,9 @@ class _IdleCard extends StatelessWidget {
                 color: _accent,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                'Start ${Get.find<HomeController>().trialDays.value}-day free trial →',
-                style: const TextStyle(
+              child: const Text(
+                'Start 3-day free trial →',
+                style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 13,
                   fontWeight: FontWeight.w800,

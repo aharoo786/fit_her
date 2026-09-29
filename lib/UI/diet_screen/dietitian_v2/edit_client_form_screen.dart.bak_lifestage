@@ -55,7 +55,6 @@ class _EditClientFormScreenState extends State<EditClientFormScreen> {
   static const _cycle = <_Opt>[
     _Opt('regular_cycle', 'Regular cycle'),
     _Opt('irregular_cycle', 'Irregular cycle'),
-    _Opt('trying_to_conceive', 'Trying for a baby'),
     _Opt('pcos', 'PCOS'),
     _Opt('pregnant', 'Pregnant'),
     _Opt('postpartum', 'Postpartum'),

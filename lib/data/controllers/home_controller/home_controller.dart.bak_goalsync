@@ -1172,7 +1172,14 @@ class HomeController extends GetxController implements GetxService {
                   Get.find<AuthController>().logInUser = model.data;
                   Get.find<AuthController>().addLocalStorage(model.data!, password);
                   // getPlans();
-                  Get.offAll(() => const SignUpScreenQuestions());
+                  Get.offAll(() => GoalScreen(
+                    onNext: (goal) {
+                      // Use Get.to (not Get.off) so GoalScreen stays in the
+                      // stack. This lets the back arrow on AgeScreen pop
+                      // SignUpScreenQuestions and land on GoalScreen correctly.
+                      Get.to(() => SignUpScreenQuestions(selectedGoal: goal));
+                    },
+                  ));
                 }
                 clearyControllers();
               }
@@ -1207,21 +1214,7 @@ class HomeController extends GetxController implements GetxService {
               if (model.status == "1") {
                 CustomToast.successToast(msg: response.body["message"]);
 
-                // Keep the signup answers in memory too, so screens that
-                // read them right after signup (like the free trial,
-                // which skips its goal question) see them without a
-                // fresh login.
-                final auth = Get.find<AuthController>();
-                if (mainGoal != null) {
-                  auth.mainGoal.value = mainGoal;
-                  auth.logInUser?.mainGoal = mainGoal;
-                }
-                if (healthConditions != null) {
-                  auth.healthConditions.value = healthConditions;
-                  auth.logInUser?.healthConditions = healthConditions;
-                }
-
-                auth.updateUserDetails(updateFields: false);
+                Get.find<AuthController>().updateUserDetails(updateFields: false);
               }
             }
           } else {
@@ -2022,13 +2015,6 @@ class HomeController extends GetxController implements GetxService {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             sharedPreferences.setString(Constants.trialToken, token);
             trialJourney = response.body["data"]?["journey"];
-            // Trial length from the server even before she starts one,
-            // so "Start your N-day free trial" is right from day zero.
-            final days = int.tryParse('${response.body["data"]?["trialDays"] ?? ''}');
-            if (days != null && days > 0) {
-              trialDays.value = days;
-              sharedPreferences.setInt(_kTrialDaysKey, days);
-            }
         _syncTrialRx();
             isValid = true;
             if (showToastOnSuccess) {
@@ -2158,13 +2144,6 @@ class HomeController extends GetxController implements GetxService {
             .then((response) async {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             trialJourney = response.body["data"]?["journey"];
-            // Trial length from the server even before she starts one,
-            // so "Start your N-day free trial" is right from day zero.
-            final days = int.tryParse('${response.body["data"]?["trialDays"] ?? ''}');
-            if (days != null && days > 0) {
-              trialDays.value = days;
-              sharedPreferences.setInt(_kTrialDaysKey, days);
-            }
         _syncTrialRx();
 
             // Sync the local trialActivated flag with server truth so the

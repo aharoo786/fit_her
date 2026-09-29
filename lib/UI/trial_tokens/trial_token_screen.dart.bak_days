@@ -7,12 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:fitness_zone_2/data/controllers/home_controller/home_controller.dart';
-
-/// Trial length from the server (TRIAL_DAYS), 3 until it loads.
-int get _trialDays => Get.isRegistered<HomeController>()
-    ? Get.find<HomeController>().trialDays.value
-    : 3;
 
 // ─── Design tokens (match app green palette) ────────────────────────────────
 const _kGreen      = Color(0xFF8AD167);
@@ -411,7 +405,7 @@ class _ShareSheet extends StatelessWidget {
           SizedBox(height: 4.h),
           Text(
             'Share this link with the lead. When they tap it, the app '
-            'opens directly to their $_trialDays-day trial.',
+            'opens directly to their 3-day trial.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -535,7 +529,7 @@ class _ShareSheet extends StatelessWidget {
     final greeting = token.phone != null ? 'Hi${token.phone != null ? "" : ""}' : 'Hi';
     return '$greeting 👋\n\n'
         "You've been invited to try Fit Her — Pakistan's first cycle-powered "
-        'fitness app, completely free for $_trialDays days! 💚\n\n'
+        'fitness app — completely free for 3 days! 💚\n\n'
         'Tap the link below to activate your free trial:\n'
         '${token.deepLink}\n\n'
         'If you don\'t have the app yet, the link will take you to the store first.';

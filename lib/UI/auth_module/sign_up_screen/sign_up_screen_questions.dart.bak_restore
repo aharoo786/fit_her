@@ -12,7 +12,6 @@ import 'package:intl/intl.dart' hide TextDirection;
 
 import 'life_stage_gate.dart';
 import 'life_stage_screen.dart';
-import '../../../widgets/toasts.dart';
 
 class _GoalOption {
   final String emoji;
@@ -68,7 +67,7 @@ class SignUpScreenQuestions extends StatefulWidget {
 }
 
 class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
-  static const int _totalSteps = 6;
+  static const int _totalSteps = 5;
 
   int _currentPage = 0;
   bool _isSubmitting = false;
@@ -131,13 +130,12 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
   String? _isRegular = '✓ Yes';
   bool _cycleSkipped = false;
 
-  // ── Life stage page state ──
-  String? _lifeStage;
-
   // ── Step 4: Health Conditions State ──
   static const List<_Condition> _conditions = [
     _Condition('🔬', 'PCOS'),
+    _Condition('🤱', 'Postpartum'),
     _Condition('🦋', 'Thyroid'),
+    _Condition('🌸', 'Menopause'),
     _Condition('🦴', 'Arthritis'),
     _Condition('🩸', 'Endometriosis'),
     _Condition('💉', 'Diabetes'),
@@ -192,17 +190,6 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
       if (idx != -1) _selectedGoalIndex = idx;
     }
 
-    // Life stage: show what she picked last time (coming back to signup).
-    Get.find<ConsultationController>().getLifeStage().then((ls) {
-      final st = ls?['status'];
-      if (!mounted || _lifeStage != null || st is! String) return;
-      // Past her due date: don't preselect "I'm pregnant" again.
-      if (ls?['access'] == 'baby_check') return;
-      if (kLifeStageOptions.any((o) => o.value == st)) {
-        setState(() => _lifeStage = st);
-      }
-    });
-
     // Metrics
     _age = (double.tryParse(auth.editAge.text) ?? 25.0).clamp(18.0, 70.0);
     _weight = (double.tryParse(auth.editWeight.text) ?? 55.0).clamp(30.0, 150.0);
@@ -214,11 +201,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
       if (cond == 'none') {
         _noneConditions = true;
       } else {
-        // Postpartum and menopause now come from the life stage
-        // question, so drop them if an older signup saved them here.
-        _selectedConditions.addAll(cond
-            .split(',')
-            .where((c) => c.isNotEmpty && c != 'Postpartum' && c != 'Menopause'));
+        _selectedConditions.addAll(cond.split(','));
       }
     }
   }
@@ -242,61 +225,50 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
   }
 
 
-  // ── Step 3: "Which of these fits you right now?" ──
-  // A page in this flow, like the others. Saved on the backend
+  // Step 5: "Which of these fits you right now?" Saved on the backend
   // (pre-consultation profile) so the trial / paid forms never ask again.
-  //   * pregnant            -> due date, then Coming soon, signup stops.
-  //   * recently had a baby -> birth date + delivery type. Still inside the
-  //                            waiting time: Coming soon with her date.
-  //                            Past it: doctor tick, then health conditions.
-  //   * periods on time / irregular / trying for a baby -> cycle page.
+  //   * pregnant                -> due date, then Coming soon, signup stops.
+  //   * recently had a baby     -> birth date + delivery type. Still inside
+  //                                the waiting time: Coming soon with her
+  //                                date. Past it: doctor tick, then carry on.
+  //   * periods on time / irregular / trying for a baby -> cycle step.
   //   * periods stopped / rather not say -> skip cycle, health conditions.
-  static const int _pLifeStage = 2;
-  static const int _pCycle = 3;
-  static const int _pHealth = 4;
-
-  Future<void> _submitLifeStage() async {
-    final value = _lifeStage;
-    if (value == null) {
-      CustomToast.failToast(msg: 'Please pick the one that fits you');
-      return;
-    }
-    if (_isSubmitting) return;
-    setState(() => _isSubmitting = true);
-    final ls = await Get.find<ConsultationController>()
-        .saveLifeStage({'status': value});
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-    if (ls == null) return; // toast already shown, stay on this page
-
-    final age = _age.round();
-    _selfRoute ??= ModalRoute.of(context);
-    if (value == 'pregnant') {
-      Get.to(() => PregnancyDetailsScreen(
-            currentStep: _pLifeStage + 1,
-            totalSteps: _totalSteps,
-            initial: ls,
-            onSaved: (res) =>
-                Get.offAll(() => LifeStageComingSoonScreen(data: res)),
-          ));
-      return;
-    }
-    if (value == 'postpartum') {
-      _goToPostpartum(ls, age, _weight, _height);
-      return;
-    }
-    if (lifeStageHasPeriods(value)) {
-      _goToCycle(age, _weight, _height);
-    } else {
-      _saveCycleData({'dataProvided': 0});
-      _goToHealthConditions(age, _weight, _height);
-    }
+  void _goToLifeStage(int age, double weight, double height) {
+    Get.to(() => LifeStageScreen(
+          currentStep: 5,
+          totalSteps: _totalSteps,
+          onNext: (value) async {
+            final ls = await Get.find<ConsultationController>()
+                .saveLifeStage({'status': value});
+            if (ls == null) return; // toast already shown, stay on screen
+            if (value == 'pregnant') {
+              Get.to(() => PregnancyDetailsScreen(
+                    currentStep: 5,
+                    totalSteps: _totalSteps,
+                    initial: ls,
+                    onSaved: (res) =>
+                        Get.offAll(() => LifeStageComingSoonScreen(data: res)),
+                  ));
+              return;
+            }
+            if (value == 'postpartum') {
+              _goToPostpartum(ls, age, weight, height);
+              return;
+            }
+            if (lifeStageHasPeriods(value)) {
+             _goToCycle(age, weight, height);
+            } else {
+             _saveCycleData({'dataProvided': 0});
+             _goToHealthConditions(age, weight, height);
+            }
+          },
+        ));
   }
 
   void _goToPostpartum(
       Map<String, dynamic> ls, int age, double weight, double height) {
     Get.to(() => PostpartumDetailsScreen(
-          currentStep: _pLifeStage + 1,
+          currentStep: 5,
           totalSteps: _totalSteps,
           initial: ls,
           onSaved: (res) {
@@ -306,7 +278,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
                 break;
               case 'needs_clearance':
                 Get.to(() => DoctorClearanceScreen(
-                      currentStep: _pLifeStage + 1,
+                      currentStep: 5,
                       totalSteps: _totalSteps,
                       onCleared: () => _afterPostpartumCleared(age, weight, height),
                     ));
@@ -324,52 +296,6 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
     _goToHealthConditions(age, weight, height);
   }
 
-  /// This screen's route, so the pushed follow-up screens (due date,
-  /// birth details, doctor tick) can be closed back to it.
-  ModalRoute<dynamic>? _selfRoute;
-
-  /// True when the life stage answer skipped the cycle page, so Back
-  /// from health conditions returns to the life stage page.
-  bool _cycleSkippedByLifeStage = false;
-
-  void _backToHere() {
-    final me = _selfRoute;
-    if (me != null && !me.isCurrent) {
-      Navigator.of(context).popUntil((r) => r == me || r.isFirst);
-    }
-  }
-
-  /// Periods on time, irregular or trying for a baby: the cycle page.
-  void _goToCycle(int age, double weight, double height) {
-    _cycleSkippedByLifeStage = false;
-    _cycleSkipped = false;
-    _backToHere();
-    _animateTo(_pCycle);
-  }
-
-  /// Saves cycle data now. {'dataProvided': 0} also marks the cycle as
-  /// skipped so _finish() sends the same thing.
-  void _saveCycleData(Map<String, dynamic> cycleData) {
-    if (cycleData['dataProvided'] == 0) {
-      _cycleSkipped = true;
-      _cycleSkippedByLifeStage = true;
-    }
-    final token = Get.find<AuthController>()
-            .sharedPreferences
-            .getString(Constants.accessToken) ??
-        '';
-    try {
-      Get.find<CycleDataRepository>()
-          .saveCycleData(accessToken: token, body: cycleData);
-    } catch (_) {}
-  }
-
-  /// No cycle page for her: straight to health conditions.
-  void _goToHealthConditions(int age, double weight, double height) {
-    _backToHere();
-    _animateTo(_pHealth);
-  }
-
   String get _bmiCategory {
     final b = _bmi;
     if (b < 18.5) return 'Underweight';
@@ -381,37 +307,42 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
   String get _selectedGoalTitle => _goals[_selectedGoalIndex].title;
 
   Future<void> _nextPage() async {
-    if (_currentPage == _pCycle) _cycleSkipped = false;
+    if (_currentPage == 2) _cycleSkipped = false;
     if (_currentPage >= _totalSteps - 1) return;
-    if (_currentPage == _pLifeStage) return _submitLifeStage();
-    await _animateTo(_currentPage + 1);
-  }
-
-  Future<void> _prevPage() async {
-    if (_currentPage <= 0) return;
-    await _animateTo(
-      (_currentPage == _pHealth && _cycleSkippedByLifeStage)
-          ? _pLifeStage
-          : _currentPage - 1,
-    );
-  }
-
-  /// Same fade and slide for every page change, forward or back.
-  Future<void> _animateTo(int page) async {
-    if (!mounted || page == _currentPage) return;
-    final forward = page > _currentPage;
 
     // Phase 1: fade out current content
     setState(() {
       _pageVisible = false;
-      _isGoingForward = forward;
+      _isGoingForward = true;
     });
     await Future.delayed(const Duration(milliseconds: 180));
 
     // Phase 2: swap page (invisible), then fade in
     if (!mounted) return;
     setState(() {
-      _currentPage = page;
+      _currentPage++;
+    });
+    await Future.delayed(const Duration(milliseconds: 20));
+    if (!mounted) return;
+    setState(() {
+      _pageVisible = true;
+    });
+  }
+
+  Future<void> _prevPage() async {
+    if (_currentPage <= 0) return;
+
+    // Phase 1: fade out current content
+    setState(() {
+      _pageVisible = false;
+      _isGoingForward = false;
+    });
+    await Future.delayed(const Duration(milliseconds: 180));
+
+    // Phase 2: swap page (invisible), then fade in
+    if (!mounted) return;
+    setState(() {
+      _currentPage--;
     });
     await Future.delayed(const Duration(milliseconds: 20));
     if (!mounted) return;
@@ -596,7 +527,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
                             ),
                           SizedBox(width: 12.w),
 
-                          // ── 6-Segment Pill Indicators ──
+                          // ── 5-Segment Pill Indicators ──
                           Expanded(
                             child: Row(
                               children: List.generate(_totalSteps, (i) {
@@ -701,7 +632,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
     );
   }
 
-  /// Consistent sub-action under the pinned primary CTA across all 6 steps
+  /// Consistent sub-action under the pinned primary CTA across all 5 steps
   Widget _buildBottomSubAction() {
     switch (_currentPage) {
       case 0:
@@ -723,22 +654,13 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
           ),
         );
       case 2:
-        return Text(
-          'You can always change this later',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12.sp,
-            color: OnboardingScaffold.textMuted,
-          ),
-        );
-      case 3:
         return TextButton(
           onPressed: () {
             setState(() => _cycleSkipped = true);
-            _animateTo(_pHealth);
+            _nextPage();
           },
           child: Text(
-            'Skip, not tracking my cycle',
+            'Skip — not tracking cycle',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 13.sp,
@@ -746,9 +668,9 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
             ),
           ),
         );
-      case 4:
+      case 3:
         return const SizedBox.shrink();
-      case 5:
+      case 4:
         return Text(
           'You can change notification times anytime in Settings',
           style: TextStyle(
@@ -772,12 +694,10 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
       case 1:
         return _buildBodyMetricsPage();
       case 2:
-        return _buildLifeStagePage();
-      case 3:
         return _buildCyclePage();
-      case 4:
+      case 3:
         return _buildHealthConditionsPage();
-      case 5:
+      case 4:
         return _buildTimePreferencePage();
       default:
         return _buildGoalPage();
@@ -993,93 +913,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
   }
 
   // ════════════════════════════════════════════════════════
-  // ── PAGE 3: LIFE STAGE ("Which of these fits you right now?")
-  // ════════════════════════════════════════════════════════
-  Widget _buildLifeStagePage() {
-    return _buildPageLayout(
-      questionLine1: 'Which of these',
-      questionLine2: 'fits you right now?',
-      subtitle: 'This helps us keep your meals\nand workouts safe for you',
-      content: Column(
-        children: kLifeStageOptions.map((opt) {
-          final isSelected = _lifeStage == opt.value;
-          return Padding(
-            padding: EdgeInsets.only(bottom: 12.h),
-            child: GestureDetector(
-              onTap: () => setState(() => _lifeStage = opt.value),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
-                decoration: BoxDecoration(
-                  color: isSelected ? OnboardingScaffold.optionSelectedBg : OnboardingScaffold.optionBg,
-                  borderRadius: BorderRadius.circular(18.r),
-                  border: Border.all(
-                    color: isSelected ? OnboardingScaffold.green : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Text(opt.emoji, style: TextStyle(fontSize: 26.sp)),
-                    SizedBox(width: 14.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            opt.title,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: OnboardingScaffold.textDark,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            opt.subtitle,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w300,
-                              color: OnboardingScaffold.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 24.w,
-                      height: 24.w,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected ? OnboardingScaffold.green : Colors.transparent,
-                        border: Border.all(
-                          color: isSelected ? OnboardingScaffold.green : OnboardingScaffold.radioBorder,
-                          width: 2,
-                        ),
-                      ),
-                      child: isSelected
-                          ? Center(
-                              child: CustomPaint(
-                                size: Size(12.w, 12.w),
-                                painter: _CheckPainter(),
-                              ),
-                            )
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════════════════════
-  // ── PAGE 4: CYCLE TRACKING
+  // ── PAGE 3: CYCLE TRACKING
   // ════════════════════════════════════════════════════════
   Widget _buildCyclePage() {
     return _buildPageLayout(
@@ -1264,7 +1098,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
   }
 
   // ════════════════════════════════════════════════════════
-  // ── PAGE 5: HEALTH CONDITIONS
+  // ── PAGE 4: HEALTH CONDITIONS
   // ════════════════════════════════════════════════════════
   Widget _buildHealthConditionsPage() {
     return _buildPageLayout(
@@ -1368,7 +1202,7 @@ class _SignUpScreenQuestionsState extends State<SignUpScreenQuestions> {
   }
 
   // ════════════════════════════════════════════════════════
-  // ── PAGE 6: TIME PREFERENCE & FINISH
+  // ── PAGE 5: TIME PREFERENCE & FINISH
   // ════════════════════════════════════════════════════════
   Widget _buildTimePreferencePage() {
     return _buildPageLayout(

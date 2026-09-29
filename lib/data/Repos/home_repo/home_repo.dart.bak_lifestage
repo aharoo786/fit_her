@@ -523,13 +523,6 @@ class HomeRepo extends GetxService {
     });
   }
 
-  // Dietitian marks that the client never joined her consultation.
-  Future<Response> reportClientNoShow(
-      {required String accessToken, required String id}) async {
-    return await apiProvider.postData("/appointment/$id/client-no-show",
-        body: {}, headers: {"accessToken": accessToken});
-  }
-
   Future<Response> validateTrialToken({required String token}) async {
     return await apiProvider.postData(
       Constants.trialValidateToken,
@@ -891,25 +884,6 @@ class HomeRepo extends GetxService {
   /// PUT /users/pre-consultation". The method name + doc-comment
   /// always said PATCH; the impl drifted before patchData existed on
   /// ApiProvider (added in Phase E.1).
-  /// Signup step 5 answer and the "recently had a baby" access check.
-  Future<Response> getLifeStage({required String accessToken}) async {
-    return await apiProvider.getData(
-      '${Constants.preConsultationProfile}/life-stage',
-      headers: {"accessToken": accessToken},
-    );
-  }
-
-  Future<Response> saveLifeStage({
-    required String accessToken,
-    required Map<String, dynamic> body,
-  }) async {
-    return await apiProvider.postData(
-      '${Constants.preConsultationProfile}/life-stage',
-      body: body,
-      headers: {"accessToken": accessToken},
-    );
-  }
-
   Future<Response> patchPreConsultationProfile({
     required String accessToken,
     required Map<String, dynamic> body,

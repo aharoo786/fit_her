@@ -1172,7 +1172,14 @@ class HomeController extends GetxController implements GetxService {
                   Get.find<AuthController>().logInUser = model.data;
                   Get.find<AuthController>().addLocalStorage(model.data!, password);
                   // getPlans();
-                  Get.offAll(() => const SignUpScreenQuestions());
+                  Get.offAll(() => GoalScreen(
+                    onNext: (goal) {
+                      // Use Get.to (not Get.off) so GoalScreen stays in the
+                      // stack. This lets the back arrow on AgeScreen pop
+                      // SignUpScreenQuestions and land on GoalScreen correctly.
+                      Get.to(() => SignUpScreenQuestions(selectedGoal: goal));
+                    },
+                  ));
                 }
                 clearyControllers();
               }
@@ -2022,13 +2029,6 @@ class HomeController extends GetxController implements GetxService {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             sharedPreferences.setString(Constants.trialToken, token);
             trialJourney = response.body["data"]?["journey"];
-            // Trial length from the server even before she starts one,
-            // so "Start your N-day free trial" is right from day zero.
-            final days = int.tryParse('${response.body["data"]?["trialDays"] ?? ''}');
-            if (days != null && days > 0) {
-              trialDays.value = days;
-              sharedPreferences.setInt(_kTrialDaysKey, days);
-            }
         _syncTrialRx();
             isValid = true;
             if (showToastOnSuccess) {
@@ -2158,13 +2158,6 @@ class HomeController extends GetxController implements GetxService {
             .then((response) async {
           if (response.statusCode == 200 && response.body["status"] == "1") {
             trialJourney = response.body["data"]?["journey"];
-            // Trial length from the server even before she starts one,
-            // so "Start your N-day free trial" is right from day zero.
-            final days = int.tryParse('${response.body["data"]?["trialDays"] ?? ''}');
-            if (days != null && days > 0) {
-              trialDays.value = days;
-              sharedPreferences.setInt(_kTrialDaysKey, days);
-            }
         _syncTrialRx();
 
             // Sync the local trialActivated flag with server truth so the

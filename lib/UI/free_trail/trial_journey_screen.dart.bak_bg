@@ -10,7 +10,6 @@ import 'package:fitness_zone_2/widgets/toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import '../../widgets/trial_page_background.dart';
 
 /// "My trial" screen. No booking and no Day 1/2/3 ladder any more:
 ///   * days left
@@ -73,8 +72,8 @@ class _TrialJourneyScreenState extends State<TrialJourneyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return TrialPageBackground(child: Scaffold(
-      backgroundColor: Colors.transparent,
+    return Scaffold(
+      backgroundColor: _kBg,
       body: SafeArea(
         child: Obx(() {
           if (!homeController.trialLoad.value) {
@@ -135,7 +134,7 @@ class _TrialJourneyScreenState extends State<TrialJourneyScreen> {
           );
         }),
       ),
-    ));
+    );
   }
 
   Widget _header() {

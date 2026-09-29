@@ -8,7 +8,6 @@ import '../../data/models/diet_plan_v2/diet_plan_v2_models.dart';
 import '../../widgets/v2/v2_today_meals_section.dart';
 import '../dashboard_module/bottom_bar_screen/bottom_bar_screen.dart';
 import 'trial_journey_screen.dart';
-import '../../widgets/trial_page_background.dart';
 
 /// First screen after the trial onboarding: "your plan is ready".
 ///
@@ -59,8 +58,8 @@ class _TrialMealPlanScreenState extends State<TrialMealPlanScreen> {
         _goHome();
         return false;
       },
-      child: TrialPageBackground(child: Scaffold(
-        backgroundColor: Colors.transparent,
+      child: Scaffold(
+        backgroundColor: _kBg,
         body: Obx(() {
           final plan = _plans.activePlan.value;
           return CustomScrollView(
@@ -118,7 +117,7 @@ class _TrialMealPlanScreenState extends State<TrialMealPlanScreen> {
             ],
           );
         }),
-      )),
+      ),
     );
   }
 
