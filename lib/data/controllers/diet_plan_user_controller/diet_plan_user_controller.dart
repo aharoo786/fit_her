@@ -26,6 +26,8 @@ class DietPlanUserController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isRefreshing = false.obs;
   final RxnString errorMessage = RxnString();
+  DateTime? _lastPlanFetch;
+  static const Duration _planTtl = Duration(minutes: 5);
 
   // ─── Phase F.3 — booking-context state ─────────────────────────────────
 
@@ -111,6 +113,14 @@ class DietPlanUserController extends GetxController {
   }
 
   Future<void> loadActivePlan({bool refresh = false}) async {
+    final now = DateTime.now();
+    final isFresh = _lastPlanFetch != null &&
+        now.difference(_lastPlanFetch!) < _planTtl;
+
+    if (!refresh && activePlan.value != null && isFresh) {
+      return;
+    }
+
     if (refresh) {
       isRefreshing.value = true;
     } else {
@@ -128,6 +138,7 @@ class DietPlanUserController extends GetxController {
       ]);
       activePlan.value = results[0] as DietPlanV2?;
       _seedLogsFromFetch(results[1] as List<MealLogV2>);
+      _lastPlanFetch = DateTime.now();
     } on DietPlanApiException catch (e) {
       errorMessage.value = e.message;
     } catch (_) {

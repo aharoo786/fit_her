@@ -176,6 +176,8 @@ class HomeController extends GetxController implements GetxService {
   GetTrainerHome? getTrainerHome;
   GetDietitianUsers? getDietitianUsers;
   UserHomeData? userHomeData;
+  DateTime? _lastUserHomeFetched;
+  static const Duration _userHomeTtl = Duration(minutes: 3);
   GetWeeklyReportsModel? getWeeklyReportsModel;
 
   var team = [MyImgs.team1, MyImgs.team2, MyImgs.team3, MyImgs.team4];
@@ -1060,12 +1062,23 @@ class HomeController extends GetxController implements GetxService {
     });
   }
 
-  getUserHomeFunc({bool isFromFree = false}) {
-    userHomeLoad.value = false;
+  getUserHomeFunc({bool isFromFree = false, bool silent = false, bool forceRefresh = false}) {
+    final now = DateTime.now();
+    final isFresh = _lastUserHomeFetched != null &&
+        now.difference(_lastUserHomeFetched!) < _userHomeTtl;
+
+    if (!forceRefresh && !silent && userHomeData != null && isFresh) {
+      userHomeLoad.value = true;
+      return;
+    }
+
+    if (userHomeData == null && !silent) {
+      userHomeLoad.value = false;
+    }
 
     connectionService.checkConnection().then((value) async {
       if (!value) {
-        CustomToast.noInternetToast();
+        if (!silent) CustomToast.noInternetToast();
       } else {
         // Get.dialog(const Center(child: CircularProgressIndicator()),
         //     barrierDismissible: false);
@@ -1079,11 +1092,12 @@ class HomeController extends GetxController implements GetxService {
             .then((response) async {
           // Get.back();
           if (response.body["status"] == "0") {
-            CustomToast.failToast(msg: response.body["message"]);
+            if (!silent) CustomToast.failToast(msg: response.body["message"]);
           } else if (response.body["status"] != "0") {
             ApiResponse<UserHomeData> model = ApiResponse.fromJson(response.body, UserHomeData.fromJson);
             if (model.status == "1") {
               userHomeData = model.data!;
+              _lastUserHomeFetched = DateTime.now();
               userHomeLoad.value = true;
               if (userHomeData!.userAllPlans.isEmpty) {
                 upComingClassNotifier.value = null;

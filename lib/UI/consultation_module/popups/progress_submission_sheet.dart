@@ -51,9 +51,7 @@ class ProgressSubmissionSheet extends StatefulWidget {
   }) {
     return V2BottomSheet.show(
       title: cycle == 15 ? 'Day 15 progress' : 'Day 30 progress',
-      // Soft-block: drag-down disabled, no close button. Submitting or
-      // tapping the Save Draft + later re-fetch is the only exit.
-      dismissible: false,
+      dismissible: true,
       child: ProgressSubmissionSheet(
         planType: planType,
         userPlanId: userPlanId,
@@ -610,6 +608,26 @@ class _ProgressSubmissionSheetState extends State<ProgressSubmissionSheet> {
           busy: _busy,
           onPressed: _canSubmit ? _submit : null,
         ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton(
+            onPressed: () => Get.back<dynamic>(),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              foregroundColor: const Color(0xFF7A8C78),
+            ),
+            child: const Text(
+              'Maybe Later',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF7A8C78),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
       ],
     );
   }

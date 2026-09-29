@@ -49,11 +49,28 @@ class WorkOutController extends GetxController implements GetxService {
   GetUserWorkoutPlanDetails? getUserWorkoutPlanDetailsPlan;
   GetUserWorkoutPlanDetails? getTrainerHome;
 
-  getWorkoutAllPlansFunc({bool isFree = false}) {
-    workOutOfUserLoad.value = false;
+  DateTime? _lastWorkoutAllPlansFetched;
+  DateTime? _lastDietPlanDetailsFetched;
+  String? _lastDietPlanDetailsId;
+  static const Duration _workoutPlansTtl = Duration(minutes: 5);
+  static const Duration _planDetailsTtl = Duration(minutes: 3);
+
+  getWorkoutAllPlansFunc({bool isFree = false, bool silent = false, bool forceRefresh = false}) {
+    final now = DateTime.now();
+    final isFresh = _lastWorkoutAllPlansFetched != null &&
+        now.difference(_lastWorkoutAllPlansFetched!) < _workoutPlansTtl;
+
+    if (!forceRefresh && workoutPlans != null && isFresh) {
+      workOutOfUserLoad.value = true;
+      return;
+    }
+
+    if (workoutPlans == null && !silent) {
+      workOutOfUserLoad.value = false;
+    }
     connectionService.checkConnection().then((value) async {
       if (!value) {
-        CustomToast.noInternetToast();
+        if (!silent) CustomToast.noInternetToast();
       } else {
         homeRepo
             .getUserPlansWorkout(
@@ -69,6 +86,7 @@ class WorkOutController extends GetxController implements GetxService {
                 ApiResponse.fromJson(response.body, AllPlanModel.fromJson);
             if (model.status == "1") {
               workoutPlans = model.data;
+              _lastWorkoutAllPlansFetched = DateTime.now();
               workOutOfUserLoad.value = true;
               print(
                   'WorkOutController.getWorkoutAllPlansFunc ${(workoutPlans?.plans.isNotEmpty)}');
@@ -95,7 +113,18 @@ class WorkOutController extends GetxController implements GetxService {
     String id, {
     bool showSlots = false,
     bool silent = false,
+    bool forceRefresh = false,
   }) async {
+    final now = DateTime.now();
+    final isFresh = _lastDietPlanDetailsFetched != null &&
+        _lastDietPlanDetailsId == id &&
+        now.difference(_lastDietPlanDetailsFetched!) < _planDetailsTtl;
+
+    if (!forceRefresh && !silent && getUserWorkoutPlanDetailsPlan != null && isFresh) {
+      workOutPlanDetailsLoad.value = true;
+      return true;
+    }
+
     print(
         'WorkOutController.getDietPlanDetailsFunc${silent ? ' (silent)' : ''}');
     if (!silent) workOutPlanDetailsLoad.value = false;
@@ -121,6 +150,8 @@ class WorkOutController extends GetxController implements GetxService {
       );
       if (model.status != "1") return false;
       getUserWorkoutPlanDetailsPlan = model.data;
+      _lastDietPlanDetailsFetched = DateTime.now();
+      _lastDietPlanDetailsId = id;
       if (showSlots) {
         final nowAtServer = AppClock.now();
         final today = DateFormat('EEEE').format(nowAtServer);

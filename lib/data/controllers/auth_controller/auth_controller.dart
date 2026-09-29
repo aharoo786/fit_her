@@ -245,9 +245,15 @@ class AuthController extends GetxController implements GetxService {
     sharedPreferences.setBool(Constants.useNewPaidHomeKey, model.useNewPaidHome);
     sharedPreferences.setBool(Constants.useNewUnpaidHomeKey, model.useNewUnpaidHome);
     sharedPreferences.setBool(Constants.useNewProgressHubKey, model.useNewProgressHub);
-    // Phase F.3 — persist the IANA zone so the very-first DietPlanUser
-    // load on cold-start uses the right zone instead of falling back
-    // to device-local. TimezoneSyncService keeps it fresh post-login.
+    if (model.phone.isNotEmpty) {
+      sharedPreferences.setString(Constants.userMobileNumber, model.phone);
+    }
+    if ((model.mainGoal ?? '').isNotEmpty) {
+      sharedPreferences.setString('cached_main_goal', model.mainGoal!);
+    }
+    if ((model.healthConditions ?? '').isNotEmpty) {
+      sharedPreferences.setString('cached_health_conditions', model.healthConditions!);
+    }
     sharedPreferences.setString(Constants.userTimeZoneKey, model.timeZone);
     // Kick the sync service. Idempotent — safe to call after every
     // login (Email/Password, Google, Apple, etc.).
@@ -607,8 +613,14 @@ class AuthController extends GetxController implements GetxService {
       editAge.text = logInUser?.age ?? "";
       editWeight.text = logInUser?.weight ?? "";
       editHeight.text = logInUser?.height ?? "";
-      mainGoal.value = logInUser?.mainGoal ?? "";
-      healthConditions.value = logInUser?.healthConditions ?? "";
+      final goal = (logInUser?.mainGoal != null && logInUser!.mainGoal!.isNotEmpty)
+          ? logInUser!.mainGoal!
+          : (sharedPreferences.getString('cached_main_goal') ?? "");
+      mainGoal.value = goal;
+      final conditions = (logInUser?.healthConditions != null && logInUser!.healthConditions!.isNotEmpty)
+          ? logInUser!.healthConditions!
+          : (sharedPreferences.getString('cached_health_conditions') ?? "");
+      healthConditions.value = conditions;
     }
     Get.find<HomeController>().getUserHomeFunc();
     // Time-preference onboarding is only relevant for regular Users —

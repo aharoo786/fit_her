@@ -15,6 +15,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../data/controllers/cycle_theme_controller/cycle_theme_controller.dart';
 import '../../../data/controllers/home_controller/home_controller.dart';
+import '../../../data/controllers/workout_controller/work_out_controller.dart';
 import '../../../values/constants.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
@@ -42,10 +43,12 @@ class BottomBarScreen extends StatefulWidget {
 
 class _BottomBarScreenState extends State<BottomBarScreen> {
   late List<Widget> _widgetOption = [];
+  final Set<int> _activatedTabs = {};
   AuthController authController = Get.find();
   @override
   void initState() {
     super.initState();
+    _activatedTabs.add(widget.index ?? 0);
     // Register SocketController here so any tab (especially FeedScreen) can
     // safely call Get.find<SocketController>() regardless of visit order.
     // Admin has no FeedScreen tab, but registering early is harmless.
@@ -57,6 +60,9 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
         final homeController = Get.find<HomeController>();
         homeController.getPlansUser();
         homeController.getMyTrialJourney();
+        if (Get.isRegistered<WorkOutController>()) {
+          Get.find<WorkOutController>().getWorkoutAllPlansFunc(silent: true);
+        }
       }
       authController.showDot.value =
           authController.sharedPreferences.getBool("showDot") ?? false;
@@ -231,7 +237,15 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
       backgroundColor: MyColors.primaryColor,
       key: scaffoldKey,
       resizeToAvoidBottomInset: true,
-      body: _widgetOption.elementAt(widget.index!),
+      body: IndexedStack(
+        index: widget.index!,
+        children: List.generate(_widgetOption.length, (i) {
+          if (_activatedTabs.contains(i)) {
+            return _widgetOption[i];
+          }
+          return const SizedBox.shrink();
+        }),
+      ),
       // WhatsApp floating button removed (kept clean home).
       bottomNavigationBar: Get.find<AuthController>().loginAsA.value ==
               Constants.user
@@ -282,6 +296,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
           }
           setState(() {
             widget.index = value;
+            _activatedTabs.add(value);
           });
         },
       ),
@@ -466,6 +481,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
             onTap: (value) async {
               setState(() {
                 widget.index = value;
+                _activatedTabs.add(value);
               });
             },
           ),
